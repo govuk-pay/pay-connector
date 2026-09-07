@@ -350,7 +350,7 @@
         <dependency>
             <groupId>com.adyen</groupId>
             <artifactId>adyen-java-api-library</artifactId>
-            <version>43.0.0</version>
+            <version>43.1.0</version>
         </dependency>
 
         <!-- Test dependencies that are imported from one of the BOMs specified
@@ -512,7 +512,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.15.0</version>
+                <version>3.16.0</version>
                 <configuration>
                     <release>25</release>
                 </configuration>
@@ -580,7 +580,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.5.6</version>
+                <version>3.6.0</version>
                 <executions>
                     <execution>
                         <goals>
