@@ -1,6 +1,9 @@
 package uk.gov.pay.connector.gateway.adyen.webhook;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenEnvironment;
@@ -13,10 +16,21 @@ import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenEnvironment.
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenEnvironment.TEST;
 
 public class AdyenWebhookNotificationParser {
-
+    private final ObjectMapper objectMapper;
     private static final Logger LOGGER = LoggerFactory.getLogger(AdyenWebhookNotificationParser.class);
 
-    public AdyenWebhookNotification parse(JsonNode root) {
+    @Inject
+    public AdyenWebhookNotificationParser(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
+
+    public AdyenWebhookNotification parse(String rawPayload) {
+        JsonNode root;
+        try {
+            root = objectMapper.readTree(rawPayload);
+        } catch (JsonProcessingException _) {
+            throw new UnparseableAdyenWebhookException("Failed to parse Adyen notification from raw payload");
+        }
         if (root.has("notificationItems")) {
             return processNotificationItem(root);
         }
