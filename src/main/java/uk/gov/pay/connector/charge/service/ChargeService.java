@@ -1408,7 +1408,7 @@ public class ChargeService {
 
 
     private void checkToSavePaymentInstrument(Map<String, String> recurringAuthToken, ChargeEntity charge, ChargeStatus newStatus) {
-        if (charge.isSavePaymentInstrumentToAgreement() && AUTHORISATION_SUCCESS.equals(newStatus)) {
+        if (charge.isSavePaymentInstrumentToAgreement()) {
             Optional.ofNullable(recurringAuthToken)
                     .ifPresentOrElse(
                             token -> setPaymentInstrument(token, charge),
