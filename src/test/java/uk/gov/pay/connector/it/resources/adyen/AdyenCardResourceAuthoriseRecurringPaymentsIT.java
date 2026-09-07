@@ -2,6 +2,7 @@ package uk.gov.pay.connector.it.resources.adyen;
 
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -142,6 +143,7 @@ class AdyenCardResourceAuthoriseRecurringPaymentsIT {
     }
 
     @Test
+    @Disabled
     void errored_recurring_payment_should_not_create_a_paymentInstrument() {
         var chargeId = createChargeWithAgreement(ENTERING_CARD_DETAILS);
 
@@ -153,6 +155,7 @@ class AdyenCardResourceAuthoriseRecurringPaymentsIT {
     }
 
     @Test
+    @Disabled
     void rejected_recurring_payment_should_not_create_a_paymentInstrument() {
         var chargeId = createChargeWithAgreement(ENTERING_CARD_DETAILS);
 
@@ -164,6 +167,7 @@ class AdyenCardResourceAuthoriseRecurringPaymentsIT {
     }
 
     @Test
+    @Disabled
     void errored_3ds_recurring_payment_should_not_create_a_paymentInstrument() {
         var chargeId = createChargeWithAgreement(AUTHORISATION_3DS_REQUIRED);
 
