@@ -877,7 +877,9 @@ public class ChargeService {
             }
             charge.setCardDetails(detailsEntity);
 
-            checkToSavePaymentInstrument(recurringAuthToken, charge, newStatus);
+            if (charge.isSavePaymentInstrumentToAgreement()) {
+                Optional.ofNullable(recurringAuthToken).ifPresent(token -> setPaymentInstrument(token, charge));
+            }
 
             if (newStatus == AUTHORISATION_SUCCESS || newStatus == AUTHORISATION_REJECTED) {
                 if (!Boolean.TRUE.equals(charge.getRequires3ds())) {
@@ -920,7 +922,9 @@ public class ChargeService {
                 Optional.ofNullable(auth3dsRequiredDetails).ifPresent(charge::set3dsRequiredDetails);
                 Optional.ofNullable(sessionIdentifier).map(ProviderSessionIdentifier::toString).ifPresent(charge::setProviderSessionId);
 
-                checkToSavePaymentInstrument(recurringAuthToken, charge, newStatus);
+                if (charge.isSavePaymentInstrumentToAgreement()) {
+                    Optional.ofNullable(recurringAuthToken).ifPresent(token -> setPaymentInstrument(token, charge));
+                }
 
                 Optional.ofNullable(gatewayRejectionReason).ifPresent(charge::setGatewayRejectionReason);
             } catch (InvalidStateTransitionException e) {
@@ -1404,19 +1408,6 @@ public class ChargeService {
         return uriInfo.getBaseUriBuilder()
                 .path(path)
                 .build(chargeId);
-    }
-
-
-    private void checkToSavePaymentInstrument(Map<String, String> recurringAuthToken, ChargeEntity charge, ChargeStatus newStatus) {
-        if (charge.isSavePaymentInstrumentToAgreement()) {
-            Optional.ofNullable(recurringAuthToken)
-                    .ifPresentOrElse(
-                            token -> setPaymentInstrument(token, charge),
-                            () -> Optional.ofNullable(charge.getPaymentProvider())
-                                    .filter(ADYEN.getName()::equals)
-                                    .ifPresent(provider -> setPaymentInstrument(Map.of(), charge))
-                    );
-        }
     }
 
 }

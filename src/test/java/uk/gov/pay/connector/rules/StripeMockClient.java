@@ -29,6 +29,7 @@ import static uk.gov.pay.connector.util.TestTemplateResourceLoader.STRIPE_PAYMEN
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.STRIPE_PAYMENT_INTENT_CAPTURE_SUCCESS_RESPONSE;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.STRIPE_PAYMENT_INTENT_ERROR_RESPONSE;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.STRIPE_PAYMENT_INTENT_REQUIRES_3DS_RESPONSE;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.STRIPE_PAYMENT_INTENT_REQUIRES_3DS_RESPONSE_WITH_CUSTOMER;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.STRIPE_PAYMENT_INTENT_SUCCESS_RESPONSE;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.STRIPE_PAYMENT_INTENT_SUCCESS_RESPONSE_WITH_CUSTOMER;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.STRIPE_PAYMENT_METHOD_SUCCESS_RESPONSE;
@@ -144,6 +145,11 @@ public class StripeMockClient {
         setupResponse(payload, "/v1/payment_intents", 200);
     }
 
+    public void mockCreatePaymentIntentRequiring3DSWithCustomer() {
+        String payload = TestTemplateResourceLoader.load(STRIPE_PAYMENT_INTENT_REQUIRES_3DS_RESPONSE_WITH_CUSTOMER);
+        setupResponse(payload, "/v1/payment_intents", 200);
+    }
+    
     public void mockCreatePaymentMethod() {
         String payload = TestTemplateResourceLoader.load(STRIPE_PAYMENT_METHOD_SUCCESS_RESPONSE);
         setupResponse(payload, "/v1/payment_methods", 200);

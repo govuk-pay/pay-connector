@@ -108,6 +108,7 @@ public class TestTemplateResourceLoader {
     public static final String STRIPE_PAYMENT_INTENT_SUCCESS_RESPONSE_WITH_CHARGE = TEMPLATE_BASE_NAME + "/stripe/create_payment_intent_success_response_with_charge.json";
     public static final String STRIPE_PAYMENT_INTENT_SUCCESS_RESPONSE_WITH_CUSTOMER = TEMPLATE_BASE_NAME + "/stripe/create_payment_intent_success_response_with_customer.json";
     public static final String STRIPE_PAYMENT_INTENT_REQUIRES_3DS_RESPONSE = TEMPLATE_BASE_NAME + "/stripe/create_payment_intent_requires_3ds_response.json";
+    public static final String STRIPE_PAYMENT_INTENT_REQUIRES_3DS_RESPONSE_WITH_CUSTOMER = TEMPLATE_BASE_NAME + "/stripe/create_payment_intent_requires_3ds_response_with_customer.json";
     public static final String STRIPE_PAYMENT_INTENT_AUTHORISATION_REJECTED_RESPONSE = TEMPLATE_BASE_NAME + "/stripe/create_payment_intent_authorisation_rejected_response.json";
     public static final String STRIPE_PAYMENT_INTENT_AUTHORISATION_REJECTED_NO_RETRY_RESPONSE = TEMPLATE_BASE_NAME + "/stripe/create_payment_intent_authorisation_rejected_no_retry_response.json";
     public static final String STRIPE_PAYMENT_INTENT_ERROR_RESPONSE = TEMPLATE_BASE_NAME + "/stripe/create_payment_intent_error_response.json";
