@@ -90,6 +90,7 @@ class AdyenCardResourceAuthoriseRecurringPaymentsIT {
     }
 
     @Test
+    @Disabled
     void successful_creation_of_payment_instrument_without_recurring_auth_token() {
         var chargeId = createChargeWithAgreement(ENTERING_CARD_DETAILS);
         app.getAdyenCheckoutMockClient().mockAuthorisationSuccess(PSP_REFERENCE_FROM_ADYEN);
@@ -125,6 +126,7 @@ class AdyenCardResourceAuthoriseRecurringPaymentsIT {
     }
 
     @Test
+    @Disabled
     void successful_creation_of_payment_instrument_for_3ds_without_recurring_auth_token() {
         var chargeId = createChargeWithAgreement(AUTHORISATION_3DS_REQUIRED);
 

@@ -238,6 +238,41 @@ public class StripeCardResourceAuthoriseIT {
     }
 
     @Test
+    void authoriseChargeRequest3DSToSetUpRecurringPaymentAgreement() throws Exception {
+        app.getStripeMockClient().mockCreatePaymentMethod();
+        app.getStripeMockClient().mockCreateCustomer();
+        app.getStripeMockClient().mockCreatePaymentIntentRequiring3DSWithCustomer();
+        addGatewayAccountWith3DS2Enabled();
+
+        String agreementId = addAgreement();
+        String externalChargeId = addChargeWithAgreement(ENTERING_CARD_DETAILS, agreementId);
+
+        ValidatableResponse validatableResponse = given().port(app.getLocalPort())
+                .contentType(JSON)
+                .body(validAuthorisationDetails)
+                .post(testBaseExtension.authoriseChargeUrlFor(externalChargeId))
+                .then();
+
+        validatableResponse
+                .statusCode(OK_200)
+                .body("status", is(AUTHORISATION_3DS_REQUIRED.toString()));
+
+        app.getStripeWireMockServer().verify(postRequestedFor(urlEqualTo("/v1/payment_methods"))
+                .withHeader("Content-Type", equalTo(APPLICATION_FORM_URLENCODED)));
+
+        verifyPaymentMethodRequest();
+        verifyCustomerRequest();
+        verifyPaymentIntentRequest(externalChargeId, stripeAccountId);
+
+        Map<String, Object> paymentInstrument = databaseTestHelper.getPaymentInstrumentByChargeExternalId(externalChargeId.toString());
+        Map<String, String> recurringAuthTokenMap = mapper.readValue(paymentInstrument.get("recurring_auth_token").toString(), new TypeReference<Map<String, String>>() {
+        });
+
+        assertThat(recurringAuthTokenMap, hasKey(STRIPE_RECURRING_AUTH_TOKEN_CUSTOMER_ID_KEY));
+        assertThat(recurringAuthTokenMap, hasKey(STRIPE_RECURRING_AUTH_TOKEN_PAYMENT_METHOD_ID_KEY));
+    }
+
+    @Test
     void shouldRespondAs3dsRequired_whenAuthorisationRequires3ds() {
         addGatewayAccount();
         app.getStripeMockClient().mockCreatePaymentMethod();
