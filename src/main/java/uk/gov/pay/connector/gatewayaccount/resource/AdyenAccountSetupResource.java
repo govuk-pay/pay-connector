@@ -59,25 +59,22 @@ public class AdyenAccountSetupResource {
                                               "credential_external_id": "46eb1b601348499196c99de90482ee68",
                                               "gateway_account_id": 123,
                                               "tasks": {
-                                                       "bank_account": {
+                                                       "organisation_details": {
                                                          "status": "COMPLETED"
                                                        },
-                                                       "director": {
+                                                       "legal_terms": {
+                                                         "status": "COMPLETED"
+                                                       },
+                                                       "bank_details": {
                                                          "status": "COMPLETED"
                                                        },
                                                        "responsible_person": {
                                                          "status": "COMPLETED"
                                                        },
-                                                       "vat_number": {
+                                                       "director": {
                                                          "status": "COMPLETED"
                                                        },
-                                                       "company_number": {
-                                                         "status": "COMPLETED"
-                                                       },
-                                                       "government_entity_document": {
-                                                         "status": "COMPLETED"
-                                                       },
-                                                       "organisation_details": {
+                                                       "reason_for_taking_payments": {
                                                          "status": "COMPLETED"
                                                        }
                                                      }
@@ -114,7 +111,7 @@ public class AdyenAccountSetupResource {
                                             [
                                               {
                                                 "op": "replace",
-                                                "path": "bank_account",
+                                                "path": "bank_details",
                                                 "value": "COMPLETED"
                                               },
                                               {

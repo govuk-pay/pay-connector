@@ -14,8 +14,8 @@ public record AdyenSetupPatchRequest(
 
         @Valid
         @AllowedStrings(
-                allowed = { "bank_account", "responsible_person", "vat_number", "company_number", "director", "government_entity_document", "organisation_details" },
-                message = "The paths field must be one of: [bank_account, responsible_person, vat_number, company_number, director, government_entity_document, organisation_details]"
+                allowed = { "organisation_details", "legal_terms", "bank_details", "responsible_person", "director", "reason_for_taking_payments" },
+                message = "The paths field must be one of: [organisation_details, legal_terms, vat_number, bank_details, responsible_person, reason_for_taking_payments]"
         )
         String path,
 
