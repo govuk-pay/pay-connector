@@ -109,7 +109,7 @@ public class AdyenNotificationResourceIT {
 
         @Test
         void shouldHandleRecurringTokenNotification() {
-            String payload = TestTemplateResourceLoader.load(ADYEN_TOKEN_NOTIFICATION);
+            String payload = TestTemplateResourceLoader.load(ADYEN_TOKEN_NOTIFICATION).replace("{{environment}}", "test");
 
             given()
                     .port(app.getLocalPort())
@@ -124,7 +124,7 @@ public class AdyenNotificationResourceIT {
 
         @Test
         void shouldRejectNotificationWithInvalidHmacSignatureForRecurringTokenNotification() {
-            String payload = TestTemplateResourceLoader.load(ADYEN_TOKEN_NOTIFICATION);
+            String payload = TestTemplateResourceLoader.load(ADYEN_TOKEN_NOTIFICATION).replace("{{environment}}", "test");
 
             given()
                     .port(app.getLocalPort())

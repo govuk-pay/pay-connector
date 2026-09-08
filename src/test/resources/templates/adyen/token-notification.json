@@ -1,6 +1,6 @@
 {
   "createdAt": "2026-07-14T18:10:49+01:00",
-  "environment": "test",
+  "environment": "{{environment}}",
   "type": "recurring.token.created",
   "data": {
     "merchantAccount": "YOUR_MERCHANT_ACCOUNT",
