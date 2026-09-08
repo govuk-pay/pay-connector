@@ -23,6 +23,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
 import uk.gov.pay.connector.app.adyen.AdyenGatewayConfig;
+import uk.gov.pay.connector.app.adyen.HmacKeys;
+import uk.gov.pay.connector.app.adyen.WebhookHmacKeys;
+import uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookNotification;
 import uk.gov.pay.connector.gateway.exception.AdyenNotificationException;
 import uk.gov.pay.connector.util.IpDomainMatcher;
 import uk.gov.pay.connector.util.JsonObjectMapper;
@@ -40,7 +43,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenEnvironment.TEST;
+import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent.CAPTURE;
+import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent.RECURRING_TOKEN_CREATED;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_NOTIFICATION;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_TOKEN_NOTIFICATION;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.load;
 
 @ExtendWith(MockitoExtension.class)
 class AdyenNotificationValidatorTest {
@@ -62,12 +70,15 @@ class AdyenNotificationValidatorTest {
     @Mock
     HMACValidator hmacValidator;
 
+    @Mock
+    AdyenWebhookDeserialiser mockAdyenWebhookDeserialiser;
+
     public static final String NOTIFICATION_DOMAIN = "notification.adyen.com";
 
     @BeforeEach
     void setUp() {
         when(gatewayConfig.getNotificationDomain()).thenReturn(NOTIFICATION_DOMAIN);
-        adyenNotificationValidator = new AdyenNotificationValidator(gatewayConfig, ipDomainMatcher, hmacValidator);
+        adyenNotificationValidator = new AdyenNotificationValidator(gatewayConfig, ipDomainMatcher, hmacValidator, mockAdyenWebhookDeserialiser);
 
         Logger logger = (Logger) LoggerFactory.getLogger(AdyenNotificationValidator.class);
         logger.setLevel(Level.INFO);
@@ -129,12 +140,55 @@ class AdyenNotificationValidatorTest {
         private final String validHmacSignature = "44782DEF547AAA06C910C43932B1EB0C71FC68D9D0C057550C48EC2ACF6BA056"; // pragma: allowlist secret
         private final JsonObjectMapper mapper = new JsonObjectMapper(new ObjectMapper());
 
+        @ParameterizedTest
+        @ValueSource(strings = {"payments", "tokens"})
+        void shouldDelegateHmacValidationBasedOnUsesAdyenNotificationItemField(String notificationType) throws SignatureException {
+            var keyPair = new HmacKeys.WebhookHmacKeyPair(new WebhookHmacKeys("primaryTest", "secondaryTest"),
+                    new WebhookHmacKeys("primaryLive", "secondaryLive"));
+            var hmacKeys = notificationType.equals("payments") ? new HmacKeys(keyPair, null) : new HmacKeys(null, keyPair);
+            var event = notificationType.equals("payments") ? CAPTURE : RECURRING_TOKEN_CREATED;
+            var notification = new AdyenWebhookNotification(event, TEST, notificationType.equals("payments"));
+            var payload = load(notificationType.equals("payments") ? ADYEN_NOTIFICATION : ADYEN_TOKEN_NOTIFICATION);
+
+            when(gatewayConfig.getHmacKeys()).thenReturn(hmacKeys);
+            if (notificationType.equals("payments")) {
+                when(hmacValidator.validateHMAC(any(), any())).thenReturn(true);
+            } else {
+                when(hmacValidator.validateHMAC(any(), any(), any())).thenReturn(true);
+            }
+
+            var result = adyenNotificationValidator.validateHmacSignature(notification, payload, notificationType.equals("tokens") ? validHmacSignature : null);
+
+            assertTrue(result);
+        }
+
+        @Test
+        void shouldThrowExceptionWhenHmacSignatureFromHeaderIsMissing() {
+            var keys = new HmacKeys.WebhookHmacKeyPair(new WebhookHmacKeys("primaryTest", "secondaryTest"),
+                    new WebhookHmacKeys("primaryLive", "secondaryLive"));
+
+            when(gatewayConfig.getHmacKeys()).thenReturn(new HmacKeys(null, keys));
+            var notification = new AdyenWebhookNotification(RECURRING_TOKEN_CREATED, TEST, false);
+            
+            assertThrows(AdyenNotificationException.class, 
+                    ()-> adyenNotificationValidator.validateHmacSignature(notification, load(ADYEN_TOKEN_NOTIFICATION), ""));
+
+            verify(mockAppender, times(1)).doAppend(loggingEventCaptor.capture());
+
+            List<LoggingEvent> loggingEvents = loggingEventCaptor.getAllValues();
+            assertThat(loggingEvents
+                    .stream()
+                    .anyMatch(event -> event
+                            .getFormattedMessage()
+                            .equals("Hmac signature is missing, rejecting Adyen token notification")), is(true));
+            
+        }
+
         @Test
         void shouldReturnTrueForValidHmacSignature() throws SignatureException {
             when(hmacValidator.validateHMAC(any(), any())).thenReturn(true);
 
             var item = loadNotificationItem(validHmacSignature);
-
 
             var result = adyenNotificationValidator.isValidHmac(item, validHmacSignature);
             assertTrue(result);
@@ -192,7 +246,7 @@ class AdyenNotificationValidatorTest {
     class TestHmacValidationWithSignatureForTokens {
         private final String validHmacSignature = "44782DEF547AAA06C910C43932B1EB0C71FC68D9D0C057550C48EC2ACF6BA056"; // pragma: allowlist secret
         private final String hmacKey = "ValidHmacKey";
-        private final String payload = "Validpayload";
+        private final String payload = "ValidPayload";
 
         @Test
         void shouldReturnTrueForValidTokenSignature() throws SignatureException {
@@ -215,7 +269,7 @@ class AdyenNotificationValidatorTest {
             when(hmacValidator.validateHMAC(any(), any(), any())).thenThrow(IllegalArgumentException.class);
 
             assertThrows(AdyenNotificationException.class, () ->
-                    adyenNotificationValidator.isValidHmac("some signature", "some hmac key", 
+                    adyenNotificationValidator.isValidHmac("some signature", "some hmac key",
                             "some payload")
             );
 
