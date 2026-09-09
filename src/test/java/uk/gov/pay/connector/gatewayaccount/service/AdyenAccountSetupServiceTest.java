@@ -117,7 +117,7 @@ class AdyenAccountSetupServiceTest {
 
         @Test
         void shouldReturnAdyenAccountSetupWithSomeTasksCompleted() {
-            var bankAccountCompletedTaskEntity = anAdyenAccountSetupTaskEntityFixture()
+            var bankDetailsCompletedTaskEntity = anAdyenAccountSetupTaskEntityFixture()
                     .withGatewayAccount(testGatewayAccountEntity)
                     .withGatewayAccountCredential(adyenGatewayAccountCredentials)
                     .withTask(BANK_DETAILS)
@@ -132,7 +132,7 @@ class AdyenAccountSetupServiceTest {
                     .build();
 
             given(mockAdyenAccountSetupDao.findByGatewayAccountIdAndCredentialId(GATEWAY_ACCOUNT_ID, CREDENTIAL_ID))
-                    .willReturn(List.of(bankAccountCompletedTaskEntity, organisationDetailsCompletedTaskEntity));
+                    .willReturn(List.of(bankDetailsCompletedTaskEntity, organisationDetailsCompletedTaskEntity));
 
             AdyenAccountSetupResponse tasksWithStatus = adyenAccountSetupService.buildResponse(SERVICE_ID, GATEWAY_ACCOUNT_ID, adyenGatewayAccountCredentials);
 
@@ -153,7 +153,7 @@ class AdyenAccountSetupServiceTest {
     class UpdateAdyenAccountSetupTasks {
 
         @Test
-        void shouldUpdateBankAccountStatusIfTaskNotPresent() {
+        void shouldUpdateBankDetailsStatusIfTaskNotPresent() {
             given(mockAdyenAccountSetupDao.isTaskPresentForGatewayAccountAndCredentialId(GATEWAY_ACCOUNT_ID, CREDENTIAL_ID, BANK_DETAILS)).willReturn(false);
 
             AdyenAccountSetupUpdateRequest request = new AdyenAccountSetupUpdateRequest(BANK_DETAILS, COMPLETED);
@@ -169,7 +169,7 @@ class AdyenAccountSetupServiceTest {
         }
 
         @Test
-        void shouldUpdateBankAccountStatusIfTaskIsPresent() {
+        void shouldUpdateBankDetailsStatusIfTaskIsPresent() {
             given(mockAdyenAccountSetupDao.isTaskPresentForGatewayAccountAndCredentialId(GATEWAY_ACCOUNT_ID, CREDENTIAL_ID, BANK_DETAILS)).willReturn(true);
 
             AdyenAccountSetupUpdateRequest request = new AdyenAccountSetupUpdateRequest(BANK_DETAILS, NOT_STARTED);
