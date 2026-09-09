@@ -2,7 +2,6 @@ package uk.gov.pay.connector.it.resources.adyen;
 
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -90,7 +89,6 @@ class AdyenCardResourceAuthoriseRecurringPaymentsIT {
     }
 
     @Test
-    @Disabled
     void successful_creation_of_payment_instrument_without_recurring_auth_token() {
         var chargeId = createChargeWithAgreement(ENTERING_CARD_DETAILS);
         app.getAdyenCheckoutMockClient().mockAuthorisationSuccess(PSP_REFERENCE_FROM_ADYEN);
@@ -126,7 +124,6 @@ class AdyenCardResourceAuthoriseRecurringPaymentsIT {
     }
 
     @Test
-    @Disabled
     void successful_creation_of_payment_instrument_for_3ds_without_recurring_auth_token() {
         var chargeId = createChargeWithAgreement(AUTHORISATION_3DS_REQUIRED);
 
@@ -145,7 +142,6 @@ class AdyenCardResourceAuthoriseRecurringPaymentsIT {
     }
 
     @Test
-    @Disabled
     void errored_recurring_payment_should_not_create_a_paymentInstrument() {
         var chargeId = createChargeWithAgreement(ENTERING_CARD_DETAILS);
 
@@ -157,7 +153,6 @@ class AdyenCardResourceAuthoriseRecurringPaymentsIT {
     }
 
     @Test
-    @Disabled
     void rejected_recurring_payment_should_not_create_a_paymentInstrument() {
         var chargeId = createChargeWithAgreement(ENTERING_CARD_DETAILS);
 
@@ -169,7 +164,6 @@ class AdyenCardResourceAuthoriseRecurringPaymentsIT {
     }
 
     @Test
-    @Disabled
     void errored_3ds_recurring_payment_should_not_create_a_paymentInstrument() {
         var chargeId = createChargeWithAgreement(AUTHORISATION_3DS_REQUIRED);
 

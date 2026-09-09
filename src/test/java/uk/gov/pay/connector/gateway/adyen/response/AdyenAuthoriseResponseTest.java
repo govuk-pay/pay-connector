@@ -135,7 +135,7 @@ class AdyenAuthoriseResponseTest {
     }
 
     @Test
-    void should_set_get_gateway_recurring_auth_token_to_stored_payment_method_id() {
+    void should_return_gateway_recurring_auth_token_with_stored_payment_method_id() {
         var testStoredPaymentMethodId = "testStoredPaymentMethodId";
         var adyenPaymentResponse = anAdyenPaymentResponse()
                 .withAdditionalData(new AdditionalData(testStoredPaymentMethodId))
@@ -149,8 +149,22 @@ class AdyenAuthoriseResponseTest {
     }
 
     @Test
-    void should_set_get_gateway_recurring_auth_token_to_stored_payment_method_id_null() {
+    void should_return_empty_map_for_gateway_recurring_auth_token_when_authorisation_result_is_authorised() {
         var adyenPaymentResponse = anAdyenPaymentResponse()
+                .withResultCode("Authorised")
+                .build();
+
+        var adyenAuthoriseResponse = AdyenAuthoriseResponse.of(adyenPaymentResponse);
+
+        var gatewayRecurringAuthToken = adyenAuthoriseResponse.getGatewayRecurringAuthToken();
+        assertThat(gatewayRecurringAuthToken.isPresent(), is(true));
+        assertThat(gatewayRecurringAuthToken.get(), is(Map.of()));
+    }
+
+    @Test
+    void should_return_empty_optional_for_gateway_recurring_auth_token_when_authorisation_result_is_NOT_authorised() {
+        var adyenPaymentResponse = anAdyenPaymentResponse()
+                .withResultCode("Refused")
                 .build();
 
         var adyenAuthoriseResponse = AdyenAuthoriseResponse.of(adyenPaymentResponse);
