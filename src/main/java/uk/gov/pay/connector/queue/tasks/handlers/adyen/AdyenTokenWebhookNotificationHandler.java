@@ -12,8 +12,8 @@ import uk.gov.pay.connector.charge.service.LinkPaymentInstrumentToAgreementServi
 import uk.gov.pay.connector.client.ledger.service.LedgerService;
 import uk.gov.pay.connector.events.model.agreement.AgreementInactivated;
 import uk.gov.pay.connector.gateway.adyen.response.AdyenTokenNotification;
-import uk.gov.pay.connector.gateway.adyen.webhook.AdyenNotificationService;
 import uk.gov.pay.connector.gateway.adyen.webhook.AdyenTokenEvent;
+import uk.gov.pay.connector.gateway.adyen.webhook.AdyenWebhookDeserialiser;
 import uk.gov.pay.connector.paymentinstrument.dao.PaymentInstrumentDao;
 import uk.gov.pay.connector.paymentinstrument.model.PaymentInstrumentEntity;
 import uk.gov.pay.connector.paymentinstrument.model.PaymentInstrumentStatus;
@@ -38,29 +38,29 @@ public class AdyenTokenWebhookNotificationHandler {
     private final PaymentInstrumentDao paymentInstrumentDao;
     private final ChargeDao chargeDao;
     private final LinkPaymentInstrumentToAgreementService linkPaymentInstrumentToAgreementService;
-    private final AdyenNotificationService adyenNotificationService;
     private final AgreementDao agreementDao;
     private final LedgerService ledgerService;
+    private final AdyenWebhookDeserialiser adyenWebhookDeserialiser;
 
     @Inject
     public AdyenTokenWebhookNotificationHandler(PaymentInstrumentDao paymentInstrumentDao,
                                                 AgreementDao agreementDao,
                                                 ChargeDao chargeDao,
                                                 LinkPaymentInstrumentToAgreementService linkPaymentInstrumentToAgreementService,
-                                                AdyenNotificationService adyenNotificationService,
+                                                AdyenWebhookDeserialiser adyenWebhookDeserialiser,
                                                 LedgerService ledgerService) {
 
         this.paymentInstrumentDao = paymentInstrumentDao;
         this.agreementDao = agreementDao;
         this.chargeDao = chargeDao;
         this.linkPaymentInstrumentToAgreementService = linkPaymentInstrumentToAgreementService;
-        this.adyenNotificationService = adyenNotificationService;
+        this.adyenWebhookDeserialiser = adyenWebhookDeserialiser;
         this.ledgerService = ledgerService;
     }
 
     @Transactional
     public void process(String payload) {
-        AdyenTokenNotification notification = adyenNotificationService.deserialiseTokenPayload(payload, AdyenTokenNotification.class);
+        AdyenTokenNotification notification = adyenWebhookDeserialiser.deserialisePayload(payload, AdyenTokenNotification.class);
         String notificationType = notification.type();
 
         if (!AdyenTokenEvent.contains(notificationType)) {
@@ -175,7 +175,7 @@ public class AdyenTokenWebhookNotificationHandler {
                 .addKeyValue("PAYMENT_EXTERNAL_ID", webhookChargeExternalId)
                 .log();
     }
-    
+
     private static void logIgnoreWebhookBasedOnDuplicateStatus(PaymentInstrumentStatus
                                                                        paymentInstrumentStatus, String agreementExternalId, String paymentInstrumentExternalId) {
         LOGGER.atInfo().setMessage("Payment instrument is already in " + paymentInstrumentStatus + " state, ignoring Adyen token webhook")
