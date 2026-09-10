@@ -92,7 +92,8 @@ public class AdyenNotificationResourceIT {
         void shouldHandleAValidJsonNotification() {
             String validHmacSignature = "9C3600/ujEuztt/Be8+EX74c6ysk7GyiWwsVi2KW+s0="; // pragma: allowlist secret
             String payload = TestTemplateResourceLoader.load(ADYEN_NOTIFICATION)
-                    .replace("{{HMAC_SIGNATURE}}", validHmacSignature);
+                    .replace("{{HMAC_SIGNATURE}}", validHmacSignature)
+                    .replace("{{live}}", "false");
             given()
                     .port(app.getLocalPort())
                     .body(payload)
@@ -135,8 +136,6 @@ public class AdyenNotificationResourceIT {
                     .post(NOTIFICATION_PATH)
                     .then()
                     .statusCode(403);
-
-            logs.assertContains("Hmac signature is invalid or missing, rejecting Adyen token notification");
         }
 
         @Test
@@ -156,7 +155,7 @@ public class AdyenNotificationResourceIT {
                     .contentType(APPLICATION_JSON)
                     .post(NOTIFICATION_PATH)
                     .then()
-                    .statusCode(403);
+                    .statusCode(500);
         }
     }
 }

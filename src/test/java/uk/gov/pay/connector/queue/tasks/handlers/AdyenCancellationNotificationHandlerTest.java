@@ -1,6 +1,5 @@
 package uk.gov.pay.connector.queue.tasks.handlers;
 
-import com.adyen.model.notification.NotificationRequest;
 import com.adyen.model.notification.NotificationRequestItem;
 import io.github.netmikey.logunit.api.LogCapturer;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,7 +13,7 @@ import org.slf4j.event.KeyValuePair;
 import org.slf4j.event.Level;
 import uk.gov.pay.connector.charge.model.domain.Charge;
 import uk.gov.pay.connector.charge.model.domain.ChargeStatus;
-import uk.gov.pay.connector.gateway.adyen.webhook.AdyenNotificationService;
+import uk.gov.pay.connector.gateway.adyen.webhook.AdyenWebhookDeserialiser;
 import uk.gov.pay.connector.gateway.processor.ChargeNotificationProcessor;
 import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenCancellationNotificationHandler;
 
@@ -22,7 +21,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Date;
-import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.everyItem;
@@ -41,13 +39,10 @@ class AdyenCancellationNotificationHandlerTest {
     private ChargeNotificationProcessor mockChargeNotificationProcessor;
 
     @Mock
-    private AdyenNotificationService mockAdyenNotificationService;
+    private AdyenWebhookDeserialiser mockAdyenWebhookDeserialiser;
 
     @Mock
     private Charge mockCharge;
-
-    @Mock
-    NotificationRequest mockNotificationRequest;
 
     @Mock
     NotificationRequestItem mockNotificationItem;
@@ -72,10 +67,8 @@ class AdyenCancellationNotificationHandlerTest {
             "false,SYSTEM CANCEL SUBMITTED,SYSTEM CANCEL ERROR",
     })
     void shouldProcessCancelNotificationForConnectorCharge(Boolean success, String currentStatus, String expectedStatus) {
-        when(mockAdyenNotificationService.deserialisePayloadToNotificationRequest(payload))
-                .thenReturn(mockNotificationRequest);
-        when(mockAdyenNotificationService.extractNotificationItems(mockNotificationRequest))
-                .thenReturn(List.of(mockNotificationItem));
+        when(mockAdyenWebhookDeserialiser.deserialiseAndGetNotificationItem(payload))
+                .thenReturn(mockNotificationItem);
         when(mockNotificationItem.getOriginalReference()).thenReturn(gatewayTransactionId);
         when(mockNotificationItem.isSuccess()).thenReturn(success);
         when(mockNotificationItem.getEventDate()).thenReturn(eventDate);
@@ -83,12 +76,11 @@ class AdyenCancellationNotificationHandlerTest {
 
         when(mockCharge.isHistoric()).thenReturn(false);
 
-        NotificationRequest notificationRequest =
-                mockAdyenNotificationService.deserialisePayloadToNotificationRequest(payload);
+        NotificationRequestItem notificationRequestItem =
+                mockAdyenWebhookDeserialiser.deserialiseAndGetNotificationItem(payload);
 
-        NotificationRequestItem item = mockAdyenNotificationService.extractNotificationItems(notificationRequest).getFirst();
 
-        adyenCancellationNotificationHandler.process(item, mockCharge);
+        adyenCancellationNotificationHandler.process(notificationRequestItem, mockCharge);
 
         verify(mockChargeNotificationProcessor).invoke(gatewayTransactionId, mockCharge,
                 ChargeStatus.fromString(expectedStatus), ZonedDateTime.ofInstant(eventDate.toInstant(), ZoneId.of("UTC")));
@@ -100,24 +92,22 @@ class AdyenCancellationNotificationHandlerTest {
             "true,CAPTURE QUEUED"
     })
     void shouldIgnoreCancelNotificationAndLogWarningWhenInUnexpectedState(Boolean success, String currentStatus) {
-        when(mockAdyenNotificationService.deserialisePayloadToNotificationRequest(payload))
-                .thenReturn(mockNotificationRequest);
-        when(mockAdyenNotificationService.extractNotificationItems(mockNotificationRequest))
-                .thenReturn(List.of(mockNotificationItem));
+        when(mockAdyenWebhookDeserialiser.deserialiseAndGetNotificationItem(payload))
+                .thenReturn(mockNotificationItem);
         when(mockNotificationItem.getOriginalReference()).thenReturn(gatewayTransactionId);
         when(mockNotificationItem.isSuccess()).thenReturn(success);
         when(mockCharge.getStatus()).thenReturn(currentStatus);
         when(mockCharge.isHistoric()).thenReturn(false);
         when(mockCharge.getExternalId()).thenReturn("someId");
 
-        NotificationRequest notificationRequest =
-                mockAdyenNotificationService.deserialisePayloadToNotificationRequest(payload);
-        NotificationRequestItem item = mockAdyenNotificationService.extractNotificationItems(notificationRequest).getFirst();
+        NotificationRequestItem notificationRequestItem =
+                mockAdyenWebhookDeserialiser.deserialiseAndGetNotificationItem(payload);
 
-        adyenCancellationNotificationHandler.process(item, mockCharge);
+
+        adyenCancellationNotificationHandler.process(notificationRequestItem, mockCharge);
 
         verifyNoInteractions(mockChargeNotificationProcessor);
-        
+
         var loggingMessage = String.format("Charge is not in expected state for cancellation: %s", currentStatus);
         var loggingEvents = logs.getEvents();
         assertThat(loggingEvents, everyItem(hasProperty("level", is(Level.WARN))));
@@ -131,7 +121,7 @@ class AdyenCancellationNotificationHandlerTest {
                 new KeyValuePair(PAYMENT_EXTERNAL_ID, mockCharge.getExternalId()),
                 new KeyValuePair("gateway_transaction_id", gatewayTransactionId),
                 new KeyValuePair("status", currentStatus),
-                new KeyValuePair("success", item.isSuccess())));
+                new KeyValuePair("success", notificationRequestItem.isSuccess())));
     }
 }
 
