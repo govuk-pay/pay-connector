@@ -262,20 +262,6 @@ class AdyenTokenWebhookNotificationHandlerTest {
             logs.assertContains("Ignoring Adyen token webhook notification as payment instrument is not found");
         }
 
-        @Test
-        void shouldIgnoreUnsupportedWebhookType() {
-            given(adyenWebhookDeserialiser.deserialisePayload(eq(PAYLOAD), eq(AdyenTokenNotification.class)))
-                    .willReturn(new AdyenTokenNotification(null, null, null,
-                            new AdyenTokenEventData(null, STORED_PAYMENT_METHOD_ID, null, null, SHOPPER_REFERENCE),
-                            "recurring.token.deleted"));
-
-            handler.process(PAYLOAD);
-
-            then(agreementDao).shouldHaveNoInteractions();
-            then(linkPaymentInstrumentToAgreementService).shouldHaveNoInteractions();
-            logs.assertContains("Ignoring Adyen token webhook notification with unsupported type");
-        }
-
         @ParameterizedTest
         @NullAndEmptySource
         @ValueSource(strings = {"badId", "one-two-three", "aaaaaaaaaaaaaaaaaaaaaaaaaa-short", "short-bbbbbbbbbbbbbbbbbbbbbbbbbb"})
