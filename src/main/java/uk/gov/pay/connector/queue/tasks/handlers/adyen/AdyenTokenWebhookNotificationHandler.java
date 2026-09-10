@@ -12,7 +12,6 @@ import uk.gov.pay.connector.charge.service.LinkPaymentInstrumentToAgreementServi
 import uk.gov.pay.connector.client.ledger.service.LedgerService;
 import uk.gov.pay.connector.events.model.agreement.AgreementInactivated;
 import uk.gov.pay.connector.gateway.adyen.response.AdyenTokenNotification;
-import uk.gov.pay.connector.gateway.adyen.webhook.AdyenTokenEvent;
 import uk.gov.pay.connector.gateway.adyen.webhook.AdyenWebhookDeserialiser;
 import uk.gov.pay.connector.paymentinstrument.dao.PaymentInstrumentDao;
 import uk.gov.pay.connector.paymentinstrument.model.PaymentInstrumentEntity;
@@ -24,7 +23,7 @@ import java.util.Map;
 
 import static uk.gov.pay.connector.gateway.adyen.AdyenRequestFactory.SHOPPER_REFERENCE_DELIMITER;
 import static uk.gov.pay.connector.gateway.adyen.AdyenRequestFactory.STORED_PAYMENT_METHOD_ID;
-import static uk.gov.pay.connector.gateway.adyen.webhook.AdyenTokenEvent.RECURRING_TOKEN_DISABLED;
+import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent.RECURRING_TOKEN_DISABLED;
 import static uk.gov.pay.connector.paymentinstrument.model.PaymentInstrumentStatus.ACTIVE;
 import static uk.gov.pay.connector.paymentinstrument.model.PaymentInstrumentStatus.CANCELLED;
 import static uk.gov.pay.connector.paymentinstrument.model.PaymentInstrumentStatus.INACTIVE;
@@ -63,11 +62,6 @@ public class AdyenTokenWebhookNotificationHandler {
         AdyenTokenNotification notification = adyenWebhookDeserialiser.deserialisePayload(payload, AdyenTokenNotification.class);
         String notificationType = notification.type();
 
-        if (!AdyenTokenEvent.contains(notificationType)) {
-            LOGGER.atInfo().setMessage("Ignoring Adyen token webhook notification with unsupported type").addKeyValue("type", notificationType).log();
-            return;
-        }
-
         var shopperReference = notification.data().shopperReference();
 
         if (shopperReference == null || shopperReference.isBlank()) {
@@ -92,7 +86,7 @@ public class AdyenTokenWebhookNotificationHandler {
             return;
         }
 
-        if (RECURRING_TOKEN_DISABLED.getName().equals(notificationType)) {
+        if (notificationType.equals(RECURRING_TOKEN_DISABLED.getEventCodeOrType())) {
             paymentInstrumentDao.findByChargeExternalId(webhookChargeExternalId).ifPresentOrElse((paymentInstrument ->
                             inactivateAgreement(agreementEntity.get(), paymentInstrument)),
                     () -> logPaymentInstrumentNotFound(webhookChargeExternalId));
