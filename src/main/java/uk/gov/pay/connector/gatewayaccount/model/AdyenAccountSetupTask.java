@@ -1,13 +1,12 @@
 package uk.gov.pay.connector.gatewayaccount.model;
 
 public enum AdyenAccountSetupTask {
-    BANK_ACCOUNT("bank_account"),
+    ORGANISATION_DETAILS("organisation_details"),
+    LEGAL_TERMS("legal_terms"),
+    BANK_DETAILS("bank_details"),
     RESPONSIBLE_PERSON("responsible_person"),
-    VAT_NUMBER("vat_number"),
-    COMPANY_NUMBER("company_number"),
     DIRECTOR("director"),
-    GOVERNMENT_ENTITY_DOCUMENT("government_entity_document"),
-    ORGANISATION_DETAILS("organisation_details");
+    REASON_FOR_TAKING_PAYMENTS("reason_for_taking_payments");
 
     private final String value;
 

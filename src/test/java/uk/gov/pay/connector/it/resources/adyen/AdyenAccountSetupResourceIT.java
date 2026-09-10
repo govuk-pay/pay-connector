@@ -24,9 +24,9 @@ import static uk.gov.pay.connector.gateway.PaymentGatewayName.STRIPE;
 import static uk.gov.pay.connector.gateway.PaymentGatewayName.WORLDPAY;
 import static uk.gov.pay.connector.gatewayaccount.model.AdyenAccountSetupStatus.COMPLETED;
 import static uk.gov.pay.connector.gatewayaccount.model.AdyenAccountSetupStatus.NOT_STARTED;
-import static uk.gov.pay.connector.gatewayaccount.model.AdyenAccountSetupTask.BANK_ACCOUNT;
+import static uk.gov.pay.connector.gatewayaccount.model.AdyenAccountSetupTask.BANK_DETAILS;
+import static uk.gov.pay.connector.gatewayaccount.model.AdyenAccountSetupTask.LEGAL_TERMS;
 import static uk.gov.pay.connector.gatewayaccount.model.AdyenAccountSetupTask.RESPONSIBLE_PERSON;
-import static uk.gov.pay.connector.gatewayaccount.model.AdyenAccountSetupTask.VAT_NUMBER;
 import static uk.gov.pay.connector.gatewayaccount.model.GatewayAccountType.LIVE;
 import static uk.gov.pay.connector.gatewayaccount.model.GatewayAccountType.TEST;
 import static uk.gov.pay.connector.util.AddGatewayAccountCredentialsParams.AddGatewayAccountCredentialsParamsBuilder.anAddGatewayAccountCredentialsParams;
@@ -69,7 +69,7 @@ public class AdyenAccountSetupResourceIT {
             var gatewayAccountCredentialId = app.getDatabaseTestHelper().getGatewayAccountCredentialByPaymentProvider(gatewayAccountId, ADYEN.getName());
             var credentialExternalId = liveAccount.getCredentials().getFirst().getExternalId();
 
-            var completedTasks = List.of(BANK_ACCOUNT, RESPONSIBLE_PERSON, VAT_NUMBER);
+            var completedTasks = List.of(BANK_DETAILS, RESPONSIBLE_PERSON, LEGAL_TERMS);
             markTasksAsCompleted(gatewayAccountId, gatewayAccountCredentialId, completedTasks);
 
             app.givenSetup()
@@ -79,13 +79,12 @@ public class AdyenAccountSetupResourceIT {
                     .body("service_id", is(serviceId))
                     .body("credential_external_id", is(credentialExternalId))
                     .body("gateway_account_id", is((int) gatewayAccountId))
-                    .body("tasks.bank_account.status", is(COMPLETED.toString()))
+                    .body("tasks.organisation_details.status", is(NOT_STARTED.toString()))
+                    .body("tasks.legal_terms.status", is(COMPLETED.toString()))
+                    .body("tasks.bank_details.status", is(COMPLETED.toString()))
                     .body("tasks.responsible_person.status", is(COMPLETED.toString()))
-                    .body("tasks.vat_number.status", is(COMPLETED.toString()))
-                    .body("tasks.company_number.status", is(NOT_STARTED.toString()))
                     .body("tasks.director.status", is(NOT_STARTED.toString()))
-                    .body("tasks.government_entity_document.status", is(NOT_STARTED.toString()))
-                    .body("tasks.organisation_details.status", is(NOT_STARTED.toString()));
+                    .body("tasks.reason_for_taking_payments.status", is(NOT_STARTED.toString()));
         }
 
         @Test
@@ -171,7 +170,7 @@ public class AdyenAccountSetupResourceIT {
             app.givenSetup()
                     .body(toJson(List.of(Map.of(
                             "op", "replace",
-                            "path", BANK_ACCOUNT.getValue(),
+                            "path", BANK_DETAILS.getValue(),
                             "value", COMPLETED))))
                     .patch(format("/v1/api/service/%s/account/%s/adyen-setup/%s", serviceId, LIVE, credentialExternalId))
                     .then()
@@ -181,12 +180,12 @@ public class AdyenAccountSetupResourceIT {
                     .get(format("/v1/api/service/%s/account/%s/adyen-setup/%s", serviceId, LIVE, credentialExternalId))
                     .then()
                     .statusCode(SC_OK)
-                    .body("tasks.bank_account.status", is(COMPLETED.toString()));
+                    .body("tasks.bank_details.status", is(COMPLETED.toString()));
 
             app.givenSetup()
                     .body(toJson(List.of(Map.of(
                             "op", "replace",
-                            "path", BANK_ACCOUNT.getValue(),
+                            "path", BANK_DETAILS.getValue(),
                             "value", NOT_STARTED))))
                     .patch(format("/v1/api/service/%s/account/%s/adyen-setup/%s", serviceId, LIVE, credentialExternalId))
                     .then()
@@ -196,7 +195,7 @@ public class AdyenAccountSetupResourceIT {
                     .get(format("/v1/api/service/%s/account/%s/adyen-setup/%s", serviceId, LIVE, credentialExternalId))
                     .then()
                     .statusCode(SC_OK)
-                    .body("tasks.bank_account.status", is(NOT_STARTED.toString()));
+                    .body("tasks.bank_details.status", is(NOT_STARTED.toString()));
         }
 
         @Test
@@ -218,10 +217,10 @@ public class AdyenAccountSetupResourceIT {
             var credentialExternalId = liveAccount.getCredentials().getFirst().getExternalId();
             var patchRequests = List.of(
                     Map.of("op", "replace",
-                            "path", BANK_ACCOUNT.getValue(),
+                            "path", BANK_DETAILS.getValue(),
                             "value", COMPLETED),
                     Map.of("op", "replace",
-                            "path", VAT_NUMBER.getValue(),
+                            "path", LEGAL_TERMS.getValue(),
                             "value", COMPLETED));
 
             app.givenSetup()
@@ -234,8 +233,8 @@ public class AdyenAccountSetupResourceIT {
                     .get(format("/v1/api/service/%s/account/%s/adyen-setup/%s", serviceId, LIVE, credentialExternalId))
                     .then()
                     .statusCode(SC_OK)
-                    .body("tasks.bank_account.status", is(COMPLETED.toString()))
-                    .body("tasks.vat_number.status", is(COMPLETED.toString()));
+                    .body("tasks.bank_details.status", is(COMPLETED.toString()))
+                    .body("tasks.legal_terms.status", is(COMPLETED.toString()));
         }
         
         @Test
@@ -243,7 +242,7 @@ public class AdyenAccountSetupResourceIT {
 
             app.givenSetup()
                     .body(toJson(List.of(Map.of("op", "replace",
-                            "path", VAT_NUMBER.getValue(),
+                            "path", LEGAL_TERMS.getValue(),
                             "value", COMPLETED))))
                     .patch(format("/v1/api/service/%s/account/%s/adyen-setup/%s", serviceId, TEST, "credential-123"))
                     .then()
@@ -267,7 +266,7 @@ public class AdyenAccountSetupResourceIT {
             
             app.givenSetup()
                     .body(toJson(List.of(Map.of("op", "replace",
-                            "path", VAT_NUMBER.getValue(),
+                            "path", LEGAL_TERMS.getValue(),
                             "value", COMPLETED))))
                     .patch(format("/v1/api/service/%s/account/%s/adyen-setup/%s", serviceId, TEST, credentialExternalId))
                     .then()
@@ -285,7 +284,7 @@ public class AdyenAccountSetupResourceIT {
 
             app.givenSetup()
                     .body(toJson(List.of(Map.of("op", "replace",
-                            "path", VAT_NUMBER.getValue(),
+                            "path", LEGAL_TERMS.getValue(),
                             "value", COMPLETED))))
                     .patch(format("/v1/api/service/%s/account/%s/adyen-setup/%s", serviceId, TEST, "credential_does_not_exist"))
                     .then()
@@ -314,7 +313,7 @@ public class AdyenAccountSetupResourceIT {
 
             app.givenSetup()
                     .body(toJson(List.of(Map.of("op", "replace",
-                            "path", VAT_NUMBER.getValue(),
+                            "path", LEGAL_TERMS.getValue(),
                             "value", COMPLETED))))
                     .patch(format("/v1/api/service/%s/account/%s/adyen-setup/%s", serviceId, TEST, differentAccountCredentials))
                     .then()
@@ -335,7 +334,7 @@ public class AdyenAccountSetupResourceIT {
 
             app.givenSetup()
                     .body(toJson(List.of(Map.of("op", "replace",
-                            "path", VAT_NUMBER.getValue(),
+                            "path", LEGAL_TERMS.getValue(),
                             "value", COMPLETED))))
                     .patch(format("/v1/api/service/%s/account/%s/adyen-setup/%s", serviceId, LIVE, credentialExternalId))
                     .then()
@@ -353,14 +352,14 @@ public class AdyenAccountSetupResourceIT {
                 .patch(format("/v1/api/service/%s/account/%s/adyen-setup/%s", serviceId, LIVE, "credential-id"))
                 .then()
                 .statusCode(SC_UNPROCESSABLE_CONTENT)
-                .body("message", contains("The paths field must be one of: [bank_account, responsible_person, vat_number, company_number, director, government_entity_document, organisation_details]"));
+                .body("message", contains("The paths field must be one of: [organisation_details, legal_terms, vat_number, bank_details, responsible_person, reason_for_taking_payments]"));
     }
 
     @Test
     void shouldReturnUprocessableEntityWithUnrecognisedStatus() {
         app.givenSetup()
                 .body(toJson(List.of(Map.of("op", "replace",
-                        "path", BANK_ACCOUNT.getValue(),
+                        "path", BANK_DETAILS.getValue(),
                         "value", "incomplete"))))
                 .patch(format("/v1/api/service/%s/account/%s/adyen-setup/%s", serviceId, LIVE, "credential-id"))
                 .then()
@@ -380,7 +379,7 @@ public class AdyenAccountSetupResourceIT {
         var credentialExternalId = stripeAccount.getCredentials().getFirst().getExternalId();
         app.givenSetup()
                 .body(toJson(List.of(Map.of("op", "add",
-                        "path", BANK_ACCOUNT.getValue(),
+                        "path", BANK_DETAILS.getValue(),
                         "value", COMPLETED))))
                 .patch(format("/v1/api/service/%s/account/%s/adyen-setup/%s", serviceId, LIVE, credentialExternalId))
                 .then()
