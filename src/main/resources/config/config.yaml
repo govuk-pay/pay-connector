@@ -90,6 +90,8 @@ adyen:
   balancePlatformIds:
     test: ${GDS_CONNECTOR_ADYEN_BALANCE_PLATFORM_ID_TEST}
     live: ${GDS_CONNECTOR_ADYEN_BALANCE_PLATFORM_ID_LIVE}
+  splitConfigurationIds:
+    test: ${GDS_CONNECTOR_ADYEN_SPLIT_CONFIGURATION_ID_TEST}
   apiKeys:
     companyAccount:
       test: ${GDS_CONNECTOR_ADYEN_COMPANY_ACCOUNT_API_KEY_TEST}

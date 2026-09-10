@@ -1,0 +1,17 @@
+{
+  "category": "bank",
+  "counterparty": {
+    "transferInstrumentId": "SE3293N223226C5M9TQ9GFBRV"
+  },
+  "currency": "GBP",
+  "priorities": [
+    "fast",
+    "regular"
+  ],
+  "reference": "Test",
+  "schedule": {
+    "cronExpression": "00 2 * * MON-FRI",
+    "type": "cron"
+  },
+  "type": "push"
+}

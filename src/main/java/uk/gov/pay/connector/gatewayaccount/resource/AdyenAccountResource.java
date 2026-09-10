@@ -64,7 +64,7 @@ public class AdyenAccountResource {
         gatewayAccountService.throwIfStripeOrAdyenTestAccountAlreadyExists(serviceId);
 
         var serviceName = payload.get("service_name");
-        AdyenCredentials adyenCredentials = adyenTestAccountService.createTestAccount(serviceName);
+        AdyenCredentials adyenCredentials = adyenTestAccountService.createTestAccount(serviceId, serviceName);
 
         AdyenGatewayAccountRequest adyenGatewayAccountRequest = AdyenGatewayAccountRequest.Builder
                 .anAdyenAccountRequest()
@@ -109,7 +109,7 @@ public class AdyenAccountResource {
                 .orElseThrow(() -> new GatewayAccountNotFoundException(serviceId));
 
         var serviceName = payload.get("service_name");
-        AdyenCredentials adyenCredentials = adyenTestAccountService.createTestAccount(serviceName);
+        AdyenCredentials adyenCredentials = adyenTestAccountService.createTestAccount(serviceId, serviceName);
         gatewayAccountSwitchPaymentProviderService.switchStripeTestAccountToAdyen(gatewayAccount, adyenCredentials);
 
         var updatedGatewayAccount = gatewayAccountService.getGatewayAccountByServiceIdAndAccountType(serviceId, TEST)

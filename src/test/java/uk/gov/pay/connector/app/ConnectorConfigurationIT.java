@@ -47,6 +47,7 @@ public class ConnectorConfigurationIT {
         assertThat(adyenGatewayConfig.getMerchantAccountIds().test(), is("adyen-test-merchant-account-id"));
         assertThat(adyenGatewayConfig.getBalancePlatformIds().live(), is("adyen-live-balance-platform-id"));
         assertThat(adyenGatewayConfig.getBalancePlatformIds().test(), is("adyen-test-balance-platform-id"));
+        assertThat(adyenGatewayConfig.getSplitConfigurationIds().test(), is("adyen-test-split-config-id"));
         
         assertThat(adyenGatewayConfig.getApiKeys().companyAccount().live(), is("adyen-live-company-api-key"));
         assertThat(adyenGatewayConfig.getApiKeys().companyAccount().test(), is("adyen-test-company-api-key"));
