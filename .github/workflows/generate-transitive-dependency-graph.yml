@@ -1,0 +1,9 @@
+name: Generate java transitive dependency graph
+on:
+  push:
+    branches:
+      - "master"
+
+jobs:
+  generate-dependency-graph:
+    uses: govuk-pay/pay-ci/.github/workflows/_run-java-transitive-dependency-update.yml@master
