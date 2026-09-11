@@ -22,6 +22,7 @@ import uk.gov.pay.connector.gateway.model.request.GatewayClientPostRequest;
 import uk.gov.pay.connector.gateway.model.response.BaseAuthoriseResponse;
 import uk.gov.pay.connector.util.JsonObjectMapper;
 
+import java.util.Map;
 import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -68,7 +69,8 @@ class AdyenAuthorise3dsHandlerTest {
     }
 
     @Test
-    void should_send_a_authorise3ds_request_with_api_key_and_idempotency_key_headers() throws GatewayException.GatewayErrorException, GatewayException.GenericGatewayException, GatewayException.GatewayConnectionTimeoutException {
+    void should_send_a_authorise3ds_request_with_api_key_and_idempotency_key_headers() throws GatewayException.GatewayErrorException,
+            GatewayException.GenericGatewayException, GatewayException.GatewayConnectionTimeoutException {
         when(mockClient.postRequestFor(any())).thenReturn(mockGatewayClientResponse);
         when(mockGatewayClientResponse.getEntity()).thenReturn(successResponse("Authorised"));
         var request = buildRequestWith("eyJ0cmFuc1N0YXR1cyI6IlkifQ==");
@@ -188,7 +190,7 @@ class AdyenAuthorise3dsHandlerTest {
                 auth3dsResult
         );
     }
-    
+
     @Test
     void should_return_gateway_rejection_reason_when_3ds_authorisation_is_refused() throws Exception {
         when(mockClient.postRequestFor(any())).thenReturn(mockGatewayClientResponse);
@@ -217,7 +219,7 @@ class AdyenAuthorise3dsHandlerTest {
                           "pspReference": "adyen-3ds-psp-reference",
                           "resultCode": "Authorised",
                           "refusalReasonCode": "0",
-                           "refusalReason": "Authorised"
+                          "refusalReason": "Authorised"
                         }
                         """
         );
@@ -228,7 +230,47 @@ class AdyenAuthorise3dsHandlerTest {
 
         assertThat(response.getGatewayRejectionReason(), is(Optional.empty()));
     }
-    
+
+    @Test
+    void should_set_recurringAuthToken_when_storedPaymentMethodId_is_present() throws Exception {
+        when(mockClient.postRequestFor(any())).thenReturn(mockGatewayClientResponse);
+        when(mockGatewayClientResponse.getEntity()).thenReturn(
+                """
+                        {
+                           "additionalData": {
+                                "tokenization.storedPaymentMethodId": "PM-123"
+                            }  
+                        }
+                        """
+        );
+
+        var response = adyenAuthorise3dsHandler.authorise3dsResponse(buildRequestWith("redirect-result"));
+
+        assertThat(response.getGatewayRecurringAuthToken().isPresent(), is(true));
+        assertThat(response.getGatewayRecurringAuthToken().get(), is(Map.of("storedPaymentMethodId", "PM-123")));
+    }
+
+    @Test
+    void should_set_recurringAuthToken_to_empty_map_when_storedPaymentMethodId_is_NOT_present_and_resultCode_is_Authorised() throws Exception {
+        when(mockClient.postRequestFor(any())).thenReturn(mockGatewayClientResponse);
+        when(mockGatewayClientResponse.getEntity()).thenReturn(successResponse("Authorised"));
+
+        var response = adyenAuthorise3dsHandler.authorise3dsResponse(buildRequestWith("redirect-result"));
+
+        assertThat(response.getGatewayRecurringAuthToken().isPresent(), is(true));
+        assertThat(response.getGatewayRecurringAuthToken().get(), is(Map.of()));
+    }
+
+    @Test
+    void should_set_recurringAuthToken_to_null_map_when_storedPaymentMethodId_is_NOT_present_and_resultCode_is_NOT_Authorised() throws Exception {
+        when(mockClient.postRequestFor(any())).thenReturn(mockGatewayClientResponse);
+        when(mockGatewayClientResponse.getEntity()).thenReturn(successResponse("Refused"));
+
+        var response = adyenAuthorise3dsHandler.authorise3dsResponse(buildRequestWith("redirect-result"));
+
+        assertThat(response.getGatewayRecurringAuthToken().isPresent(), is(false));
+    }
+
     private String successResponse(String resultCode) {
         return """
                 {

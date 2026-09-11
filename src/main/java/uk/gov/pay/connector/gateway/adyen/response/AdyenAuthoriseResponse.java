@@ -11,6 +11,11 @@ import uk.gov.pay.connector.gateway.model.response.BaseAuthoriseResponse;
 import java.util.Map;
 import java.util.Optional;
 
+import static uk.gov.pay.connector.gateway.model.response.BaseAuthoriseResponse.AuthoriseStatus.AUTHORISED;
+import static uk.gov.pay.connector.gateway.model.response.BaseAuthoriseResponse.AuthoriseStatus.ERROR;
+import static uk.gov.pay.connector.gateway.model.response.BaseAuthoriseResponse.AuthoriseStatus.REJECTED;
+import static uk.gov.pay.connector.gateway.model.response.BaseAuthoriseResponse.AuthoriseStatus.REQUIRES_3DS;
+
 public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
 
     private final String transactionId;
@@ -22,7 +27,7 @@ public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
 
     private final String paReq;
     private final String md;
-    
+
     private final String storedPaymentMethodId;
 
     public static AdyenAuthoriseResponse of(AuthoriseResponseBody authoriseResponseBody) {
@@ -38,7 +43,7 @@ public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
                 .map(Action::data)
                 .map(items -> items.get("MD"))
                 .orElse(null);
-        
+
         var additionalData = authoriseResponseBody.additionalData();
         String storedPaymentMethodId = Optional.ofNullable(additionalData)
                 .map(AdditionalData::storedPaymentMethodId)
@@ -50,7 +55,7 @@ public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
                 method,
                 paReq,
                 md,
-                authoriseResponseBody.refusalReason(), 
+                authoriseResponseBody.refusalReason(),
                 authoriseResponseBody.refusalReasonCode(),
                 storedPaymentMethodId);
     }
@@ -77,18 +82,18 @@ public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
 
     private static AuthoriseStatus mapAuthorisationStatusFrom(String resultCode) {
         return switch (resultCode) {
-            case "Authorised" -> AuthoriseStatus.AUTHORISED;
-            case "Refused" -> AuthoriseStatus.REJECTED;
-            case "RedirectShopper" -> AuthoriseStatus.REQUIRES_3DS;
-            case "Error" -> AuthoriseStatus.ERROR;
+            case "Authorised" -> AUTHORISED;
+            case "Refused" -> REJECTED;
+            case "RedirectShopper" -> REQUIRES_3DS;
+            case "Error" -> ERROR;
             default -> throw new IllegalStateException("Unexpected value: " + resultCode);
         };
     }
-    
+
     @Override
     public Optional<String> getGatewayRejectionReason() {
-        if (refusalReason != null && refusalReasonCode != null ) {
-            return Optional.of(refusalReasonCode + " - " +  refusalReason  );
+        if (refusalReason != null && refusalReasonCode != null) {
+            return Optional.of(refusalReasonCode + " - " + refusalReason);
         }
         return Optional.empty();
     }
@@ -121,7 +126,7 @@ public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
 
     @Override
     public Optional<? extends Gateway3dsRequiredParams> getGatewayParamsFor3ds() {
-        if (AuthoriseStatus.REQUIRES_3DS == authoriseStatus) {
+        if (REQUIRES_3DS == authoriseStatus) {
             return Optional.of(new Adyen3dsRequiredParams(redirectUrl, httpMethod3ds, paReq, md));
         }
         return Optional.empty();
@@ -129,7 +134,7 @@ public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
 
     @Override
     public Optional<MappedAuthorisationRejectedReason> getMappedAuthorisationRejectedReason() {
-        if (authoriseStatus() != AuthoriseStatus.REJECTED) {
+        if (authoriseStatus() != REJECTED) {
             return Optional.empty();
         }
 
@@ -153,7 +158,12 @@ public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
 
     @Override
     public Optional<Map<String, String>> getGatewayRecurringAuthToken() {
-        return Optional.ofNullable(storedPaymentMethodId)
-                .map(_ -> Map.of("storedPaymentMethodId", storedPaymentMethodId));
+        if (storedPaymentMethodId != null) {
+            return Optional.of(Map.of("storedPaymentMethodId", storedPaymentMethodId));
+        }
+
+        return AUTHORISED.equals(authoriseStatus)
+                ? Optional.of(Map.of())
+                : Optional.empty();
     }
 }

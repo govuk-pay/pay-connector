@@ -22,6 +22,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 import static uk.gov.pay.connector.gateway.adyen.utils.AdyenRequestUtil.get3dsAuthUrl;
 import static uk.gov.pay.connector.gateway.adyen.utils.AdyenRequestUtil.getHeaders;
 import static uk.gov.pay.connector.gateway.model.OrderRequestType.AUTHORISE_3DS;
+import static uk.gov.pay.connector.gateway.model.response.BaseAuthoriseResponse.AuthoriseStatus.AUTHORISED;
 import static uk.gov.pay.connector.gateway.model.response.BaseAuthoriseResponse.AuthoriseStatus.ERROR;
 import static uk.gov.service.payments.logging.LoggingKeys.GATEWAY_ERROR;
 import static uk.gov.service.payments.logging.LoggingKeys.HTTP_STATUS;
@@ -73,6 +74,10 @@ public class AdyenAuthorise3dsHandler {
 
             Map<String, String> recurringAuthToken = storedPaymentMethodId == null ? null
                     : Map.of("storedPaymentMethodId", storedPaymentMethodId);
+
+            if (AUTHORISED.equals(mappedStatus) && recurringAuthToken == null) {
+                recurringAuthToken = Map.of();
+            }
 
             return Gateway3DSAuthorisationResponse.of(
                     responseBody.toString(),
@@ -130,7 +135,7 @@ public class AdyenAuthorise3dsHandler {
             default -> ERROR;
         };
     }
-    
+
     private String getGatewayRejectionReason(Authorise3dsResponseBody responseBody) {
         if (!"Refused".equals(responseBody.resultCode())) {
             return null;
