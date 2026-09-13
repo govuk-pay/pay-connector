@@ -64,6 +64,9 @@ public class AdyenNotificationService {
         } catch (AdyenNotificationException e) {
             LOGGER.error("Failed to validate Adyen notification payload", e);
             return false;
+        } catch (UnrecognisedWebhookEventException e) {
+            LOGGER.error("Unknown Adyen webhook event", e);
+            return true;
         }
     }
 
