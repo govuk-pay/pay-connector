@@ -118,9 +118,13 @@ public class AdyenAuthoriseHandler {
             return responseBuilder
                     .withResponse(AdyenAuthoriseResponse.of(paymentResponse))
                     .build();
-        } catch (GatewayException e) {
-            logger.error("GatewayException occurred when authorising " + extraLog + "payment", e);
-            return responseBuilder.withGatewayError(e.toGatewayError()).build();
+        } catch (GatewayException.GatewayErrorException gatewayErrorException) {
+            logger.error("GatewayErrorException occurred when authorising " + extraLog + "payment: "
+                    + gatewayErrorException.getResponseFromGateway(), gatewayErrorException);
+            return responseBuilder.withGatewayError(gatewayErrorException.toGatewayError()).build();
+        } catch (GatewayException gatewayException) {
+            logger.error("GatewayException occurred when authorising " + extraLog + "payment", gatewayException);
+            return responseBuilder.withGatewayError(gatewayException.toGatewayError()).build();
         }
     }
 }
