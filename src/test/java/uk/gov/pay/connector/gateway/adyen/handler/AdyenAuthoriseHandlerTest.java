@@ -309,7 +309,7 @@ class AdyenAuthoriseHandlerTest {
                 containsString("server error"));
         assertThat(response.getGatewayError().get().getErrorType(), Is.is(GATEWAY_ERROR));
 
-        logger.assertContains("GatewayException occurred when authorising user-not-present payment");
+        logger.assertContains("GatewayErrorException occurred when authorising user-not-present payment");
     }
 
     @Test
