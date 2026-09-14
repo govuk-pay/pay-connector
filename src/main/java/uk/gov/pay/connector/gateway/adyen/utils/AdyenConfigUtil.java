@@ -7,7 +7,8 @@ import uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookType;
 
 public class AdyenConfigUtil {
 
-    private AdyenConfigUtil() {}
+    private AdyenConfigUtil() {
+    }
 
     public static String getCompanyApiKey(AdyenGatewayConfig adyenGatewayConfig, boolean live) {
         String apiKey;
@@ -41,16 +42,20 @@ public class AdyenConfigUtil {
         return webhookHmacKeys.getPrimary()
                 .orElseThrow(() -> new IllegalStateException("Missing primary Adyen HMAC key"));
     }
-    
+
     public static String getTokenHmacKey(AdyenGatewayConfig adyenGatewayConfig, boolean live) {
         return getPrimaryHmacKey(adyenGatewayConfig.getHmacKeys().tokens(), live);
     }
-    
+
     private static String getPrimaryHmacKey(HmacKeys.WebhookHmacKeyPair keyPair, boolean live) {
         WebhookHmacKeys webhookHmacKeys = live ? keyPair.live() : keyPair.test();
 
         return webhookHmacKeys.getPrimary()
                 .orElseThrow(() -> new IllegalStateException("Missing primary Adyen HMAC key"));
+    }
+
+    private static String getTransferHmacKey(AdyenGatewayConfig adyenGatewayConfig, boolean live) {
+        return getPrimaryHmacKey(adyenGatewayConfig.getHmacKeys().transfer(), live);
     }
 
     public static String getHmacKeyForWebhookType(AdyenGatewayConfig adyenGatewayConfig,
@@ -59,6 +64,7 @@ public class AdyenConfigUtil {
         return switch (webhookType) {
             case PAYMENTS -> getHmacKey(adyenGatewayConfig, live);
             case TOKENS -> getTokenHmacKey(adyenGatewayConfig, live);
+            case TRANSFER -> getTransferHmacKey(adyenGatewayConfig, live);
         };
     }
 }

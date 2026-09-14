@@ -12,6 +12,7 @@ import uk.gov.pay.connector.app.adyen.AdyenGatewayConfig;
 import uk.gov.pay.connector.app.adyen.ApiKeys;
 import uk.gov.pay.connector.app.adyen.BaseUrls;
 import uk.gov.pay.connector.app.adyen.HmacKeys;
+import uk.gov.pay.connector.app.adyen.HmacKeys.WebhookHmacKeyPair;
 import uk.gov.pay.connector.app.adyen.WebhookHmacKeys;
 import uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookType;
 
@@ -24,7 +25,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.pay.connector.gateway.adyen.utils.AdyenConfigUtil.getHmacKeyForWebhookType;
-import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookType.TOKENS;
 
 @ExtendWith(MockitoExtension.class)
 class AdyenConfigUtilTest {
@@ -100,7 +100,7 @@ class AdyenConfigUtilTest {
         @Mock
         private HmacKeys mockHmacKeys;
         @Mock
-        private HmacKeys.WebhookHmacKeyPair mockKeyPair;
+        private WebhookHmacKeyPair mockKeyPair;
         @Mock
         private WebhookHmacKeys mockLiveKeys;
         @Mock
@@ -148,14 +148,13 @@ class AdyenConfigUtilTest {
 
             assertThat(exception.getMessage(), is("Missing primary Adyen HMAC key"));
         }
-        
+
         @ParameterizedTest
         @EnumSource(AdyenWebhookType.class)
         void shouldGetHMACKeyBasedOnType(AdyenWebhookType adyenWebhookType) {
             var expectedValue = "live-hmac-key";
             when(mockAdyenGatewayConfig.getHmacKeys()).thenReturn(mockHmacKeys);
-            var mockHmacKey = adyenWebhookType == TOKENS ? mockHmacKeys.tokens() : mockHmacKeys.payments();
-            when(mockHmacKey).thenReturn(mockKeyPair);
+            when(mockHmacKeyByType(adyenWebhookType)).thenReturn(mockKeyPair);
             when(mockKeyPair.live()).thenReturn(mockLiveKeys);
             when(mockLiveKeys.getPrimary()).thenReturn(Optional.of(expectedValue));
             var hmacKey = getHmacKeyForWebhookType(mockAdyenGatewayConfig, adyenWebhookType, true);
@@ -164,7 +163,22 @@ class AdyenConfigUtilTest {
 
             verify(mockKeyPair).live();
         }
-        
+
+        private WebhookHmacKeyPair mockHmacKeyByType(AdyenWebhookType type) {
+            switch (type) {
+                case TOKENS -> {
+                    return mockHmacKeys.tokens();
+                }
+                case PAYMENTS -> {
+                    return mockHmacKeys.payments();
+                }
+                case TRANSFER -> {
+                    return mockHmacKeys.transfer();
+                }
+                default -> throw new RuntimeException("AdyenWebhookType not supported");
+            }
+        }
+
     }
 
     @Nested
@@ -173,7 +187,7 @@ class AdyenConfigUtilTest {
         @Mock
         private HmacKeys mockHmacKeys;
         @Mock
-        private HmacKeys.WebhookHmacKeyPair mockKeyPair;
+        private WebhookHmacKeyPair mockKeyPair;
         @Mock
         private WebhookHmacKeys mockLiveKeys;
         @Mock

@@ -145,7 +145,7 @@ class AdyenNotificationValidatorTest {
         void shouldDelegateHmacValidationBasedOnUsesAdyenNotificationItemField(String notificationType) throws SignatureException {
             var keyPair = new HmacKeys.WebhookHmacKeyPair(new WebhookHmacKeys("primaryTest", "secondaryTest"),
                     new WebhookHmacKeys("primaryLive", "secondaryLive"));
-            var hmacKeys = notificationType.equals("payments") ? new HmacKeys(keyPair, null) : new HmacKeys(null, keyPair);
+            var hmacKeys = notificationType.equals("payments") ? new HmacKeys(keyPair, null, null) : new HmacKeys(null, keyPair, null);
             var event = notificationType.equals("payments") ? CAPTURE : RECURRING_TOKEN_CREATED;
             var notification = new AdyenWebhookNotification(event, TEST, notificationType.equals("payments"));
             var payload = load(notificationType.equals("payments") ? ADYEN_NOTIFICATION : ADYEN_TOKEN_NOTIFICATION);
@@ -167,7 +167,7 @@ class AdyenNotificationValidatorTest {
             var keys = new HmacKeys.WebhookHmacKeyPair(new WebhookHmacKeys("primaryTest", "secondaryTest"),
                     new WebhookHmacKeys("primaryLive", "secondaryLive"));
 
-            when(gatewayConfig.getHmacKeys()).thenReturn(new HmacKeys(null, keys));
+            when(gatewayConfig.getHmacKeys()).thenReturn(new HmacKeys(null, keys, null));
             var notification = new AdyenWebhookNotification(RECURRING_TOKEN_CREATED, TEST, false);
             
             assertThrows(AdyenNotificationException.class, 

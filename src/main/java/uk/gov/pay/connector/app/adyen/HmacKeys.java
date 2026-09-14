@@ -9,8 +9,11 @@ public record HmacKeys(
         WebhookHmacKeyPair payments,
         @Valid
         @NotNull
-        WebhookHmacKeyPair tokens
-        
+        WebhookHmacKeyPair tokens,
+        @Valid
+        @NotNull
+        WebhookHmacKeyPair transfer
+
 ) {
     public record WebhookHmacKeyPair(
             @Valid
@@ -20,6 +23,7 @@ public record HmacKeys(
             @Valid
             @NotNull
             WebhookHmacKeys live
-    ) {}
+    ) {
+    }
 
 }

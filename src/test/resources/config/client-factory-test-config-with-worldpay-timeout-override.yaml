@@ -84,6 +84,13 @@ adyen:
       live:
         primary: adyen-live-tokens-hmac-primary
         secondary: ""
+    transfer:
+      test:
+        primary: 74872EFRHH2824F8D2BU2D8248237238DHUD23I278274RHWJBD728281DIQ8F9 # pragma: allowlist secret
+        secondary: ""
+      live:
+        primary: adyen-live-transfer-hmac-primary
+        secondary: ""
 
 sandbox:
   allowedCidrs: ${SANDBOX_ALLOWED_CIDRS:-[]}

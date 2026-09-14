@@ -20,6 +20,7 @@ import static org.mockito.Mockito.when;
 import static uk.gov.pay.connector.util.ConnectorModuleWithOverrides.reverseDnsLookup;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_NOTIFICATION;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_TOKEN_NOTIFICATION;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_TRANSFER_NOTIFICATION;
 
 public class AdyenNotificationResourceIT {
 
@@ -140,13 +141,28 @@ public class AdyenNotificationResourceIT {
     }
 
     @Test
+    void shouldHandleTransferNotification() {
+        String payload = TestTemplateResourceLoader.load(ADYEN_TRANSFER_NOTIFICATION).replace("{{type}}", "balancePlatform.transfer.created");
+
+        given()
+                .port(app.getLocalPort())
+                .body(payload)
+                .header("X-Forwarded-For", ADYEN_IP_ADDRESS)
+                .header("hmacSignature", HMAC_SIGNATURE)
+                .contentType(APPLICATION_JSON)
+                .post(NOTIFICATION_PATH)
+                .then()
+                .statusCode(200);
+    }
+
+    @Test
     void shouldNotRejectInvalidNotificationWithUnrecognisedEventType() {
         String unknownWebhookPayload = """
-                    {
-                      "environment": "test",
-                      "type": "unknown-event"
-                    }
-                    """;
+                {
+                  "environment": "test",
+                  "type": "unknown-event"
+                }
+                """;
 
         given()
                 .port(app.getLocalPort())
