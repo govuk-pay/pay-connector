@@ -1,6 +1,6 @@
 # pay-connector
 
-The GOV.UK Pay Connector in Java (Dropwizard).
+The GOV.UK Pay Connector in Java (Dropwizard)
 
 ## API Specification
 
