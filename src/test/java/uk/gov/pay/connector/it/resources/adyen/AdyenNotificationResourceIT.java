@@ -25,10 +25,10 @@ public class AdyenNotificationResourceIT {
 
     @RegisterExtension
     public static AppWithPostgresAndSqsExtension app = new AppWithPostgresAndSqsExtension(ConnectorAppWithCustomInjector.class);
-    
+
     @RegisterExtension
     LogCapturer logs = LogCapturer.create().captureForType(AdyenNotificationService.class);
-    
+
     private static final String NOTIFICATION_PATH = "/v1/api/notifications/adyen";
     private static final String ADYEN_IP_ADDRESS = "192.168.0.1";
     private static final String UNEXPECTED_IP_ADDRESS = "8.8.8.8";
@@ -137,25 +137,27 @@ public class AdyenNotificationResourceIT {
                     .then()
                     .statusCode(403);
         }
+    }
 
-        @Test
-        void shouldRejectInvalidRecurringTokenNotificationWithUnrecognisedEventType() {
-            String payload = TestTemplateResourceLoader.load(
-                    ADYEN_TOKEN_NOTIFICATION
-            ).replace(
-                    "\"type\": \"recurring.token.created\"",
-                    "\"type\": \"recurring.token.updated\""
-            );
+    @Test
+    void shouldNotRejectInvalidNotificationWithUnrecognisedEventType() {
+        String unknownWebhookPayload = """
+                    {
+                      "environment": "test",
+                      "type": "unknown-event"
+                    }
+                    """;
 
-            given()
-                    .port(app.getLocalPort())
-                    .body(payload)
-                    .header("X-Forwarded-For", ADYEN_IP_ADDRESS)
-                    .header("hmacSignature", HMAC_SIGNATURE_FOR_PAYLOAD_WITH_UPDATED_TOKEN)
-                    .contentType(APPLICATION_JSON)
-                    .post(NOTIFICATION_PATH)
-                    .then()
-                    .statusCode(500);
-        }
+        given()
+                .port(app.getLocalPort())
+                .body(unknownWebhookPayload)
+                .header("X-Forwarded-For", ADYEN_IP_ADDRESS)
+                .header("hmacSignature", HMAC_SIGNATURE_FOR_PAYLOAD_WITH_UPDATED_TOKEN)
+                .contentType(APPLICATION_JSON)
+                .post(NOTIFICATION_PATH)
+                .then()
+                .statusCode(200);
+
+        logs.assertContains("Unknown Adyen webhook event");
     }
 }

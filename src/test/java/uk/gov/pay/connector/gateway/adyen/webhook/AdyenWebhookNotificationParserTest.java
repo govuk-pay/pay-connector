@@ -88,7 +88,7 @@ class AdyenWebhookNotificationParserTest {
     void shouldThrowExceptionWhenEventCodeInAdyenNotificationRequestItemIsUnknown() {
         var notification = createNotification("AUTHORISATION", "notValid", "payments");
 
-        var exception = assertThrows(UnparseableAdyenWebhookException.class,
+        var exception = assertThrows(UnrecognisedWebhookEventException.class,
                 () -> adyenWebhookNotificationParser.parse(notification));
 
         assertThat(exception.getMessage(), is("Unrecognised eventCode or type: " + "notValid"));
