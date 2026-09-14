@@ -15,6 +15,7 @@ public class AgreementEntityFixture {
     private String userIdentifier;
     private String serviceId = "a-service-id";
     private boolean live;
+    
     private PaymentInstrumentEntity paymentInstrument;
 
     public static AgreementEntityFixture anAgreementEntity() {
