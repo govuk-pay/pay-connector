@@ -80,6 +80,13 @@ adyen:
       live:
         primary: adyen-live-tokens-hmac-primary
         secondary: ""
+    transfer:
+      test:
+        primary: adyen-test-transfer-hmac-primary
+        secondary: ""
+      live:
+        primary: adyen-live-transfer-hmac-primary
+        secondary: ""
 
 sandbox:
   allowedCidrs: ${SANDBOX_ALLOWED_CIDRS:-[]}

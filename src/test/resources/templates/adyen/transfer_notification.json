@@ -1,0 +1,13 @@
+{
+  "data": {
+    "amount": {
+      "currency": "EUR",
+      "value": 1000
+    },
+    "category": "internal",
+    "status": "received"
+  },
+  "environment": "test",
+  "timestamp": "2023-02-28T13:27:05+02:00",
+  "type": "{{type}}"
+}

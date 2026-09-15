@@ -73,6 +73,14 @@ public class ConnectorConfigurationIT {
         assertThat(tokenLivePrimary.isPresent(), is(true));
         assertThat(tokenLivePrimary.get(), is("adyen-live-tokens-hmac-primary"));
 
+        var transferTestPrimary = adyenGatewayConfig.getHmacKeys().transfer().test().getPrimary();
+        assertThat(transferTestPrimary.isPresent(), is(true));
+        assertThat(transferTestPrimary.get(), is("adyen-test-transfer-hmac-primary"));
+
+        var transferLivePrimary = adyenGatewayConfig.getHmacKeys().transfer().live().getPrimary();
+        assertThat(transferLivePrimary.isPresent(), is(true));
+        assertThat(transferLivePrimary.get(), is("adyen-live-transfer-hmac-primary"));
+
     }
 
 }

@@ -11,8 +11,9 @@ import uk.gov.pay.connector.queue.tasks.TaskType;
 import uk.gov.pay.connector.queue.tasks.model.Task;
 
 import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
-import static uk.gov.pay.connector.queue.tasks.TaskType.HANDLE_ADYEN_PAYMENTS_WEBHOOK_NOTIFICATION;
+import static uk.gov.pay.connector.queue.tasks.TaskType.HANDLE_ADYEN_TRANSFER_WEBHOOK_NOTIFICATION;
 import static uk.gov.pay.connector.queue.tasks.TaskType.HANDLE_ADYEN_TOKEN_WEBHOOK_NOTIFICATION;
+import static uk.gov.pay.connector.queue.tasks.TaskType.HANDLE_ADYEN_PAYMENTS_WEBHOOK_NOTIFICATION;
 import static uk.gov.service.payments.logging.LoggingKeys.PROVIDER;
 
 public class AdyenNotificationService {
@@ -84,6 +85,7 @@ public class AdyenNotificationService {
         return switch (adyenWebhookNotification.event().getWebhookType()) {
             case PAYMENTS -> HANDLE_ADYEN_PAYMENTS_WEBHOOK_NOTIFICATION;
             case TOKENS -> HANDLE_ADYEN_TOKEN_WEBHOOK_NOTIFICATION;
+            case TRANSFER -> HANDLE_ADYEN_TRANSFER_WEBHOOK_NOTIFICATION;
         };
     }
 }
