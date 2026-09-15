@@ -27,16 +27,18 @@ import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenTokenWebhookNotifica
 import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenWebhookTaskHandler;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Optional;
 
+import static com.adyen.model.notification.NotificationRequestItem.EVENT_CODE_CAPTURE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
@@ -96,7 +98,7 @@ class AdyenWebhookTaskHandlerTest {
     void shouldProcessSuccessfulCaptureNotificationForConnectorCharge() {
         when(mockAdyenWebhookDeserialiser.deserialiseAndGetNotificationItem(payload))
                 .thenReturn(mockNotificationItem);
-        when(mockNotificationItem.getEventCode()).thenReturn(NotificationRequestItem.EVENT_CODE_CAPTURE);
+        when(mockNotificationItem.getEventCode()).thenReturn(EVENT_CODE_CAPTURE);
         when(mockNotificationItem.getOriginalReference()).thenReturn(gatewayTransactionId);
         when(mockChargeService.findByProviderAndTransactionIdFromDbOrLedger(ADYEN.getName(),
                 gatewayTransactionId)).thenReturn(Optional.of(mockCharge));
@@ -109,10 +111,10 @@ class AdyenWebhookTaskHandlerTest {
     }
 
     @Test
-    void shouldLogWarningWhenChargeDoesNotExistInConnectorOrLedger() {
+    void shouldLogErrorWhenChargeDoesNotExistInConnectorOrLedger() {
         when(mockAdyenWebhookDeserialiser.deserialiseAndGetNotificationItem(payload))
                 .thenReturn(mockNotificationItem);
-        when(mockNotificationItem.getEventCode()).thenReturn(NotificationRequestItem.EVENT_CODE_CAPTURE);
+        when(mockNotificationItem.getEventCode()).thenReturn(EVENT_CODE_CAPTURE);
         when(mockNotificationItem.getOriginalReference()).thenReturn(gatewayTransactionId);
         when(mockChargeService.findByProviderAndTransactionIdFromDbOrLedger(ADYEN.getName(),
                 gatewayTransactionId)).thenReturn(Optional.empty());
@@ -120,12 +122,11 @@ class AdyenWebhookTaskHandlerTest {
         adyenWebhookTaskHandler.processAdyenWebhookNotification(payload);
 
         verify(mockAdyenCaptureNotificationHandler, never()).process(any(), any());
-        verify(mockAppender, atLeastOnce()).doAppend(loggingEventArgumentCaptor.capture());
+        verify(mockAppender, times(1)).doAppend(loggingEventArgumentCaptor.capture());
 
-        List<LoggingEvent> loggingEvents = loggingEventArgumentCaptor.getAllValues();
-
-        assertThat(loggingEvents.stream().anyMatch(event -> event.getFormattedMessage()
-                .equals("Charge not found in Connector or Ledger for Adyen capture webhook")), is(true));
+        LoggingEvent loggingEvents = loggingEventArgumentCaptor.getValue();
+        assertThat(loggingEvents.getLevel(), is(Level.ERROR));
+        assertThat(loggingEvents.getFormattedMessage(), is("Charge not found in Connector or Ledger for Adyen capture webhook"));
     }
 
     @Test
@@ -230,5 +231,58 @@ class AdyenWebhookTaskHandlerTest {
         adyenWebhookTaskHandler.processAdyenTokenWebhookNotification(payload);
 
         verify(mockAdyenTokenWebhookNotificationHandler).process(payload);
+    }
+
+    @Test
+    void shouldUsePspReferenceWhenOriginalReferenceIsMissing() {
+        when(mockAdyenWebhookDeserialiser.deserialiseAndGetNotificationItem(payload)).thenReturn(mockNotificationItem);
+        when(mockNotificationItem.getEventCode()).thenReturn(EVENT_CODE_CAPTURE);
+        when(mockNotificationItem.getOriginalReference()).thenReturn(null);
+        when(mockNotificationItem.getPspReference()).thenReturn(gatewayTransactionId);
+
+        when(mockChargeService.findByProviderAndTransactionIdFromDbOrLedger(ADYEN.getName(), gatewayTransactionId))
+                .thenReturn(Optional.of(mockCharge));
+
+        adyenWebhookTaskHandler.processAdyenWebhookNotification(payload);
+
+        verify(mockChargeService).findByProviderAndTransactionIdFromDbOrLedger(ADYEN.getName(), gatewayTransactionId);
+        verify(mockAdyenCaptureNotificationHandler).process(mockNotificationItem, mockCharge);
+    }
+
+    @Test
+    void shouldUseOriginalReferenceWhenBothOriginalReferenceAndPspReferenceArePresent() {
+        String pspReference = "adyen-psp-ref-1";
+        when(mockAdyenWebhookDeserialiser.deserialiseAndGetNotificationItem(payload)).thenReturn(mockNotificationItem);
+        when(mockNotificationItem.getEventCode()).thenReturn(EVENT_CODE_CAPTURE);
+        when(mockNotificationItem.getOriginalReference()).thenReturn(gatewayTransactionId);
+        lenient().when(mockNotificationItem.getPspReference()).thenReturn(pspReference);
+        when(mockChargeService.findByProviderAndTransactionIdFromDbOrLedger(ADYEN.getName(), gatewayTransactionId))
+                .thenReturn(Optional.of(mockCharge));
+
+        adyenWebhookTaskHandler.processAdyenWebhookNotification(payload);
+
+        verify(mockChargeService).findByProviderAndTransactionIdFromDbOrLedger(ADYEN.getName(), gatewayTransactionId);
+        verify(mockChargeService, never()).findByProviderAndTransactionIdFromDbOrLedger(ADYEN.getName(), pspReference);
+        verify(mockAdyenCaptureNotificationHandler).process(mockNotificationItem, mockCharge);
+    }
+
+    @Test
+    void shouldLogErrorAndSkipWhenNoReferencesArePresent() {
+        when(mockAdyenWebhookDeserialiser.deserialiseAndGetNotificationItem(payload)).thenReturn(mockNotificationItem);
+        when(mockNotificationItem.getEventCode()).thenReturn(EVENT_CODE_CAPTURE);
+        when(mockNotificationItem.getOriginalReference()).thenReturn(null);
+        when(mockNotificationItem.getPspReference()).thenReturn(null);
+
+        adyenWebhookTaskHandler.processAdyenWebhookNotification(payload);
+
+        verify(mockChargeService, never()).findByProviderAndTransactionIdFromDbOrLedger(any(), any());
+        verify(mockAdyenCaptureNotificationHandler, never()).process(any(), any());
+        verify(mockAdyenRefundNotificationHandler, never()).process(any(), any());
+        verify(mockAdyenCancellationNotificationHandler, never()).process(any(), any());
+        verify(mockAppender, atLeastOnce()).doAppend(loggingEventArgumentCaptor.capture());
+        LoggingEvent loggingEvents = loggingEventArgumentCaptor.getValue();
+        assertThat(loggingEvents.getLevel(), is(Level.ERROR));
+        assertThat(loggingEvents.getFormattedMessage(), is("Skipping Adyen capture webhook because both originalReference and PspReference are missing"));
+
     }
 }

@@ -53,15 +53,27 @@ public class AdyenWebhookTaskHandler {
 
     private void processNotificationItemForCharge(NotificationRequestItem item) {
         String eventCode = item.getEventCode();
-        String gatewayTransactionId = item.getOriginalReference();
+        String gatewayTransactionId = getGatewayTransactionId(item);
+
+        if (gatewayTransactionId == null) {
+            LOGGER.atError()
+                    .setMessage("Skipping Adyen {} webhook because both originalReference and PspReference are missing")
+                    .addArgument(eventCode.toLowerCase())
+                    .log();
+            return;
+        }
 
         chargeService.findByProviderAndTransactionIdFromDbOrLedger(ADYEN.getName(), gatewayTransactionId)
                 .ifPresentOrElse(charge -> processNotificationItem(item, charge),
-                        () -> LOGGER.atWarn()
+                        () -> LOGGER.atError()
                                 .setMessage("Charge not found in Connector or Ledger for Adyen {} webhook")
                                 .addArgument(eventCode.toLowerCase())
                                 .addKeyValue(GATEWAY_TRANSACTION_ID, gatewayTransactionId)
                                 .log());
+    }
+
+    private String getGatewayTransactionId(NotificationRequestItem item) {
+        return item.getOriginalReference() != null ? item.getOriginalReference() : item.getPspReference();
     }
 
     private void processNotificationItem(NotificationRequestItem item, Charge foundCharge) {
