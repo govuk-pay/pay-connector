@@ -45,9 +45,12 @@ import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenEnvironment.
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent.AUTHORISATION;
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent.EXPIRE;
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent.RECURRING_TOKEN_CREATED;
+import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent.TRANSFER_CREATED;
 import static uk.gov.pay.connector.queue.tasks.TaskType.HANDLE_ADYEN_TOKEN_WEBHOOK_NOTIFICATION;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_NOTIFICATION;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_TOKEN_NOTIFICATION;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_TRANSFER_NOTIFICATION;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.load;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -86,9 +89,9 @@ class AdyenNotificationServiceTest {
 
     @Test
     void shouldAcceptNotificationWhenForwardedIpMatchesConfiguredDomain() {
-        String payload = getNotificationWithValidHmacSignature("AUTHORISATION");
+        String payload = load(ADYEN_TRANSFER_NOTIFICATION).replace("{{type}}", "balancePlatform.transfer.created");
         when(mockAdyenNotificationValidator.isValidIpAddress("5.6.7.8")).thenReturn(true);
-        when(mockAdyenWebhookNotificationParser.parse(payload)).thenReturn(getAdyenWebhookNotification(AUTHORISATION));
+        when(mockAdyenWebhookNotificationParser.parse(payload)).thenReturn(getAdyenWebhookNotification(TRANSFER_CREATED, false));
         when(mockAdyenNotificationValidator.validateHmacSignature(any(), any(), any())).thenReturn(true);
 
         boolean result = adyenNotificationService.handleNotificationFor(payload, "5.6.7.8", null);
@@ -128,7 +131,7 @@ class AdyenNotificationServiceTest {
     void shouldRejectPaymentNotificationWhenHmacSignatureIsInvalid() {
         String payload = getNotificationWithValidHmacSignature("AUTHORISATION");
         when(mockAdyenNotificationValidator.isValidIpAddress("5.6.7.8")).thenReturn(true);
-        when(mockAdyenWebhookNotificationParser.parse(payload)).thenReturn(getAdyenWebhookNotification(AUTHORISATION));
+        when(mockAdyenWebhookNotificationParser.parse(payload)).thenReturn(getAdyenWebhookNotification(AUTHORISATION, true));
         when(mockAdyenNotificationValidator.validateHmacSignature(any(), any(), any())).thenReturn(false);
 
         boolean result = adyenNotificationService.handleNotificationFor(payload, "5.6.7.8", null);
@@ -152,7 +155,7 @@ class AdyenNotificationServiceTest {
     void shouldThrowWebApplicationExceptionWhenSendingPaymentNotificationToTaskQueueFails() {
         String payload = getNotificationWithValidHmacSignature("AUTHORISATION");
         when(mockAdyenNotificationValidator.isValidIpAddress("5.6.7.8")).thenReturn(true);
-        when(mockAdyenWebhookNotificationParser.parse(payload)).thenReturn(getAdyenWebhookNotification(AUTHORISATION));
+        when(mockAdyenWebhookNotificationParser.parse(payload)).thenReturn(getAdyenWebhookNotification(AUTHORISATION, true));
         when(mockAdyenNotificationValidator.validateHmacSignature(any(), any(), any())).thenReturn(true);
 
         doThrow(new RuntimeException("SQS unavailable"))
@@ -177,7 +180,7 @@ class AdyenNotificationServiceTest {
     void shouldNotAddIgnoredEventToTaskQueue() {
         String payload = getNotificationWithValidHmacSignature("EXPIRE");
         when(mockAdyenNotificationValidator.isValidIpAddress("5.6.7.8")).thenReturn(true);
-        when(mockAdyenWebhookNotificationParser.parse(payload)).thenReturn(getAdyenWebhookNotification(EXPIRE));
+        when(mockAdyenWebhookNotificationParser.parse(payload)).thenReturn(getAdyenWebhookNotification(EXPIRE, true));
 
         boolean result = adyenNotificationService.handleNotificationFor(payload, "5.6.7.8", null);
 
@@ -189,7 +192,7 @@ class AdyenNotificationServiceTest {
     void shouldAddValidNotificationToTaskQueue() {
         String payload = getNotificationWithValidHmacSignature("RECURRING_TOKEN_CREATED");
         when(mockAdyenNotificationValidator.isValidIpAddress("5.6.7.8")).thenReturn(true);
-        when(mockAdyenWebhookNotificationParser.parse(payload)).thenReturn(getAdyenWebhookNotification(RECURRING_TOKEN_CREATED));
+        when(mockAdyenWebhookNotificationParser.parse(payload)).thenReturn(getAdyenWebhookNotification(RECURRING_TOKEN_CREATED, false));
         when(mockAdyenNotificationValidator.validateHmacSignature(any(), any(), any())).thenReturn(true);
 
         boolean result = adyenNotificationService.handleNotificationFor(payload, "5.6.7.8", null);
@@ -228,7 +231,7 @@ class AdyenNotificationServiceTest {
         }
     }
 
-    private AdyenWebhookNotification getAdyenWebhookNotification(AdyenWebhookEvent adyenWebhookEvent) {
-        return new AdyenWebhookNotification(adyenWebhookEvent, TEST, true);
+    private AdyenWebhookNotification getAdyenWebhookNotification(AdyenWebhookEvent adyenWebhookEvent, boolean usesNotificationItems) {
+        return new AdyenWebhookNotification(adyenWebhookEvent, TEST, usesNotificationItems);
     }
 }

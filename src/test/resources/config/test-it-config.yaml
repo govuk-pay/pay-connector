@@ -77,7 +77,7 @@ adyen:
         secondary: ""
     transfer:
       test:
-        primary: 74872EFRHH2824F8D2BU2D8248237238DHUD23I278274RHWJBD728281DIQ8F9 # pragma: allowlist secret
+        primary: 7B5BADA576A73109D879220DCB793FFD67DEF7AA18C74CCC0AB66FD87AC8AEFD # pragma: allowlist secret
         secondary: ""
       live:
         primary: adyen-live-transfer-hmac-primary

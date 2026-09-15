@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookType.PAYMENTS;
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookType.TOKENS;
+import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookType.TRANSFER;
 
 public enum AdyenWebhookEvent {
     // payment events
@@ -19,7 +20,11 @@ public enum AdyenWebhookEvent {
 
     // tokens
     RECURRING_TOKEN_CREATED("recurring.token.created", TOKENS, false),
-    RECURRING_TOKEN_DISABLED("recurring.token.disabled", TOKENS, false);
+    RECURRING_TOKEN_DISABLED("recurring.token.disabled", TOKENS, false),
+
+    // transfer
+    TRANSFER_CREATED("balancePlatform.transfer.created", TRANSFER, false),
+    TRANSFER_UPDATED("balancePlatform.transfer.updated", TRANSFER, false);
 
     private final AdyenWebhookType webhookType;
     private final String eventCodeOrType;
