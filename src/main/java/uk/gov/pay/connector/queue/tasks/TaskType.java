@@ -8,6 +8,7 @@ public enum TaskType {
     HANDLE_ADYEN_PAYMENTS_WEBHOOK_NOTIFICATION("handle_adyen_payments_webhook_notification"),
     HANDLE_ADYEN_TOKEN_WEBHOOK_NOTIFICATION("handle_adyen_token_webhook_notification"),
     HANDLE_ADYEN_TRANSFER_WEBHOOK_NOTIFICATION("handle_adyen_transfer_webhook_notification"),
+    HANDLE_ADYEN_REPORT_WEBHOOK_NOTIFICATION("handle_adyen_report_webhook_notification"),
     AUTHORISE_WITH_USER_NOT_PRESENT("authorise_with_user_not_present"),
     DELETE_STORED_PAYMENT_DETAILS("delete_stored_payment_details"),
     RETRY_FAILED_PAYMENT_OR_REFUND_EMAIL("retry_failed_payment_or_refund_email"), 

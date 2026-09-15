@@ -58,6 +58,10 @@ public class AdyenConfigUtil {
         return getPrimaryHmacKey(adyenGatewayConfig.getHmacKeys().transfer(), live);
     }
 
+    private static String getReportsHmacKey(AdyenGatewayConfig adyenGatewayConfig, boolean live) {
+        return getPrimaryHmacKey(adyenGatewayConfig.getHmacKeys().reports(), live);
+    }
+
     public static String getHmacKeyForWebhookType(AdyenGatewayConfig adyenGatewayConfig,
                                                   AdyenWebhookType webhookType,
                                                   boolean live) {
@@ -65,6 +69,7 @@ public class AdyenConfigUtil {
             case PAYMENTS -> getHmacKey(adyenGatewayConfig, live);
             case TOKENS -> getTokenHmacKey(adyenGatewayConfig, live);
             case TRANSFER -> getTransferHmacKey(adyenGatewayConfig, live);
+            case REPORTS -> getReportsHmacKey(adyenGatewayConfig, live);
         };
     }
 }

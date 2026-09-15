@@ -93,6 +93,13 @@ adyen:
       live:
         primary: adyen-live-transfer-hmac-primary
         secondary: ""
+    reports:
+      test:
+        primary: adyen-test-reports-hmac-primary
+        secondary: ""
+      live:
+        primary: adyen-live-reports-hmac-primary
+        secondary: ""
 
 sandbox:
   allowedCidrs: ${SANDBOX_ALLOWED_CIDRS:-[]}

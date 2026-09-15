@@ -14,6 +14,7 @@ import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
 import static uk.gov.pay.connector.queue.tasks.TaskType.HANDLE_ADYEN_TRANSFER_WEBHOOK_NOTIFICATION;
 import static uk.gov.pay.connector.queue.tasks.TaskType.HANDLE_ADYEN_TOKEN_WEBHOOK_NOTIFICATION;
 import static uk.gov.pay.connector.queue.tasks.TaskType.HANDLE_ADYEN_PAYMENTS_WEBHOOK_NOTIFICATION;
+import static uk.gov.pay.connector.queue.tasks.TaskType.HANDLE_ADYEN_REPORT_WEBHOOK_NOTIFICATION;
 import static uk.gov.service.payments.logging.LoggingKeys.PROVIDER;
 
 public class AdyenNotificationService {
@@ -86,6 +87,7 @@ public class AdyenNotificationService {
             case PAYMENTS -> HANDLE_ADYEN_PAYMENTS_WEBHOOK_NOTIFICATION;
             case TOKENS -> HANDLE_ADYEN_TOKEN_WEBHOOK_NOTIFICATION;
             case TRANSFER -> HANDLE_ADYEN_TRANSFER_WEBHOOK_NOTIFICATION;
+            case REPORTS -> HANDLE_ADYEN_REPORT_WEBHOOK_NOTIFICATION;
         };
     }
 }
