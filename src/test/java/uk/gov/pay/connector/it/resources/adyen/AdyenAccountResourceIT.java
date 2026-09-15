@@ -16,7 +16,11 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
+import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.APPLEPAY;
+import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.GOOGLEPAY;
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
@@ -39,8 +43,11 @@ import static uk.gov.pay.connector.gatewayaccount.model.GatewayAccountType.TEST;
 import static uk.gov.pay.connector.gatewayaccountcredentials.model.GatewayAccountCredentialState.ACTIVE;
 import static uk.gov.pay.connector.gatewayaccountcredentials.model.GatewayAccountCredentialState.RETIRED;
 import static uk.gov.pay.connector.util.AddGatewayAccountCredentialsParams.AddGatewayAccountCredentialsParamsBuilder.anAddGatewayAccountCredentialsParams;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_APPLE_PAY_PAYMENT_METHOD_REQUEST;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_BALANCE_ACCOUNT_SWEEP_REQUEST;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_CREATE_INDIVIDUAL_REQUEST;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_CREATE_LEGAL_ENTITY_REQUEST;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_GOOGLE_PAY_PAYMENT_METHOD_REQUEST;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_PAYMENT_METHOD_REQUEST;
 
 public class AdyenAccountResourceIT {
@@ -88,6 +95,7 @@ public class AdyenAccountResourceIT {
 
         app.getAdyenBalancePlatformMockClient().mockCreateAccountHolder();
         app.getAdyenBalancePlatformMockClient().mockCreateBalanceAccount();
+        app.getAdyenBalancePlatformMockClient().mockCreateCustomSweepSchedule("BA0000000000000000000001");
 
         app.getAdyenKycMockClient().mockGetTermsOfServiceDocument(legalEntityId);
         app.getAdyenKycMockClient().mockAcceptTermsOfService(legalEntityId, termsOfServiceDocumentId);
@@ -120,6 +128,8 @@ public class AdyenAccountResourceIT {
 
         app.getAdyenWireMockServer().verify(postRequestedFor(urlEqualTo("/accountHolders")));
         app.getAdyenWireMockServer().verify(postRequestedFor(urlEqualTo("/balanceAccounts")));
+        app.getAdyenWireMockServer().verify(postRequestedFor(urlEqualTo("/balanceAccounts/BA0000000000000000000001/sweeps"))
+                .withRequestBody(equalToJson(TestTemplateResourceLoader.load(ADYEN_BALANCE_ACCOUNT_SWEEP_REQUEST))));
 
         app.getAdyenWireMockServer().verify(postRequestedFor(urlEqualTo(format("/legalEntities/%s/termsOfService", legalEntityId))));
         app.getAdyenWireMockServer().verify(patchRequestedFor(urlEqualTo(format("/legalEntities/%s/termsOfService/%s", legalEntityId, termsOfServiceDocumentId))));
@@ -141,7 +151,7 @@ public class AdyenAccountResourceIT {
                 .body("gateway_account_credentials[0].credentials.account_holder_id", is("AH3227C223222H5J4DCLW9VBV"))
                 .body("gateway_account_credentials[0].credentials.balance_account_id", is("BA0000000000000000000001"))
                 .body("gateway_account_credentials[0].external_id", is(notNullValue(String.class)));
-        
+
         int accountId = app.givenSetup().get(format("/v1/api/service/%s/account/test", serviceId)).jsonPath().get("gateway_account_id");
 
         var adyenAccountSetupTaskEntities = app.getDatabaseTestHelper().getAdyenAccountSetupTaskEntities(accountId);
@@ -149,20 +159,27 @@ public class AdyenAccountResourceIT {
 
         assertFalse(adyenAccountSetupTaskEntities.isEmpty());
         assertTrue(adyenAccountSetupTaskEntities.stream()
-                .allMatch(entity -> entity.get("status").equals("COMPLETED")), 
+                        .allMatch(entity -> entity.get("status").equals("COMPLETED")),
                 "Not all (or any) AdyenAccountSetupTasks have a COMPLETED status");
         assertEquals(AdyenAccountSetupTask.values().length, adyenAccountSetupTaskEntities.size());
         assertTrue(adyenAccountSetupTaskEntities.stream()
-                .allMatch(entity -> (entity.get("gateway_account_credential_id")).equals(gatewayAccountCredentialId)), 
+                        .allMatch(entity -> (entity.get("gateway_account_credential_id")).equals(gatewayAccountCredentialId)),
                 "Not all (or any) AdyenAccountSetupTasks have the expected Gateway Account Credential Id");
     }
 
     private void verifyPaymentMethodsRequest(List<PaymentMethodSetupInfo.TypeEnum> paymentTypes, String merchantId) {
         for (PaymentMethodSetupInfo.TypeEnum paymentType : paymentTypes) {
+            String template = ADYEN_PAYMENT_METHOD_REQUEST;
+            if (paymentType.equals(APPLEPAY)) {
+                template = ADYEN_APPLE_PAY_PAYMENT_METHOD_REQUEST;
+            } else if (paymentType.equals(GOOGLEPAY)) {
+                template = ADYEN_GOOGLE_PAY_PAYMENT_METHOD_REQUEST;
+            }
             app.getAdyenWireMockServer()
                     .verify(postRequestedFor(urlEqualTo((format("/merchants/%s/paymentMethodSettings", merchantId))))
+                            .withRequestBody(matchingJsonPath("$.type", containing(paymentType.toString())))
                             .withRequestBody(equalToJson(TestTemplateResourceLoader
-                                    .load(ADYEN_PAYMENT_METHOD_REQUEST)
+                                    .load(template)
                                     .replace("{{type}}", paymentType.toString()))));
         }
 
@@ -299,6 +316,7 @@ public class AdyenAccountResourceIT {
 
         app.getAdyenBalancePlatformMockClient().mockCreateAccountHolder();
         app.getAdyenBalancePlatformMockClient().mockCreateBalanceAccount();
+        app.getAdyenBalancePlatformMockClient().mockCreateCustomSweepSchedule("BA0000000000000000000001");
 
         app.getAdyenKycMockClient().mockGetTermsOfServiceDocument(legalEntityId);
         app.getAdyenKycMockClient().mockAcceptTermsOfService(legalEntityId, termsOfServiceDocumentId);
@@ -332,6 +350,8 @@ public class AdyenAccountResourceIT {
 
         app.getAdyenWireMockServer().verify(postRequestedFor(urlEqualTo("/accountHolders")));
         app.getAdyenWireMockServer().verify(postRequestedFor(urlEqualTo("/balanceAccounts")));
+        app.getAdyenWireMockServer().verify(postRequestedFor(urlEqualTo("/balanceAccounts/BA0000000000000000000001/sweeps"))
+                .withRequestBody(equalToJson(TestTemplateResourceLoader.load(ADYEN_BALANCE_ACCOUNT_SWEEP_REQUEST))));
 
         app.getAdyenWireMockServer().verify(postRequestedFor(urlEqualTo(format("/legalEntities/%s/termsOfService", legalEntityId))));
         app.getAdyenWireMockServer().verify(patchRequestedFor(urlEqualTo(format("/legalEntities/%s/termsOfService/%s", legalEntityId, termsOfServiceDocumentId))));
@@ -358,7 +378,7 @@ public class AdyenAccountResourceIT {
                 .body("gateway_account_credentials[1].credentials.account_holder_id", is("AH3227C223222H5J4DCLW9VBV"))
                 .body("gateway_account_credentials[1].credentials.balance_account_id", is("BA0000000000000000000001"))
                 .body("gateway_account_credentials[1].external_id", is(notNullValue(String.class)));
-        
+
         int accountId = app.givenSetup().get(format("/v1/api/service/%s/account/test", serviceId)).jsonPath().get("gateway_account_id");
 
         var adyenAccountSetupTaskEntities = app.getDatabaseTestHelper().getAdyenAccountSetupTaskEntities(accountId);

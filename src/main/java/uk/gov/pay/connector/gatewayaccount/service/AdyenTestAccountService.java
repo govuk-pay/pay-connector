@@ -4,6 +4,10 @@ import com.adyen.model.balanceplatform.AccountHolder;
 import com.adyen.model.balanceplatform.AccountHolderInfo;
 import com.adyen.model.balanceplatform.BalanceAccount;
 import com.adyen.model.balanceplatform.BalanceAccountInfo;
+import com.adyen.model.balanceplatform.CreateSweepConfigurationV2;
+import com.adyen.model.balanceplatform.SweepConfigurationV2;
+import com.adyen.model.balanceplatform.SweepCounterparty;
+import com.adyen.model.balanceplatform.SweepSchedule;
 import com.adyen.model.legalentitymanagement.AcceptTermsOfServiceRequest;
 import com.adyen.model.legalentitymanagement.Address;
 import com.adyen.model.legalentitymanagement.BankAccountInfo;
@@ -25,9 +29,12 @@ import com.adyen.model.legalentitymanagement.Organization;
 import com.adyen.model.legalentitymanagement.PciSigningRequest;
 import com.adyen.model.legalentitymanagement.PhoneNumber;
 import com.adyen.model.legalentitymanagement.Support;
+import com.adyen.model.legalentitymanagement.TransferInstrument;
 import com.adyen.model.legalentitymanagement.TransferInstrumentInfo;
 import com.adyen.model.legalentitymanagement.UKLocalAccountIdentification;
 import com.adyen.model.legalentitymanagement.WebData;
+import com.adyen.model.management.ApplePayInfo;
+import com.adyen.model.management.GooglePayInfo;
 import com.adyen.model.management.PaymentMethodSetupInfo;
 import com.adyen.model.management.Store;
 import com.adyen.model.management.StoreCreationWithMerchantCodeRequest;
@@ -38,6 +45,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.gov.pay.connector.app.ConnectorConfiguration;
 import uk.gov.pay.connector.app.adyen.AdyenGatewayConfig;
 import uk.gov.pay.connector.gateway.adyen.api.AdyenBalancePlatformApiFactory;
 import uk.gov.pay.connector.gateway.adyen.api.AdyenCompanyAccountApiFactory;
@@ -49,7 +57,21 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static com.adyen.model.balanceplatform.CreateSweepConfigurationV2.CategoryEnum.BANK;
+import static com.adyen.model.balanceplatform.CreateSweepConfigurationV2.PrioritiesEnum.FAST;
+import static com.adyen.model.balanceplatform.CreateSweepConfigurationV2.PrioritiesEnum.REGULAR;
 import static com.adyen.model.legalentitymanagement.UKLocalAccountIdentification.TypeEnum.UKLOCAL;
+import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.APPLEPAY;
+import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.GOOGLEPAY;
+import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.JCB;
+import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.MAESTRO;
+import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.MC;
+import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.VISA;
+import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.PAYBYBANK;
+import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.AMEX;
+import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.CUP;
+import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.DINERS;
+import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.DISCOVER;
 import static net.logstash.logback.argument.StructuredArguments.kv;
 import static org.apache.hc.core5.http.HttpStatus.SC_BAD_GATEWAY;
 
@@ -61,42 +83,45 @@ public class AdyenTestAccountService {
     private final AdyenBalancePlatformApiFactory adyenBalancePlatformApiFactory;
     private final AdyenCompanyAccountApiFactory adyenCompanyAccountApiFactory;
     private final AdyenKycApiFactory adyenKycApiFactory;
+    private final String frontendUrl;
 
     @Inject
-    public AdyenTestAccountService(AdyenGatewayConfig adyenGatewayConfig,
+    public AdyenTestAccountService(ConnectorConfiguration connectorConfiguration,
                                    AdyenBalancePlatformApiFactory adyenBalancePlatformApiFactory,
-                                   AdyenCompanyAccountApiFactory adyenCompanyAccountApiFactory, 
+                                   AdyenCompanyAccountApiFactory adyenCompanyAccountApiFactory,
                                    AdyenKycApiFactory adyenKycApiFactory) {
-        this.adyenGatewayConfig = adyenGatewayConfig;
+        this.adyenGatewayConfig = connectorConfiguration.getAdyenGatewayConfig();
+        this.frontendUrl = connectorConfiguration.getLinks().getFrontendUrl();
         this.adyenBalancePlatformApiFactory = adyenBalancePlatformApiFactory;
         this.adyenCompanyAccountApiFactory = adyenCompanyAccountApiFactory;
         this.adyenKycApiFactory = adyenKycApiFactory;
     }
 
-    public AdyenCredentials createTestAccount(String serviceName) {
+    public AdyenCredentials createTestAccount(String serviceId, String serviceName) {
         var legalEntitiesApi = adyenKycApiFactory.getLegalEntitiesApi();
-        
+
         String legalEntityId = createOrganisation(serviceName, legalEntitiesApi);
         String businessLineId = createBusinessLine(legalEntityId);
 
         String sroLegalEntityId = createIndividual(legalEntitiesApi);
         associateLegalEntity(legalEntityId, sroLegalEntityId, legalEntitiesApi);
 
-        createBankAccount(legalEntityId);
+        String transferInstrumentId = createBankAccount(legalEntityId);
 
         String merchantAccountIdTest = adyenGatewayConfig.getMerchantAccountIds().test();
         String storeId = createStore(merchantAccountIdTest, legalEntityId, businessLineId);
         addPaymentMethodsToStore(merchantAccountIdTest, storeId, businessLineId);
-        
+
         LOGGER.info("All payment methods added to store",
                 kv("store_id", storeId),
                 kv("business_line_id", businessLineId)
         );
 
         String balancePlatformIdTest = adyenGatewayConfig.getBalancePlatformIds().test();
-        String accountHolderId = createAccountHolder(legalEntityId, balancePlatformIdTest, serviceName);
+        String accountHolderId = createAccountHolder(legalEntityId, balancePlatformIdTest, serviceId, serviceName);
         String balanceAccountId = createBalanceAccount(accountHolderId, serviceName);
 
+        setSweepSchedule(transferInstrumentId, balanceAccountId);
         acceptTermsOfService(legalEntityId, sroLegalEntityId);
         signPciQuestionnaire(legalEntityId, sroLegalEntityId);
 
@@ -112,7 +137,7 @@ public class AdyenTestAccountService {
 
     private void signPciQuestionnaire(String legalEntityId, String sroLegalEntityId) {
         var pciQuestionnairesApi = adyenKycApiFactory.getPciQuestionnairesApi();
-        
+
         try {
             GeneratePciDescriptionRequest generatePciDescriptionRequest = new GeneratePciDescriptionRequest()
                     .language("en");
@@ -123,11 +148,12 @@ public class AdyenTestAccountService {
 
             if (pciTemplateReferences != null && !pciTemplateReferences.isEmpty()) {
                 PciSigningRequest pciSigningRequest = new PciSigningRequest()
+                        .signedBy(sroLegalEntityId)
                         .pciTemplateReferences(pciTemplateReferences);
 
-                pciQuestionnairesApi.signPciQuestionnaire(sroLegalEntityId, pciSigningRequest);
+                pciQuestionnairesApi.signPciQuestionnaire(legalEntityId, pciSigningRequest);
 
-                LOGGER.info("PCI questionnaire signed by legal entity", 
+                LOGGER.info("PCI questionnaire signed by legal entity",
                         kv("sro_legal_entity_id", sroLegalEntityId)
                 );
             }
@@ -139,7 +165,7 @@ public class AdyenTestAccountService {
 
     private void acceptTermsOfService(String legalEntityId, String sroLegalEntityId) {
         var termsOfServiceApi = adyenKycApiFactory.getTermsOfServiceApi();
-        
+
         try {
             GetTermsOfServiceDocumentRequest getTermsOfServiceDocumentRequest = new GetTermsOfServiceDocumentRequest()
                     .type(GetTermsOfServiceDocumentRequest.TypeEnum.ADYENFORPLATFORMSADVANCED)
@@ -165,44 +191,77 @@ public class AdyenTestAccountService {
 
     private String createBalanceAccount(String accountHolderId, String serviceName) {
         var balanceAccountsApi = adyenBalancePlatformApiFactory.getBalanceAccountsApi();
-        
+
         try {
             BalanceAccountInfo balanceAccountInfo = new BalanceAccountInfo()
                     .accountHolderId(accountHolderId)
                     .description(String.format("Balance account for '%s' service", serviceName))
                     .defaultCurrencyCode("GBP")
                     .timeZone("Europe/London");
-            
+
             BalanceAccount balanceAccount = balanceAccountsApi.createBalanceAccount(balanceAccountInfo);
             String balanceAccountId = balanceAccount.getId();
-            
-            LOGGER.info("Balance account created", 
-                    kv( "balance_account_id", balanceAccountId)
+
+            LOGGER.info("Balance account created",
+                    kv("balance_account_id", balanceAccountId)
             );
-            
+
             return balanceAccountId;
         } catch (ApiException | IOException e) {
             throw new WebApplicationException("Error creating BalanceAccount", e);
         }
     }
 
-    private String createAccountHolder(String legalEntityId, String balancePlatformId, String serviceName) {
+    private void setSweepSchedule(String transferInstrumentId, String balanceAccountId) {
+        var customPayoutSchedulesSweepsApi = adyenBalancePlatformApiFactory.getCustomPayoutSchedulesSweepsApi();
+
+        try {
+            SweepSchedule sweepSchedule = new SweepSchedule()
+                    .cronExpression("00 2 * * MON-FRI")
+                    .type(SweepSchedule.TypeEnum.CRON);
+
+            SweepCounterparty sweepCounterparty = new SweepCounterparty()
+                    .transferInstrumentId(transferInstrumentId);
+
+            CreateSweepConfigurationV2 createSweepConfigurationV2 = new CreateSweepConfigurationV2()
+                    .schedule(sweepSchedule)
+                    .counterparty(sweepCounterparty)
+                    .currency("GBP")
+                    .priorities(List.of(FAST, REGULAR))
+                    .category(BANK)
+                    .reference("Test")
+
+                    .type(CreateSweepConfigurationV2.TypeEnum.PUSH);
+
+            SweepConfigurationV2 response = customPayoutSchedulesSweepsApi.createSweep(balanceAccountId, createSweepConfigurationV2, null);
+
+            LOGGER.info("Created payout schedule for balance account",
+                    kv("balance_account_id", balanceAccountId),
+                    kv("sweep_id", response.getId())
+            );
+        } catch (ApiException | IOException e) {
+            throw new WebApplicationException("Error creating custom payout schedule", e);
+        }
+    }
+
+    private String createAccountHolder(String legalEntityId, String balancePlatformId, String serviceId,
+                                       String serviceName) {
         var accountHoldersApi = adyenBalancePlatformApiFactory.getAccountHoldersApi();
-        
+
         try {
             AccountHolderInfo accountHolderInfo = new AccountHolderInfo()
                     .reference(serviceName)
                     .legalEntityId(legalEntityId)
                     .balancePlatform(balancePlatformId)
-                    .description(String.format("Liable account holder used for %s", serviceName));
-            
+                    .description(String.format("Account holder used for serviceId %s and name %s", serviceId, serviceName));
+
             AccountHolder accountHolder = accountHoldersApi.createAccountHolder(accountHolderInfo, null);
             String accountHolderId = accountHolder.getId();
-            
+
             LOGGER.info("Account holder created",
-                    kv( "account_holder_id", accountHolderId)
+                    kv("account_holder_id", accountHolderId)
             );
-            
+
             return accountHolderId;
         } catch (ApiException | IOException e) {
             throw new WebApplicationException("Error creating account holder", e);
@@ -230,10 +289,10 @@ public class AdyenTestAccountService {
             LegalEntityInfoRequiredType legalEntityInfoRequiredType = new LegalEntityInfoRequiredType()
                     .organization(organization)
                     .type(LegalEntityInfoRequiredType.TypeEnum.ORGANIZATION);
-            
+
             LegalEntity legalEntity = legalEntitiesApi.createLegalEntity(legalEntityInfoRequiredType, null);
             String legalEntityId = legalEntity.getId();
-            
+
             LOGGER.info("Legal entity created",
                     kv("type", legalEntity.getType()),
                     kv("legal_entity_id", legalEntityId)
@@ -255,7 +314,7 @@ public class AdyenTestAccountService {
 
     private String createBusinessLine(String legalEntityId) {
         var businessLinesApi = adyenKycApiFactory.getBusinessLinesApi();
-        
+
         try {
             WebData webData = new WebData()
                     .webAddress("https://gov.uk");
@@ -266,14 +325,14 @@ public class AdyenTestAccountService {
                     .service(BusinessLineInfo.ServiceEnum.PAYMENTPROCESSING)
                     .webData(Collections.singletonList(webData))
                     .industryCode("921");
-            
+
             BusinessLine businessLine = businessLinesApi.createBusinessLine(businessLineInfo, null);
             String businessLineId = businessLine.getId();
-            
+
             LOGGER.info("Business line created",
                     kv("business_line_id", businessLineId)
             );
-            
+
             return businessLineId;
         } catch (ApiException | IOException e) {
             throw new WebApplicationException("Error creating business line for Adyen test account", e);
@@ -303,15 +362,15 @@ public class AdyenTestAccountService {
             LegalEntityInfoRequiredType legalEntityInfoRequiredType = new LegalEntityInfoRequiredType()
                     .individual(individual)
                     .type(LegalEntityInfoRequiredType.TypeEnum.INDIVIDUAL);
-            
+
             LegalEntity legalEntityIndividual = legalEntitiesApi.createLegalEntity(legalEntityInfoRequiredType, null);
             String legalEntityIndividualId = legalEntityIndividual.getId();
-            
+
             LOGGER.info("Legal entity created",
                     kv("type", legalEntityIndividual.getType()),
                     kv("legal_entity_id", legalEntityIndividualId)
             );
-            
+
             return legalEntityIndividualId;
         } catch (ApiException | IOException e) {
             throw new WebApplicationException("Error creating individual legal entity", e);
@@ -322,12 +381,12 @@ public class AdyenTestAccountService {
         try {
             LegalEntityAssociation legalEntityAssociationSRO = new LegalEntityAssociation()
                     .legalEntityId(individualLegalEntityId)
-                    .jobTitle("CEO")
+                    .jobTitle("UBOTHROUGHCONTROL")
                     .type(LegalEntityAssociation.TypeEnum.UBOTHROUGHCONTROL);
 
             LegalEntityAssociation legalEntityAssociationSignatory = new LegalEntityAssociation()
                     .legalEntityId(individualLegalEntityId)
-                    .jobTitle("CEO")
+                    .jobTitle("SIGNATORY")
                     .type(LegalEntityAssociation.TypeEnum.SIGNATORY);
 
             LegalEntityAssociation legalEntityAssociationDirector = new LegalEntityAssociation()
@@ -335,8 +394,10 @@ public class AdyenTestAccountService {
                     .jobTitle("Director")
                     .type(LegalEntityAssociation.TypeEnum.DIRECTOR);
 
+
             LegalEntityInfo legalEntityInfo = new LegalEntityInfo()
-                    .entityAssociations(Arrays.asList(legalEntityAssociationSRO, legalEntityAssociationDirector, legalEntityAssociationSignatory));
+                    .entityAssociations(Arrays.asList(legalEntityAssociationSRO, legalEntityAssociationDirector,
+                            legalEntityAssociationSignatory));
 
             LOGGER.info("Associated individuals to legal entity",
                     kv("legal_entity_id),", legalEntityId),
@@ -353,7 +414,7 @@ public class AdyenTestAccountService {
 
     private String createStore(String merchantAccountId, String serviceName, String businessLineId) {
         var accountStoreLevelApi = adyenCompanyAccountApiFactory.getAccountStoreLevelApi();
-        
+
         try {
 
             StoreCreationWithMerchantCodeRequest request = new StoreCreationWithMerchantCodeRequest()
@@ -364,16 +425,16 @@ public class AdyenTestAccountService {
                     .address(new StoreLocation().country("GB")
                             .city("London")
                             .line1("10 Park Row")
-                            .postalCode("AB1 2BC"))
+                            .postalCode("E1 8QS"))
                     .businessLineIds(List.of(businessLineId));
 
             Store store = accountStoreLevelApi.createStore(request);
             String storeId = store.getId();
 
             LOGGER.info("Store created",
-                    kv( "store_id", storeId)
+                    kv("store_id", storeId)
             );
-            
+
             return storeId;
         } catch (ApiException | IOException e) {
             throw new WebApplicationException("Error creating store", e);
@@ -382,22 +443,25 @@ public class AdyenTestAccountService {
 
     private void addPaymentMethodsToStore(String merchantAccountIdTest, String storeId, String businessLineId) {
         var paymentTypes = List.of(
-                PaymentMethodSetupInfo.TypeEnum.VISA,
-                PaymentMethodSetupInfo.TypeEnum.MC,
-                PaymentMethodSetupInfo.TypeEnum.AMEX,
-                PaymentMethodSetupInfo.TypeEnum.JCB,
-                PaymentMethodSetupInfo.TypeEnum.MAESTRO,
-                PaymentMethodSetupInfo.TypeEnum.DISCOVER,
-                PaymentMethodSetupInfo.TypeEnum.DINERS,
-                PaymentMethodSetupInfo.TypeEnum.CUP, // China Union Pay
-                PaymentMethodSetupInfo.TypeEnum.PAYBYBANK,
-                PaymentMethodSetupInfo.TypeEnum.APPLEPAY,
-                PaymentMethodSetupInfo.TypeEnum.GOOGLEPAY);
-        
+                VISA,
+                MC,
+                AMEX,
+                JCB,
+                MAESTRO,
+                DISCOVER,
+                DINERS,
+                CUP, // China Union Pay
+                PAYBYBANK,
+                APPLEPAY,
+                GOOGLEPAY
+        );
+
         var paymentMethodsMerchantLevelApi = adyenCompanyAccountApiFactory.getPaymentMethodsMerchantLevelApi();
-        
+
         for (PaymentMethodSetupInfo.TypeEnum paymentType : paymentTypes) {
-            var paymentMethodSetupInfo = generatePaymentMethodSetupInfo(storeId, businessLineId, paymentType);
+            var paymentMethodSetupInfo = generatePaymentMethodSetupInfo(storeId, businessLineId, paymentType,
+                    merchantAccountIdTest);
+
             try {
                 paymentMethodsMerchantLevelApi.requestPaymentMethod(merchantAccountIdTest, paymentMethodSetupInfo);
             } catch (ApiException | IOException e) {
@@ -406,24 +470,39 @@ public class AdyenTestAccountService {
         }
     }
 
-    private static PaymentMethodSetupInfo generatePaymentMethodSetupInfo(String storeId,
-                                                                         String businessLineId,
-                                                                         PaymentMethodSetupInfo.TypeEnum paymentMethodSetupType) {
-        return new PaymentMethodSetupInfo()
+    private PaymentMethodSetupInfo generatePaymentMethodSetupInfo(String storeId,
+                                                                  String businessLineId,
+                                                                  PaymentMethodSetupInfo.TypeEnum paymentMethodSetupType,
+                                                                  String merchantAccountIdTest) {
+        PaymentMethodSetupInfo paymentMethodSetupInfo = new PaymentMethodSetupInfo()
                 .countries(List.of("GB"))
                 .type(paymentMethodSetupType)
                 .businessLineId(businessLineId)
                 .storeIds(Collections.singletonList(storeId))
                 .currencies(List.of("GBP"));
+
+        if (paymentMethodSetupType.equals(APPLEPAY)) {
+            ApplePayInfo applePayInfo = new ApplePayInfo();
+            applePayInfo.addDomainsItem(frontendUrl);
+            paymentMethodSetupInfo.applePay(applePayInfo);
+        }
+
+        if (paymentMethodSetupType.equals(GOOGLEPAY)) {
+            GooglePayInfo googlePayInfo = new GooglePayInfo();
+            googlePayInfo.setMerchantId(merchantAccountIdTest);
+            paymentMethodSetupInfo.googlePay(googlePayInfo);
+        }
+
+        return paymentMethodSetupInfo;
     }
 
-    private void createBankAccount(String legalEntityId) {
+    private String createBankAccount(String legalEntityId) {
         var transferInstrumentsApi = adyenKycApiFactory.getTransferInstrumentsApi();
-        
+
         try {
             UKLocalAccountIdentification ukLocalAccountIdentification = new UKLocalAccountIdentification()
-                    .accountNumber("12345678")
-                    .sortCode("090102")
+                    .accountNumber("50000000")
+                    .sortCode("202678")
                     .type(UKLOCAL);
             BankAccountInfo bankAccountInfo = new BankAccountInfo()
                     .accountIdentification(new BankAccountInfoAccountIdentification(ukLocalAccountIdentification));
@@ -433,11 +512,14 @@ public class AdyenTestAccountService {
                     .legalEntityId(legalEntityId)
                     .type(TransferInstrumentInfo.TypeEnum.BANKACCOUNT);
 
+            TransferInstrument transferInstrument = transferInstrumentsApi.createTransferInstrument(transferInstrumentInfo, null);
+
             LOGGER.info("Transfer instrument created for legal entity",
-                    kv( "legal_entity_id", legalEntityId)
+                    kv("legal_entity_id", legalEntityId),
+                    kv("transfer_instrument_id", transferInstrument.getId())
             );
-            
-           transferInstrumentsApi.createTransferInstrument(transferInstrumentInfo, null);
+
+            return transferInstrument.getId();
         } catch (IOException | ApiException e) {
             throw new WebApplicationException("Error creating bank account for Adyen test account", e);
         }

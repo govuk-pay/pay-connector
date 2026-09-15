@@ -23,6 +23,10 @@ public class AdyenGatewayConfig extends Configuration {
 
     @Valid
     @NotNull
+    private AdyenSplitConfigurationIds splitConfigurationIds;
+
+    @Valid
+    @NotNull
     private ApiKeys apiKeys;
 
     @NotBlank
@@ -44,6 +48,10 @@ public class AdyenGatewayConfig extends Configuration {
 
     public AdyenIds getBalancePlatformIds() {
         return balancePlatformIds;
+    }
+
+    public AdyenSplitConfigurationIds getSplitConfigurationIds() {
+        return splitConfigurationIds;
     }
 
     public ApiKeys getApiKeys() {

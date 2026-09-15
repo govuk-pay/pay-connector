@@ -1,0 +1,27 @@
+{
+  "id": "SWXXX",
+  "schedule": {
+    "cronExpression": "00 2 * * MON-FRI",
+    "type": "cron"
+  },
+  "status": "active",
+  "targetAmount": {
+    "currency": "GBP",
+    "value": 0
+  },
+  "triggerAmount": {
+    "currency": "GBP",
+    "value": 0
+  },
+  "type": "push",
+  "category": "bank",
+  "counterparty": {
+    "transferInstrumentId": "SEXXXX"
+  },
+  "currency": "GBP",
+  "priorities": [
+    "fast",
+    "regular"
+  ],
+  "reference": "Test"
+}

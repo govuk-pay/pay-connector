@@ -54,6 +54,8 @@ adyen:
   balancePlatformIds:
     test: adyen-test-balance-platform-id
     live: adyen-live-balance-platform-id
+  splitConfigurationIds:
+    test: adyen-test-split-config-id
   apiKeys:
     companyAccount:
       test: adyen-test-company-api-key
