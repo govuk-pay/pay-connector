@@ -7,9 +7,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EmptySource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenEnvironment;
 import uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookNotification;
+import uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookType;
 import uk.gov.pay.connector.util.TestTemplateResourceLoader;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -23,6 +25,7 @@ import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookType.
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookType.TOKENS;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_NOTIFICATION;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_TOKEN_NOTIFICATION;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_TRANSFER_NOTIFICATION;
 
 class AdyenWebhookNotificationParserTest {
     private final ObjectMapper mapper = new ObjectMapper();
@@ -31,6 +34,8 @@ class AdyenWebhookNotificationParserTest {
     private String paymentsNotification;
 
     private String tokenNotification;
+    
+    private String transferNotification;
 
     @BeforeEach
     void setUp() {
@@ -40,6 +45,10 @@ class AdyenWebhookNotificationParserTest {
         tokenNotification = TestTemplateResourceLoader
                 .load(ADYEN_TOKEN_NOTIFICATION)
                 .replace("{{environment}}", "test");
+        transferNotification = TestTemplateResourceLoader
+                .load(ADYEN_TRANSFER_NOTIFICATION)
+                .replace("{{type}}", "balancePlatform.transfer.created");
+        
     }
 
     @Test
@@ -53,15 +62,19 @@ class AdyenWebhookNotificationParserTest {
         assertThat(result.event().getEventCodeOrType(), is(AUTHORISATION.name()));
     }
 
-    @Test
-    void shouldProcessAdyenNotificationWhenPayloadHasEventDataStructure() {
-        AdyenWebhookNotification result = adyenWebhookNotificationParser.parse(tokenNotification);
+    @ParameterizedTest
+    @EnumSource(value = AdyenWebhookType.class, names = {"TOKENS", "TRANSFER"})
+    void shouldProcessAdyenNotificationWhenPayloadHasEventDataStructure(AdyenWebhookType webhookType) {
+        var notification = webhookType == TOKENS ? tokenNotification : transferNotification;
+        var eventCodeOrType =  webhookType == TOKENS ? "recurring.token.created" : "balancePlatform.transfer.created";
+        
+        AdyenWebhookNotification result = adyenWebhookNotificationParser.parse(notification);
 
         assertFalse(result.usesAdyenNotificationItem());
         assertFalse(result.isLive());
         assertThat(result.environment(), is(TEST));
-        assertThat(result.event().getWebhookType(), is(TOKENS));
-        assertThat(result.event().getEventCodeOrType(), is("recurring.token.created"));
+        assertThat(result.event().getWebhookType(), is(webhookType));
+        assertThat(result.event().getEventCodeOrType(), is(eventCodeOrType));
     }
 
     @Test
