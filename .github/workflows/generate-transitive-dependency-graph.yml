@@ -1,8 +1,12 @@
 name: Generate java transitive dependency graph
 on:
-  push:
-    branches:
-      - "master"
+  # push:
+  #   branches:
+  #     - "master"
+  workflow_dispatch:
+  
+permissions:
+  contents: write
 
 jobs:
   generate-dependency-graph:
