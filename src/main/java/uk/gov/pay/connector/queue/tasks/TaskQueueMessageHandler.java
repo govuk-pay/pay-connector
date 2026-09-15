@@ -15,6 +15,7 @@ import uk.gov.pay.connector.queue.tasks.handlers.RetryPaymentOrRefundEmailTaskHa
 import uk.gov.pay.connector.queue.tasks.handlers.ServiceArchivedTaskHandler;
 import uk.gov.pay.connector.queue.tasks.handlers.StripeWebhookTaskHandler;
 import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenWebhookTaskHandler;
+import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenReportWebhookNotificationHandler;
 import uk.gov.pay.connector.queue.tasks.model.DeleteStoredPaymentDetailsTaskData;
 import uk.gov.pay.connector.queue.tasks.model.PaymentTaskData;
 import uk.gov.pay.connector.queue.tasks.model.RetryPaymentOrRefundEmailTaskData;
@@ -38,6 +39,7 @@ public class TaskQueueMessageHandler {
     private final CollectFeesForFailedPaymentsTaskHandler collectFeesForFailedPaymentsTaskHandler;
     private final StripeWebhookTaskHandler stripeWebhookTaskHandler;
     private final AdyenWebhookTaskHandler adyenWebhookTaskHandler;
+    private final AdyenReportWebhookNotificationHandler adyenReportWebhookNotificationHandler;
     private final AuthoriseWithUserNotPresentHandler authoriseWithUserNotPresentHandler;
     private final DeleteStoredPaymentDetailsTaskHandler deleteStoredPaymentDetailsHandler;
     private final RetryPaymentOrRefundEmailTaskHandler retryPaymentOrRefundEmailTaskHandler;
@@ -50,6 +52,7 @@ public class TaskQueueMessageHandler {
                                    CollectFeesForFailedPaymentsTaskHandler collectFeesForFailedPaymentsTaskHandler,
                                    StripeWebhookTaskHandler stripeWebhookTaskHandler,
                                    AdyenWebhookTaskHandler adyenWebhookTaskHandler,
+                                   AdyenReportWebhookNotificationHandler adyenReportWebhookNotificationHandler,
                                    AuthoriseWithUserNotPresentHandler authoriseWithUserNotPresentHandler,
                                    DeleteStoredPaymentDetailsTaskHandler deleteStoredPaymentDetailsHandler,
                                    RetryPaymentOrRefundEmailTaskHandler retryPaymentOrRefundEmailTaskHandler,
@@ -60,6 +63,7 @@ public class TaskQueueMessageHandler {
         this.collectFeesForFailedPaymentsTaskHandler = collectFeesForFailedPaymentsTaskHandler;
         this.stripeWebhookTaskHandler = stripeWebhookTaskHandler;
         this.adyenWebhookTaskHandler = adyenWebhookTaskHandler;
+        this.adyenReportWebhookNotificationHandler = adyenReportWebhookNotificationHandler;
         this.authoriseWithUserNotPresentHandler = authoriseWithUserNotPresentHandler;
         this.deleteStoredPaymentDetailsHandler = deleteStoredPaymentDetailsHandler;
         this.retryPaymentOrRefundEmailTaskHandler = retryPaymentOrRefundEmailTaskHandler;
@@ -104,6 +108,10 @@ public class TaskQueueMessageHandler {
                     case HANDLE_ADYEN_TOKEN_WEBHOOK_NOTIFICATION:
                         LOGGER.info("Processing [{}] task.", taskType.getName());
                         adyenWebhookTaskHandler.processAdyenTokenWebhookNotification(taskMessage.getTask().getData());
+                        break;
+                    case HANDLE_ADYEN_REPORT_WEBHOOK_NOTIFICATION:
+                        LOGGER.info("Processing [{}] task.", taskType.getName());
+                        adyenReportWebhookNotificationHandler.handle(taskMessage.getTask().getData());
                         break;
                     case AUTHORISE_WITH_USER_NOT_PRESENT:
                         var taskData = objectMapper.readValue(taskMessage.getTask().getData(), PaymentTaskData.class);

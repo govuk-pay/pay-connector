@@ -30,11 +30,11 @@ public class PayoutReconcileQueue extends AbstractQueue {
                         .getFailedPayoutReconcileMessageRetryDelayInSeconds());
     }
 
-    public void sendPayout(Payout payout) throws QueueException, JsonProcessingException {
+    public void sendPayout(PayoutReconciliationPayload payout) throws QueueException, JsonProcessingException {
         String message = objectMapper.writeValueAsString(payout);
         QueueMessage queueMessage = sendMessageToQueue(message);
         logger.info("Payout [{}] added to queue. Message ID [{}]",
-                payout.getGatewayPayoutId(), queueMessage.getMessageId());
+                payout.toString(), queueMessage.getMessageId());
     }
 
     public List<PayoutReconcileMessage> retrievePayoutMessages() throws QueueException {
@@ -49,7 +49,7 @@ public class PayoutReconcileQueue extends AbstractQueue {
 
     private PayoutReconcileMessage getPayoutReconcileMessage(QueueMessage qm) {
         try {
-            Payout payout = objectMapper.readValue(qm.getMessageBody(), Payout.class);
+            PayoutReconciliationPayload payout = objectMapper.readValue(qm.getMessageBody(), PayoutReconciliationPayload.class);
 
             return PayoutReconcileMessage.of(payout, qm);
         } catch (IOException e) {

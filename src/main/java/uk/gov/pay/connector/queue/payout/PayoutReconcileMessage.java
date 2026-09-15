@@ -5,26 +5,22 @@ import uk.gov.service.payments.commons.queue.model.QueueMessage;
 import java.time.Instant;
 
 public class PayoutReconcileMessage {
-    private Payout payout;
+    private PayoutReconciliationPayload payout;
     private QueueMessage queueMessage;
 
-    private PayoutReconcileMessage(Payout payout, QueueMessage queueMessage) {
+    private PayoutReconcileMessage(PayoutReconciliationPayload payout, QueueMessage queueMessage) {
         this.payout = payout;
         this.queueMessage = queueMessage;
     }
 
-    public static PayoutReconcileMessage of(Payout payout, QueueMessage queueMessage) {
+    public static PayoutReconcileMessage of(PayoutReconciliationPayload payout, QueueMessage queueMessage) {
         return new PayoutReconcileMessage(payout, queueMessage);
     }
 
-    public String getGatewayPayoutId() {
-        return payout.getGatewayPayoutId();
+    public PayoutReconciliationPayload getPayoutReconciliationPayload() {
+        return payout;
     }
 
-    public String getConnectAccountId() {
-        return payout.getConnectAccountId();
-    }
-    
     public Instant getCreatedDate() {
         return payout.getCreatedDate();
     }

@@ -265,6 +265,17 @@ public class GatewayAccountCredentialsService {
                 .orElseThrow(() -> new GatewayAccountNotFoundException(format("Gateway account with Stripe connect account ID [%s] not found.", stripeAccountId)));
     }
 
+    @Transactional
+    public GatewayAccountEntity findAdyenGatewayAccountForCredentialKeyAndValue(String adyenCredentialKey, String adyenCredentialValue) {
+        GatewayAccountCredentialsEntity gatewayAccountCredentialsEntity = gatewayAccountCredentialsDao
+                .findByCredentialsKeyValue(adyenCredentialKey, adyenCredentialValue)
+                .orElseThrow(() -> new GatewayAccountCredentialsNotFoundException(format("Gateway account credentials with Adyen credential [%s] not found.", adyenCredentialValue)));
+
+        return Optional.ofNullable(gatewayAccountCredentialsEntity)
+                .map(entity -> gatewayAccountCredentialsEntity.getGatewayAccountEntity())
+                .orElseThrow(() -> new GatewayAccountNotFoundException(format("Gateway account with Adyen credential [%s] not found.", adyenCredentialValue)));
+    }
+
     public GatewayAccountCredentialsEntity getCurrentOrActiveCredential(GatewayAccountEntity gatewayAccountEntity) {
         GatewayAccountCredentialsEntity gatewayAccountCredentialsEntity = gatewayAccountEntity.getCurrentOrActiveGatewayAccountCredential()
                 .orElseThrow(() -> new WebApplicationException(

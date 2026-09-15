@@ -68,7 +68,7 @@ class PayoutReconcileQueueTest {
 
     @Test
     void shouldSendValidSerialisedPayoutToQueue() throws QueueException, JsonProcessingException {
-        Payout payout = new Payout("payout-id", "connect-accnt-id", Instant.parse("2020-05-01T10:30:00.000Z"));
+        PayoutReconciliationPayload payout = new PayoutReconciliationPayload("payout-id", "connect-accnt-id", Instant.parse("2020-05-01T10:30:00.000Z"));
         when(sqsQueueService.sendMessage(anyString(), anyString())).thenReturn(mock(QueueMessage.class));
 
         payoutReconcileQueue.sendPayout(payout);

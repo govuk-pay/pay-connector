@@ -28,7 +28,7 @@ import uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntity;
 import uk.gov.pay.connector.gatewayaccount.model.GatewayAccountType;
 import uk.gov.pay.connector.gatewayaccount.model.StripeCredentials;
 import uk.gov.pay.connector.gatewayaccountcredentials.service.GatewayAccountCredentialsService;
-import uk.gov.pay.connector.queue.payout.Payout;
+import uk.gov.pay.connector.queue.payout.PayoutReconciliationPayload;
 import uk.gov.pay.connector.queue.payout.PayoutReconcileMessage;
 import uk.gov.pay.connector.queue.payout.PayoutReconcileQueue;
 import uk.gov.service.payments.commons.queue.exception.QueueException;
@@ -268,7 +268,7 @@ class PayoutReconcileProcessTest {
     }
 
     private PayoutReconcileMessage setupQueueMessage() throws QueueException {
-        Payout payout = new Payout(payoutId, stripeAccountId, payoutCreatedDate);
+        PayoutReconciliationPayload payout = new PayoutReconciliationPayload(payoutId, stripeAccountId, payoutCreatedDate);
         QueueMessage mockQueueMessage = mock(QueueMessage.class);
         PayoutReconcileMessage payoutReconcileMessage = PayoutReconcileMessage.of(payout, mockQueueMessage);
         when(payoutReconcileQueue.retrievePayoutMessages()).thenReturn(List.of(payoutReconcileMessage));

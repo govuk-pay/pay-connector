@@ -12,33 +12,27 @@ import java.time.Instant;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class Payout {
-
-    private String gatewayPayoutId;
-    private String connectAccountId;
+public class PayoutReconciliationPayload {
 
     @JsonSerialize(using = IsoInstantMicrosecondSerializer.class)
     @JsonDeserialize(using = IsoInstantMicrosecondDeserializer.class)
     private Instant createdDate;
 
-    public Payout() {
+    private String paymentProvider;
+
+    public PayoutReconciliationPayload() {
     }
 
-    public Payout(String gatewayPayoutId, String connectAccountId, Instant createdDate) {
-        this.gatewayPayoutId = gatewayPayoutId;
-        this.connectAccountId = connectAccountId;
+    public PayoutReconciliationPayload(String paymentProvider, Instant createdDate) {
+        this.paymentProvider = paymentProvider;
         this.createdDate = createdDate;
-    }
-
-    public String getGatewayPayoutId() {
-        return gatewayPayoutId;
-    }
-
-    public String getConnectAccountId() {
-        return connectAccountId;
     }
 
     public Instant getCreatedDate() {
         return createdDate;
+    }
+
+    public String getPaymentProvider() {
+        return paymentProvider;
     }
 }

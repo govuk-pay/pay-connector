@@ -24,7 +24,7 @@ import uk.gov.pay.connector.gateway.stripe.json.StripePayout;
 import uk.gov.pay.connector.gateway.stripe.response.StripeNotification;
 import uk.gov.pay.connector.paymentprocessor.service.Card3dsResponseAuthService;
 import uk.gov.pay.connector.payout.PayoutEmitterService;
-import uk.gov.pay.connector.queue.payout.Payout;
+import uk.gov.pay.connector.queue.payout.StripePayoutReconciliationPayload;
 import uk.gov.pay.connector.queue.payout.PayoutReconcileQueue;
 import uk.gov.pay.connector.queue.tasks.TaskQueueService;
 import uk.gov.pay.connector.queue.tasks.TaskType;
@@ -195,8 +195,8 @@ public class StripeNotificationService {
             StripeNotificationType stripeNotificationType = byType(notification.getType());
 
             if (PAYOUT_CREATED.equals(stripeNotificationType)) {
-                Payout payout = new Payout(stripePayout.getId(), notification.getAccount(), stripePayout.getCreated());
-                sendToPayoutReconcileQueue(notification.getAccount(), payout);
+                StripePayoutReconciliationPayload payout = new StripePayoutReconciliationPayload(stripePayout.getId(), notification.getAccount(), stripePayout.getCreated());
+                sendToPayoutReconcileQueue(payout);
             } else {
                 Optional<Class<? extends PayoutEvent>> mayBeEventClass = stripeNotificationType.getEventClass();
 
@@ -217,13 +217,13 @@ public class StripeNotificationService {
         }
     }
 
-    private void sendToPayoutReconcileQueue(String connectAccount, Payout payout) {
+    private void sendToPayoutReconcileQueue(StripePayoutReconciliationPayload payout) {
         try {
             payoutReconcileQueue.sendPayout(payout);
         } catch (QueueException | JsonProcessingException e) {
             logger.error(format("Error sending payout to payout reconcile queue: exception [%s]", e.getMessage()),
                     kv(GATEWAY_PAYOUT_ID, payout.getGatewayPayoutId()),
-                    kv(CONNECT_ACCOUNT_ID, connectAccount));
+                    kv(CONNECT_ACCOUNT_ID, payout.getConnectAccountId()));
         }
     }
 
