@@ -3,6 +3,8 @@ package uk.gov.pay.connector.gateway.adyen.response.transfer;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import uk.gov.pay.connector.gateway.adyen.request.json.Amount;
+
 import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -19,7 +21,7 @@ public record AdyenTransferEventData (
         AdyenAccountHolder accountHolder,
 
         @JsonProperty("amount")
-        AdyenAmount amount,
+        Amount amount,
 
         @JsonProperty("balanceAccount")
         AdyenBalanceAccount balanceAccount,
