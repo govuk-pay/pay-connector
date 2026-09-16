@@ -50,7 +50,7 @@ class PayoutReconcileQueueTest {
 
     @Test
     void shouldParsePayoutFromQueueGivenWellFormattedJSON() throws QueueException {
-        String validJsonMessage = "{ \"gateway_payout_id\": \"payout-id\", \"connect_account_id\": \"connect-accnt-id\",\"created_date\":\"2020-05-01T10:30:00.000000Z\"}";
+        String validJsonMessage = "{ \"gateway_payout_id\": \"payout-id\", \"connect_account_id\": \"connect-accnt-id\",\"payment_provider\":\"stripe\",\"created_date\":\"2020-05-01T10:30:00.000000Z\"}";
         SendMessageResponse messageResult = mock(SendMessageResponse.class);
 
         List<QueueMessage> messages = Arrays.asList(
@@ -63,6 +63,7 @@ class PayoutReconcileQueueTest {
         assertNotNull(payoutReconcileMessages);
         assertEquals("payout-id", payoutReconcileMessages.getFirst().getGatewayPayoutId());
         assertEquals("connect-accnt-id", payoutReconcileMessages.getFirst().getConnectAccountId());
+        assertEquals("stripe", payoutReconcileMessages.getFirst().getPaymentProvider());
         assertEquals(Instant.parse("2020-05-01T10:30:00.000Z"), payoutReconcileMessages.getFirst().getCreatedDate());
     }
 
@@ -74,6 +75,6 @@ class PayoutReconcileQueueTest {
         payoutReconcileQueue.sendPayout(payout);
 
         verify(sqsQueueService).sendMessage(connectorConfiguration.getSqsConfig().getPayoutReconcileQueueUrl(),
-                "{\"gateway_payout_id\":\"payout-id\",\"connect_account_id\":\"connect-accnt-id\",\"created_date\":\"2020-05-01T10:30:00.000000Z\"}");
+                "{\"payment_provider\":\"stripe\",\"created_date\":\"2020-05-01T10:30:00.000000Z\",\"gateway_payout_id\":\"payout-id\",\"connect_account_id\":\"connect-accnt-id\"}");
     }
 }
