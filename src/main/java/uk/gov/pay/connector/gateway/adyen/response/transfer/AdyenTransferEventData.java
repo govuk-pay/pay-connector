@@ -57,5 +57,8 @@ public record AdyenTransferEventData (
         Integer sequenceNumber,
 
         @JsonProperty("status")
-        String status
+        String status,
+        
+        @JsonProperty("events")
+        List<TransferEvent> events
 ) {}

@@ -41,7 +41,7 @@ public class TaskQueueMessageHandler {
     private final AuthoriseWithUserNotPresentHandler authoriseWithUserNotPresentHandler;
     private final DeleteStoredPaymentDetailsTaskHandler deleteStoredPaymentDetailsHandler;
     private final RetryPaymentOrRefundEmailTaskHandler retryPaymentOrRefundEmailTaskHandler;
-    private ServiceArchivedTaskHandler serviceArchivedTaskHandler;
+    private final ServiceArchivedTaskHandler serviceArchivedTaskHandler;
     private final QueryAndUpdatePaymentInSubmittedStateTaskHandler queryAndUpdatePaymentInSubmittedStateTaskHandler;
     private final ObjectMapper objectMapper;
 
@@ -104,6 +104,10 @@ public class TaskQueueMessageHandler {
                     case HANDLE_ADYEN_TOKEN_WEBHOOK_NOTIFICATION:
                         LOGGER.info("Processing [{}] task.", taskType.getName());
                         adyenWebhookTaskHandler.processAdyenTokenWebhookNotification(taskMessage.getTask().getData());
+                        break;
+                    case HANDLE_ADYEN_TRANSFER_WEBHOOK_NOTIFICATION:
+                        LOGGER.info("Processing [{}] task.", taskType.getName());
+                        adyenWebhookTaskHandler.processAdyenTransferWebhookNotification(taskMessage.getTask().getData());
                         break;
                     case AUTHORISE_WITH_USER_NOT_PRESENT:
                         var taskData = objectMapper.readValue(taskMessage.getTask().getData(), PaymentTaskData.class);
