@@ -89,6 +89,13 @@ adyen:
       live:
         primary: adyen-live-transfer-hmac-primary
         secondary: ""
+    balancePlatformReports:
+      test:
+        primary: "adyen-test-balance-platform-hmac-primary"
+        secondary: "adyen-test-balance-platform-hmac-secondary"
+      live:
+        primary: "adyen-live-balance-platform-hmac-primary"
+        secondary: "adyen-live-balance-platform-hmac-secondary"
 
 sandbox:
   allowedCidrs: ${SANDBOX_ALLOWED_CIDRS:-[]}

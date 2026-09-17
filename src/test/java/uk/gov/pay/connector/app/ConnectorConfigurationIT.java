@@ -34,21 +34,21 @@ public class ConnectorConfigurationIT {
         assertThat(RULE.getConfiguration().getRestClientConfig().isDisabledSecureConnection(), is(true));
         assertThat(RULE.getConfiguration().getEmittedEventSweepConfig().getNotEmittedEventMaxAgeInSeconds(), is(1800));
     }
-    
+
     @Test
-    public void shouldParseAdyenConfiguration () {
+    public void shouldParseAdyenConfiguration() {
         AdyenGatewayConfig adyenGatewayConfig = RULE.getConfiguration().getAdyenGatewayConfig();
         BaseUrls baseUrls = adyenGatewayConfig.getBaseUrls();
 
         assertThat(baseUrls.checkout().test(), is("https://checkout-test.adyen.com/someVersion"));
         assertThat(baseUrls.checkout().live(), is("https://checkout-live.adyen.com/someVersion"));
-        
+
         assertThat(adyenGatewayConfig.getMerchantAccountIds().live(), is("adyen-live-merchant-account-id"));
         assertThat(adyenGatewayConfig.getMerchantAccountIds().test(), is("adyen-test-merchant-account-id"));
         assertThat(adyenGatewayConfig.getBalancePlatformIds().live(), is("adyen-live-balance-platform-id"));
         assertThat(adyenGatewayConfig.getBalancePlatformIds().test(), is("adyen-test-balance-platform-id"));
         assertThat(adyenGatewayConfig.getSplitConfigurationIds().test(), is("adyen-test-split-config-id"));
-        
+
         assertThat(adyenGatewayConfig.getApiKeys().companyAccount().live(), is("adyen-live-company-api-key"));
         assertThat(adyenGatewayConfig.getApiKeys().companyAccount().test(), is("adyen-test-company-api-key"));
         assertThat(adyenGatewayConfig.getApiKeys().balancePlatform().live(), is("adyen-live-balance-platform-api-key"));
@@ -82,6 +82,17 @@ public class ConnectorConfigurationIT {
         assertThat(transferLivePrimary.isPresent(), is(true));
         assertThat(transferLivePrimary.get(), is("adyen-live-transfer-hmac-primary"));
 
+        var balancePlatformTestKeys = adyenGatewayConfig.getHmacKeys().balancePlatformReports().test();
+        assertThat(balancePlatformTestKeys.getPrimary().isPresent(), is(true));
+        assertThat(balancePlatformTestKeys.getPrimary().get(), is("adyen-test-balance-platform-hmac-primary"));
+        assertThat(balancePlatformTestKeys.getSecondary().isPresent(), is(true));
+        assertThat(balancePlatformTestKeys.getSecondary().get(), is("adyen-test-balance-platform-hmac-secondary"));
+
+        var balancePlatformLiveKeys = adyenGatewayConfig.getHmacKeys().balancePlatformReports().live();
+        assertThat(balancePlatformLiveKeys.getPrimary().isPresent(), is(true));
+        assertThat(balancePlatformLiveKeys.getPrimary().get(), is("adyen-live-balance-platform-hmac-primary"));
+        assertThat(balancePlatformLiveKeys.getSecondary().isPresent(), is(true));
+        assertThat(balancePlatformLiveKeys.getSecondary().get(), is("adyen-live-balance-platform-hmac-secondary"));
     }
 
 }

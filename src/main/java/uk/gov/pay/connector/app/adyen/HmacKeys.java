@@ -12,7 +12,10 @@ public record HmacKeys(
         WebhookHmacKeyPair tokens,
         @Valid
         @NotNull
-        WebhookHmacKeyPair transfer
+        WebhookHmacKeyPair transfer,
+        @Valid
+        @NotNull
+        WebhookHmacKeyPair balancePlatformReports
 
 ) {
     public record WebhookHmacKeyPair(
