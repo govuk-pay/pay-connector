@@ -20,11 +20,7 @@ import uk.gov.pay.connector.charge.model.domain.Charge;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntityFixture;
 import uk.gov.pay.connector.charge.service.ChargeService;
 import uk.gov.pay.connector.gateway.adyen.webhook.AdyenWebhookDeserialiser;
-import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenCancellationNotificationHandler;
-import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenCaptureNotificationHandler;
-import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenRefundNotificationHandler;
-import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenTokenWebhookNotificationHandler;
-import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenWebhookTaskHandler;
+import uk.gov.pay.connector.queue.tasks.handlers.adyen.*;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -66,6 +62,9 @@ class AdyenWebhookTaskHandlerTest {
 
     @Mock
     private AdyenTokenWebhookNotificationHandler mockAdyenTokenWebhookNotificationHandler;
+
+    @Mock
+    private AdyenTransferNotificationHandler mockAdyenTransferWebhookNotificationHandler;
 
     @Mock
     private Charge mockCharge;
@@ -231,6 +230,13 @@ class AdyenWebhookTaskHandlerTest {
         adyenWebhookTaskHandler.processAdyenTokenWebhookNotification(payload);
 
         verify(mockAdyenTokenWebhookNotificationHandler).process(payload);
+    }
+
+    @Test
+    void shouldDelegateTransferWebhookTaskToTransferHandler() {
+        adyenWebhookTaskHandler.processAdyenTransferWebhookNotification(payload);
+
+        verify(mockAdyenTransferWebhookNotificationHandler).process(payload);
     }
 
     @Test

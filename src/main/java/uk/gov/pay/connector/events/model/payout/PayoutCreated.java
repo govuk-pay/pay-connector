@@ -25,16 +25,16 @@ public class PayoutCreated extends PayoutEvent {
                         payout.getCreated());
     }
 
-    public static PayoutCreated from(AdyenTransferData payout) {
+    public static PayoutCreated from(AdyenTransferData adyenTransferData) {
         return new PayoutCreated(
-                payout.id(),
+                adyenTransferData.id(),
                 new PayoutCreatedEventDetails(
-                        Long.valueOf(payout.accountHolder().id()),
-                        payout.amount().value(), 
-                        Instant.parse(payout.tracking().estimatedArrivalTime()), //this is failing
-                        payout.status(),
-                        payout.type(), // e.g. "bankTransfer"
-                        payout.description()),
-                Instant.parse(payout.createdAt()));
+                        Long.valueOf(adyenTransferData.accountHolder().id()),
+                        adyenTransferData.amount().value(), 
+                        null, //this is failing
+                        adyenTransferData.status(),
+                        adyenTransferData.type(), // e.g. "bankTransfer"
+                        adyenTransferData.description()),
+                Instant.parse(adyenTransferData.createdAt()));
     }
 }
