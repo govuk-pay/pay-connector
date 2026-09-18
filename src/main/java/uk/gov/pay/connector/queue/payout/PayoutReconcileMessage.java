@@ -25,6 +25,10 @@ public class PayoutReconcileMessage {
         return payout.getConnectAccountId();
     }
     
+    public String getPaymentProvider() {
+        return payout.getPaymentProvider();
+    }
+    
     public Instant getCreatedDate() {
         return payout.getCreatedDate();
     }
