@@ -7,9 +7,13 @@ import java.util.Arrays;
 import static org.apache.commons.lang3.Strings.CS;
 
 public enum FeeType {
+    FIXED("fixed"),
+    FRAUD_PROTECTION("fraud_protection"),
+    GATEWAY("gateway"),
     RADAR("radar"),
     THREE_D_S("three_ds"),
-    TRANSACTION("transaction");
+    TRANSACTION("transaction"),
+    VARIABLE("variable");
 
     FeeType(String name) {
         this.name = name;

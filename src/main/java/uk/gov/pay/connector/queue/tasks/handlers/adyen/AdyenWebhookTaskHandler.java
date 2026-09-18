@@ -24,6 +24,7 @@ public class AdyenWebhookTaskHandler {
     private final AdyenRefundNotificationHandler adyenRefundNotificationHandler;
     private final AdyenTokenWebhookNotificationHandler adyenTokenWebhookNotificationHandler;
     private final AdyenWebhookDeserialiser adyenWebhookDeserialiser;
+    private final AdyenTransferWebhookNotificationHandler adyenTransferWebhookNotificationHandler;
 
     @Inject
     public AdyenWebhookTaskHandler(ChargeService chargeService,
@@ -31,17 +32,23 @@ public class AdyenWebhookTaskHandler {
                                    AdyenCancellationNotificationHandler adyenCancellationNotificationHandler,
                                    AdyenRefundNotificationHandler adyenRefundNotificationHandler,
                                    AdyenCaptureNotificationHandler adyenCaptureNotificationHandler,
-                                   AdyenTokenWebhookNotificationHandler adyenTokenWebhookNotificationHandler) {
+                                   AdyenTokenWebhookNotificationHandler adyenTokenWebhookNotificationHandler, 
+                                   AdyenTransferWebhookNotificationHandler adyenTransferWebhookNotificationHandler) {
         this.chargeService = chargeService;
         this.adyenWebhookDeserialiser = adyenWebhookDeserialiser;
         this.adyenCancellationNotificationHandler = adyenCancellationNotificationHandler;
         this.adyenRefundNotificationHandler = adyenRefundNotificationHandler;
         this.adyenCaptureNotificationHandler = adyenCaptureNotificationHandler;
         this.adyenTokenWebhookNotificationHandler = adyenTokenWebhookNotificationHandler;
+        this.adyenTransferWebhookNotificationHandler = adyenTransferWebhookNotificationHandler;
     }
 
     public void processAdyenTokenWebhookNotification(String payload) {
         adyenTokenWebhookNotificationHandler.process(payload);
+    }
+
+    public void processAdyenTransferWebhookNotification(String payload) {
+        adyenTransferWebhookNotificationHandler.process(payload);
     }
 
     @Transactional
