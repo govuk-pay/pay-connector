@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 import uk.gov.pay.connector.gateway.exception.AdyenNotificationException;
 import uk.gov.pay.connector.util.JsonObjectMapper;
 
+import static java.lang.String.format;
+
 public class AdyenWebhookDeserialiser {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AdyenWebhookDeserialiser.class);
@@ -36,7 +38,10 @@ public class AdyenWebhookDeserialiser {
         try {
             return jsonObjectMapper.getObject(payload, targetClass);
         } catch (Exception e) {
-            LOGGER.info("Error deserialising notification payload to class {}", targetClass.getSimpleName(), e);
+            LOGGER.atInfo()
+                    .setMessage(format("Error deserialising notification payload to class %s", targetClass.getSimpleName()))
+                    .setCause(e)
+                    .log();
             throw new WebApplicationException("Error deserialising notification payload", e);
         }
     }

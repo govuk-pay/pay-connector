@@ -5,6 +5,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.qos.logback.core.Appender;
+import com.adyen.model.notification.NotificationRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.ws.rs.WebApplicationException;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,13 +13,16 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
-import uk.gov.pay.connector.gateway.adyen.response.AdyenTokenNotification;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.token.AdyenTokenNotification;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.AdyenTransferNotification;
+import uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookType;
 import uk.gov.pay.connector.util.JsonObjectMapper;
 import uk.gov.pay.connector.util.TestTemplateResourceLoader;
 
@@ -31,8 +35,10 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent.AUTHORISATION;
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent.RECURRING_TOKEN_CREATED;
+import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent.TRANSFER_UPDATED;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_NOTIFICATION;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_TOKEN_NOTIFICATION;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_TRANSFER_NOTIFICATION;
 
 @ExtendWith(MockitoExtension.class)
 class AdyenWebhookDeserialiserTest {
@@ -92,14 +98,28 @@ class AdyenWebhookDeserialiserTest {
     @Nested
     class DeserialisePayload {
 
-        @Test
-        void shouldDeserialiseWebhookPayloads() {
-            var payload = TestTemplateResourceLoader.load(ADYEN_TOKEN_NOTIFICATION);
+        @ParameterizedTest
+        @EnumSource(value = AdyenWebhookType.class)
+        void shouldDeserialiseWebhookPayloadsForDifferentWebhooksTypes(AdyenWebhookType adyenWebhookType) {
+            var payload = TestTemplateResourceLoader.load(getPayloadLocationForWebhookType(adyenWebhookType));
 
-            var result = adyenWebhookDeserialiser.deserialisePayload(payload, AdyenTokenNotification.class);
-
-            assertThat(result.getClass().getSimpleName(), is("AdyenTokenNotification"));
-            assertThat(result.type(), is(RECURRING_TOKEN_CREATED.getEventCodeOrType()));
+            switch (adyenWebhookType) {
+                case PAYMENTS -> {
+                    var result = adyenWebhookDeserialiser.deserialisePayload(payload, NotificationRequest.class);
+                    assertThat(result.getClass().getSimpleName(), is("NotificationRequest"));
+                    assertThat(result.getNotificationItems().get(0).getEventCode(), is("AUTHORISATION"));
+                }
+                case TOKENS -> {
+                    var result = adyenWebhookDeserialiser.deserialisePayload(payload, AdyenTokenNotification.class);
+                    assertThat(result.getClass().getSimpleName(), is("AdyenTokenNotification"));
+                    assertThat(result.type(), is(RECURRING_TOKEN_CREATED.getEventCodeOrType()));
+                }
+                case TRANSFER -> {
+                    var result = adyenWebhookDeserialiser.deserialisePayload(payload, AdyenTransferNotification.class);
+                    assertThat(result.getClass().getSimpleName(), is("AdyenTransferNotification"));
+                    assertThat(result.type(), is(TRANSFER_UPDATED.getEventCodeOrType()));
+                }
+            }
         }
 
         @Test
@@ -110,6 +130,14 @@ class AdyenWebhookDeserialiserTest {
 
             verifyLogs("Error deserialising notification payload to class AdyenTokenNotification");
             assertThat(exception.getMessage(), is("Error deserialising notification payload"));
+        }
+
+        private String getPayloadLocationForWebhookType(AdyenWebhookType adyenWebhookType) {
+            return switch (adyenWebhookType) {
+                case PAYMENTS -> ADYEN_NOTIFICATION;
+                case TOKENS -> ADYEN_TOKEN_NOTIFICATION;
+                case TRANSFER -> ADYEN_TRANSFER_NOTIFICATION;
+            };
         }
     }
 

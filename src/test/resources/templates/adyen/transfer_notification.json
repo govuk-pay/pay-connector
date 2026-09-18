@@ -1,13 +1,93 @@
 {
   "data": {
-    "amount": {
-      "currency": "EUR",
-      "value": 1000
+    "balancePlatform": "govukpay",
+    "creationDate": "2026-09-18T18:03:43+02:00",
+    "id": "BHY596CDZI28CUH",
+    "accountHolder": {
+      "description": "Pay Account Holder",
+      "id": "AH123"
     },
-    "category": "internal",
-    "status": "received"
+    "amount": {
+      "currency": "GBP",
+      "value": 8
+    },
+    "balanceAccount": {
+      "description": "Pay Liable Balance Account",
+      "id": "BA123"
+    },
+    "category": "platformPayment",
+    "categoryData": {
+      "modificationMerchantReference": "",
+      "modificationPspReference": "VMZVFSFJBRZXRHBV5",
+      "paymentMerchantReference": "6g8flemsiq97kfctl91rp6t3up",
+      "platformPaymentType": "PaymentFee",
+      "pspPaymentReference": "PBHZGWLGHKW9PPV5",
+      "type": "platformPayment"
+    },
+    "createdAt": "2026-09-18T18:03:40+02:00",
+    "description": "PaymentFee",
+    "direction": "outgoing",
+    "reason": "approved",
+    "reference": "WL8NRERT2KJQ7RT5",
+    "status": "captured",
+    "type": "capture",
+    "balances": [
+      {
+        "balance": -8,
+        "currency": "GBP",
+        "received": 0,
+        "reserved": 0
+      }
+    ],
+    "eventId": "EVJN42CSJ2BR5224J5PZS34T4TR38FJ",
+    "events": [
+      {
+        "bookingDate": "2026-09-18T18:03:43+02:00",
+        "id": "EVJN02CSJ225VV24J5PZS34T4TR38FJ",
+        "mutations": [
+          {
+            "currency": "GBP",
+            "received": -8
+          }
+        ],
+        "status": "received",
+        "type": "accounting"
+      },
+      {
+        "bookingDate": "2026-09-18T18:03:43+02:00",
+        "id": "EVJN12CSJ225224JVVS34T4TR38FJ",
+        "mutations": [
+          {
+            "currency": "GBP",
+            "received": 8,
+            "reserved": -8
+          }
+        ],
+        "status": "authorised",
+        "type": "accounting"
+      },
+      {
+        "arn": "dd576b8e-7da5-3119-b381-8413400c8f76-1e8cee37-1fe5-351c-8cec-40025d10c6dc",
+        "bookingDate": "2026-09-18T18:03:43+02:00",
+        "id": "EVJN42CSJ225224VVZS34T4TR38FJ",
+        "mutations": [
+          {
+            "balance": -8,
+            "currency": "GBP",
+            "received": 0,
+            "reserved": 8
+          }
+        ],
+        "status": "captured",
+        "transactionId": "EVJN42CSVV4J5PZS34T4TR38FJGBP",
+        "type": "accounting",
+        "valueDate": "2026-09-22T01:00:00+02:00"
+      }
+    ],
+    "sequenceNumber": 3,
+    "updatedAt": "2026-09-18T18:03:43+02:00"
   },
   "environment": "test",
-  "timestamp": "2023-02-28T13:27:05+02:00",
-  "type": "{{type}}"
+  "timestamp": "2026-09-18T16:03:44.745Z",
+  "type": "balancePlatform.transfer.updated"
 }
