@@ -1,6 +1,7 @@
 package uk.gov.pay.connector.gateway.adyen.response.transfer;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import uk.gov.pay.connector.gateway.adyen.request.json.Amount;
@@ -9,7 +10,8 @@ import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonFormat(shape = JsonFormat.Shape.OBJECT)
-public record AdyenTransferEventData (
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record AdyenTransferData(
 
         @JsonProperty("id")
         String id,
@@ -57,5 +59,8 @@ public record AdyenTransferEventData (
         Integer sequenceNumber,
 
         @JsonProperty("status")
-        String status
+        String status,
+        
+        @JsonProperty("tracking")
+        Tracking tracking
 ) {}

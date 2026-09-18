@@ -52,6 +52,11 @@ public class PayoutEmitterService {
                 .ifPresent(payoutEvent -> sendToEventQueue(payoutEvent, connectAccount));
     }
 
+    public void emitPayoutEvent(PayoutEvent event,
+                                String connectAccount) {
+        sendToEventQueue(event, connectAccount);
+    }
+
     private void sendToEventQueue(Event event, String connectAccount) {
         try {
             if (shouldEmitPayoutEvents) {
