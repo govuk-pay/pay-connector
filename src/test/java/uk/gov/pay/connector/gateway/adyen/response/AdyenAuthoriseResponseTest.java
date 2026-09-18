@@ -138,7 +138,7 @@ class AdyenAuthoriseResponseTest {
     void should_return_gateway_recurring_auth_token_with_stored_payment_method_id() {
         var testStoredPaymentMethodId = "testStoredPaymentMethodId";
         var adyenPaymentResponse = anAdyenPaymentResponse()
-                .withAdditionalData(new AdditionalData(testStoredPaymentMethodId))
+                .withAdditionalData(new AdditionalData(testStoredPaymentMethodId, ""))
                 .build();
 
         var adyenAuthoriseResponse = AdyenAuthoriseResponse.of(adyenPaymentResponse);
@@ -275,5 +275,19 @@ class AdyenAuthoriseResponseTest {
 
         assertThat(mappedReason.isPresent(), is(true));
         assertThat(mappedReason.get(), is(MappedAuthorisationRejectedReason.UNCATEGORISED));
+    }
+
+    @Test
+    void should_return_expiry_date_when_getCardExpiryDate_is_called() {
+        var expiryDate = "01/30";
+        var adyenPaymentResponse = anAdyenPaymentResponse()
+                .withAdditionalData(new AdditionalData("", expiryDate))
+                .build();
+
+        var adyenAuthoriseResponse = AdyenAuthoriseResponse.of(adyenPaymentResponse);
+
+        var cardExpiryDate = adyenAuthoriseResponse.getCardExpiryDate();
+        assertThat(cardExpiryDate.isPresent(), is(true));
+        assertThat(cardExpiryDate.get().toString(), is(expiryDate));
     }
 }

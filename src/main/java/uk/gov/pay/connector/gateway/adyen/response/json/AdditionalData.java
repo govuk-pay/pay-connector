@@ -8,6 +8,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record AdditionalData(
         @JsonProperty("tokenization.storedPaymentMethodId")
-        String storedPaymentMethodId
+        String storedPaymentMethodId,
+        @JsonProperty("expiryDate")
+        String expiryDate
 ) {
 }
