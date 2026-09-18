@@ -1,8 +1,5 @@
 package uk.gov.pay.connector.app;
 
-import com.codahale.metrics.graphite.GraphiteReporter;
-import com.codahale.metrics.graphite.GraphiteSender;
-import com.codahale.metrics.graphite.GraphiteUDP;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
@@ -102,9 +99,8 @@ public class ConnectorApp extends Application<ConnectorConfiguration> {
     private static final Logger logger = LoggerFactory.getLogger(ConnectorApp.class);
 
     public static final boolean NON_STRICT_VARIABLE_SUBSTITUTOR = false;
-
-    private static final String SERVICE_METRICS_NODE = "connector";
-    private static final int GRAPHITE_SENDING_PERIOD_SECONDS = 10;
+    
+    private static final int METRICS_SENDING_PERIOD_SECONDS = 5;
 
     @Override
     public void initialize(Bootstrap<ConnectorConfiguration> bootstrap) {
@@ -231,26 +227,11 @@ public class ConnectorApp extends Application<ConnectorConfiguration> {
                 .scheduledExecutorService("metricscollector")
                 .threads(1)
                 .build()
-                .scheduleAtFixedRate(metricsService::updateMetricData, 0, GRAPHITE_SENDING_PERIOD_SECONDS / 2, TimeUnit.SECONDS);
-
-        initialiseGraphiteMetrics(configuration, environment);
+                .scheduleAtFixedRate(metricsService::updateMetricData, 0, METRICS_SENDING_PERIOD_SECONDS, TimeUnit.SECONDS);
 
         CollectorRegistry collectorRegistry = CollectorRegistry.defaultRegistry;
         collectorRegistry.register(new DropwizardExports(environment.metrics()));
         environment.admin().addServlet("prometheusMetrics", new MetricsServlet(collectorRegistry.defaultRegistry)).addMapping("/metrics");
-    }
-
-    /**
-     * Graphite metric config to be deleted when we've completely moved to Prometheus
-     */
-    private void initialiseGraphiteMetrics(ConnectorConfiguration configuration, Environment environment) {
-        GraphiteSender graphiteUDP = new GraphiteUDP(configuration.getGraphiteHost(), Integer.parseInt(configuration.getGraphitePort()));
-        GraphiteReporter.forRegistry(environment.metrics())
-                .prefixedWith(SERVICE_METRICS_NODE)
-                .convertRatesTo(TimeUnit.MINUTES)
-                .convertDurationsTo(TimeUnit.MILLISECONDS)
-                .build(graphiteUDP)
-                .start(GRAPHITE_SENDING_PERIOD_SECONDS, TimeUnit.SECONDS);
     }
 
     public static void main(String[] args) throws Exception {
