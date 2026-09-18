@@ -31,7 +31,7 @@ public class PayoutCreated extends PayoutEvent {
                 new PayoutCreatedEventDetails(
                         Long.valueOf(adyenTransferData.accountHolder().id()),
                         adyenTransferData.amount().value(), 
-                        null, //this is failing
+                        null,
                         adyenTransferData.status(),
                         adyenTransferData.type(), // e.g. "bankTransfer"
                         adyenTransferData.description()),

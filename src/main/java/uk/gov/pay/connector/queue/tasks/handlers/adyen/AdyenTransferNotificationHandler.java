@@ -24,7 +24,7 @@ public class AdyenTransferNotificationHandler {
 
         if (transferNotification.data().status().equals("received")) {
             var payoutCreatedEvent = PayoutCreated.from(transferNotification.data());
-            payoutEmitterService.emitPayoutEvent(payoutCreatedEvent, transferNotification.data().balanceAccount().id()); // not sure if this is right is the account that we want balance account?
+            payoutEmitterService.emitPayoutEvent(payoutCreatedEvent, transferNotification.data().balanceAccount().id());
         }
     }
 }
