@@ -1,7 +1,7 @@
 {
   "data": {
     "accountHolder": {
-      "id": "1234567890"
+      "id": "111111111111"
     },
     "amount": {
       "currency": "EUR",
@@ -13,7 +13,7 @@
    },
     "createdAt": "2023-03-02T07:00:00+00:00",
     "balanceAccount": {
-      "id": "1234567890"
+      "id": "22222222222"
     },
     "category": "internal",
     "status": "received"

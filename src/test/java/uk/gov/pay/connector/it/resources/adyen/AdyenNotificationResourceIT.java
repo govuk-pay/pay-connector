@@ -35,7 +35,7 @@ public class AdyenNotificationResourceIT {
     private static final String UNEXPECTED_IP_ADDRESS = "8.8.8.8";
     private static final String HMAC_SIGNATURE = "hLz2zuhuylC8q36sCWWH7PpvbVpyaWDpoBqoEeTjj7w="; // pragma: allowlist secret
     private static final String HMAC_SIGNATURE_FOR_PAYLOAD_WITH_UPDATED_TOKEN = "+309uQLT5A/L658R+4GlsOVwQ0rDTDcm2e5yln6+KGM="; // pragma: allowlist secret
-    private static final String HMAC_SIGNATURE_FOR_TRANSFER = "Ey+FlcCw44SJNYh9GKniPLYLR7ipGoDFtgbcD4QfiLQ="; // pragma: allowlist secret
+    private static final String HMAC_SIGNATURE_FOR_TRANSFER = "cjXsoN6Uw3X6hol6EgoXTAOmWUP32fKsSEMWMoFugEg="; // pragma: allowlist secret
 
     @BeforeAll
     static void before() {

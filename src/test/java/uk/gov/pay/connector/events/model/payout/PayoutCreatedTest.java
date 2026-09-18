@@ -54,7 +54,7 @@ public class PayoutCreatedTest {
                 RECEIVED.getValue(),
                 null);
 
-        String payoutCreatedJson = PayoutCreated.from(transferEventData).toJsonString();
+        String payoutCreatedJson = PayoutCreated.from(transferEventData, Long.valueOf(gatewayAccountId)).toJsonString();
 
         assertThat(payoutCreatedJson, hasJsonPath("$.event_type", equalTo("PAYOUT_CREATED")));
         assertThat(payoutCreatedJson, hasJsonPath("$.resource_type", equalTo("payout")));

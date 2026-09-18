@@ -20,7 +20,12 @@ import uk.gov.pay.connector.charge.model.domain.Charge;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntityFixture;
 import uk.gov.pay.connector.charge.service.ChargeService;
 import uk.gov.pay.connector.gateway.adyen.webhook.AdyenWebhookDeserialiser;
-import uk.gov.pay.connector.queue.tasks.handlers.adyen.*;
+import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenCancellationNotificationHandler;
+import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenCaptureNotificationHandler;
+import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenRefundNotificationHandler;
+import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenTokenWebhookNotificationHandler;
+import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenTransferNotificationHandler;
+import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenWebhookTaskHandler;
 
 import java.io.IOException;
 import java.util.Optional;

@@ -25,11 +25,12 @@ public class PayoutCreated extends PayoutEvent {
                         payout.getCreated());
     }
 
-    public static PayoutCreated from(AdyenTransferData adyenTransferData) {
+    public static PayoutCreated from(AdyenTransferData adyenTransferData, Long gatewayAccountId) {
+        
         return new PayoutCreated(
                 adyenTransferData.id(),
                 new PayoutCreatedEventDetails(
-                        Long.valueOf(adyenTransferData.accountHolder().id()),
+                        gatewayAccountId,
                         adyenTransferData.amount().value(), 
                         null,
                         adyenTransferData.status(),

@@ -8,7 +8,7 @@ import java.time.Instant;
 public class PayoutPaid extends PayoutEvent {
     public PayoutPaid(String resourceExternalId, PayoutPaidEventDetails eventDetails, Instant timestamp) {
         super(resourceExternalId, eventDetails, timestamp);
-    } 
+    }
 
     public static PayoutPaid from(Instant eventTimestamp, StripePayout payout) {
         return new PayoutPaid(payout.getId(),
