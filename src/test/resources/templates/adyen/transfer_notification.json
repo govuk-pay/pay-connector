@@ -15,8 +15,9 @@
     "balanceAccount": {
       "id": "22222222222"
     },
-    "category": "internal",
-    "status": "received"
+    "category": "bank",
+    "type": "bankTransfer",
+    "status": "{{status}}"
   },
   "environment": "test",
   "timestamp": "2023-02-28T13:27:05+02:00",
