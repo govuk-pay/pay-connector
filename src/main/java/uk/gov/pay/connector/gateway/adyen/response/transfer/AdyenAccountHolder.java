@@ -14,6 +14,6 @@ public record AdyenAccountHolder (
         @JsonProperty("id")
         String id,
 
-        @JsonProperty("description")
+        @JsonProperty("reference")
         String reference
 ) {}

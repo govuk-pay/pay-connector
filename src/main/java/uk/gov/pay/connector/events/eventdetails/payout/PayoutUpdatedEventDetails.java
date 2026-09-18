@@ -9,8 +9,4 @@ public class PayoutUpdatedEventDetails extends EventDetails {
     public PayoutUpdatedEventDetails(String gatewayStatus) {
         this.estimatedArrivalDate = gatewayStatus;
     }
-
-    public String getGatewayStatus() {
-        return gatewayStatus;
-    }
 }

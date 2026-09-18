@@ -15,7 +15,7 @@ public record AdyenTransferNotification (
         String environment,
 
         @JsonProperty("data")
-        AdyenTransferEventData data,
+        AdyenTransferData data,
 
         @JsonProperty("type")
         String type
