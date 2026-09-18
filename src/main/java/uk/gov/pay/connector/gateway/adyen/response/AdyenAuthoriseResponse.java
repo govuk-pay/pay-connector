@@ -7,6 +7,7 @@ import uk.gov.pay.connector.gateway.adyen.utils.AdyenAuthorisationRejectedCodeMa
 import uk.gov.pay.connector.gateway.model.Gateway3dsRequiredParams;
 import uk.gov.pay.connector.gateway.model.MappedAuthorisationRejectedReason;
 import uk.gov.pay.connector.gateway.model.response.BaseAuthoriseResponse;
+import uk.gov.service.payments.commons.model.CardExpiryDate;
 
 import java.util.Map;
 import java.util.Optional;
@@ -24,11 +25,10 @@ public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
     private final String httpMethod3ds;
     private final String refusalReason;
     private final String refusalReasonCode;
-
     private final String paReq;
     private final String md;
-
     private final String storedPaymentMethodId;
+    private final String expiryDate;
 
     public static AdyenAuthoriseResponse of(AuthoriseResponseBody authoriseResponseBody) {
         Action action = authoriseResponseBody.action();
@@ -49,6 +49,10 @@ public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
                 .map(AdditionalData::storedPaymentMethodId)
                 .orElse(null);
 
+        String expiryDate = Optional.ofNullable(additionalData)
+                .map(AdditionalData::expiryDate)
+                .orElse(null);
+
         return new AdyenAuthoriseResponse(authoriseResponseBody.pspReference(),
                 authoriseResponseBody.resultCode(),
                 url,
@@ -57,7 +61,8 @@ public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
                 md,
                 authoriseResponseBody.refusalReason(),
                 authoriseResponseBody.refusalReasonCode(),
-                storedPaymentMethodId);
+                storedPaymentMethodId,
+                expiryDate);
     }
 
     private AdyenAuthoriseResponse(String transactionId,
@@ -68,7 +73,8 @@ public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
                                    String md,
                                    String refusalReason,
                                    String refusalReasonCode,
-                                   String storedPaymentMethodId) {
+                                   String storedPaymentMethodId,
+                                   String expiryDate) {
         this.transactionId = transactionId;
         authoriseStatus = mapAuthorisationStatusFrom(resultCode);
         this.redirectUrl = redirectUrl;
@@ -78,6 +84,7 @@ public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
         this.refusalReason = refusalReason;
         this.refusalReasonCode = refusalReasonCode;
         this.storedPaymentMethodId = storedPaymentMethodId;
+        this.expiryDate = expiryDate;
     }
 
     private static AuthoriseStatus mapAuthorisationStatusFrom(String resultCode) {
@@ -165,5 +172,10 @@ public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
         return AUTHORISED.equals(authoriseStatus)
                 ? Optional.of(Map.of())
                 : Optional.empty();
+    }
+
+    @Override
+    public Optional<CardExpiryDate> getCardExpiryDate() {
+        return Optional.ofNullable(expiryDate).map(CardExpiryDate::valueOf);
     }
 }

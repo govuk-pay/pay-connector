@@ -89,7 +89,7 @@ class Authorise3dsResponseBodyTest {
     void getStoredPaymentMethodId_ShouldReturnId_WhenAdditionalDataIsPresent() {
         String expectedId = "someStoredPaymentMethodId";
 
-        var additionalData = new AdditionalData(expectedId);
+        var additionalData = new AdditionalData(expectedId, "");
 
         Authorise3dsResponseBody response = new Authorise3dsResponseBody(
                 "psp-ref-123",
