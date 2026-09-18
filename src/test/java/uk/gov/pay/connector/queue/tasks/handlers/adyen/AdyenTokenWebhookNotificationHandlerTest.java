@@ -22,8 +22,8 @@ import uk.gov.pay.connector.charge.service.LinkPaymentInstrumentToAgreementServi
 import uk.gov.pay.connector.client.ledger.service.LedgerService;
 import uk.gov.pay.connector.events.model.agreement.AgreementInactivated;
 import uk.gov.pay.connector.gateway.adyen.AdyenRequestFactory;
-import uk.gov.pay.connector.gateway.adyen.response.AdyenTokenEventData;
-import uk.gov.pay.connector.gateway.adyen.response.AdyenTokenNotification;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.token.AdyenTokenEventData;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.token.AdyenTokenNotification;
 import uk.gov.pay.connector.gateway.adyen.webhook.AdyenWebhookDeserialiser;
 import uk.gov.pay.connector.paymentinstrument.dao.PaymentInstrumentDao;
 import uk.gov.pay.connector.paymentinstrument.model.PaymentInstrumentEntity;

@@ -1,4 +1,4 @@
-package uk.gov.pay.connector.gateway.adyen.webhook.json;
+package uk.gov.pay.connector.gateway.adyen.webhook.json.token;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;

@@ -18,7 +18,7 @@ import jakarta.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.pay.connector.gateway.PaymentGatewayName;
-import uk.gov.pay.connector.gateway.adyen.response.AdyenTokenNotification;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.token.AdyenTokenNotification;
 import uk.gov.pay.connector.gateway.adyen.webhook.AdyenNotificationService;
 import uk.gov.pay.connector.gateway.sandbox.SandboxNotificationService;
 import uk.gov.pay.connector.gateway.stripe.StripeNotificationService;
