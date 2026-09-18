@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.pay.connector.charge.exception.ConflictWebApplicationException;
 import uk.gov.pay.connector.charge.model.domain.Charge;
-import uk.gov.pay.connector.common.exception.ConflictRuntimeException;
 import uk.gov.pay.connector.gateway.PaymentGatewayName;
 import uk.gov.pay.connector.gatewayaccount.exception.GatewayAccountCredentialsNotFoundException;
 import uk.gov.pay.connector.gatewayaccount.exception.GatewayAccountNotFoundException;
@@ -67,7 +66,7 @@ public class GatewayAccountCredentialsService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GatewayAccountCredentialsService.class);
 
-    private enum WorldpayUpdatableCredentials {ONE_OFF_CIT, RECURRING_CIT, RECURRING_MIT};
+    private enum WorldpayUpdatableCredentials {ONE_OFF_CIT, RECURRING_CIT, RECURRING_MIT}
 
     private final GatewayAccountCredentialsDao gatewayAccountCredentialsDao;
 
@@ -261,8 +260,19 @@ public class GatewayAccountCredentialsService {
                 .orElseThrow(() -> new GatewayAccountCredentialsNotFoundException(format("Gateway account credentials with Stripe connect account ID [%s] not found.", stripeAccountId)));
 
         return Optional.ofNullable(gatewayAccountCredentialsEntity)
-                .map(entity -> gatewayAccountCredentialsEntity.getGatewayAccountEntity())
+                .map(_ -> gatewayAccountCredentialsEntity.getGatewayAccountEntity())
                 .orElseThrow(() -> new GatewayAccountNotFoundException(format("Gateway account with Stripe connect account ID [%s] not found.", stripeAccountId)));
+    }
+
+    @Transactional
+    public GatewayAccountEntity findGatewayAccountForCredentialKeyAndValue(String credentialKey, String credentialValue) {
+        GatewayAccountCredentialsEntity gatewayAccountCredentialsEntity = gatewayAccountCredentialsDao
+                .findByCredentialsKeyValue(credentialKey, credentialValue)
+                .orElseThrow(() -> new GatewayAccountCredentialsNotFoundException("Gateway account credentials not found."));
+
+        return Optional.ofNullable(gatewayAccountCredentialsEntity)
+                .map(_ -> gatewayAccountCredentialsEntity.getGatewayAccountEntity())
+                .orElseThrow(() -> new GatewayAccountNotFoundException("Gateway account not found."));
     }
 
     public GatewayAccountCredentialsEntity getCurrentOrActiveCredential(GatewayAccountEntity gatewayAccountEntity) {

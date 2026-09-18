@@ -48,6 +48,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
 import static uk.gov.pay.connector.gateway.PaymentGatewayName.STRIPE;
 import static uk.gov.pay.connector.gateway.PaymentGatewayName.WORLDPAY;
 import static uk.gov.pay.connector.gatewayaccount.model.GatewayAccount.CREDENTIALS_MERCHANT_CODE;
@@ -1085,6 +1086,53 @@ public class GatewayAccountCredentialsServiceTest {
 
             assertThrows(GatewayAccountCredentialsNotFoundException.class,
                     () -> gatewayAccountCredentialsService.findStripeGatewayAccountForCredentialKeyAndValue("stripe_account_id", "stripeAccountId"));
+        }
+
+        @Test
+        void shouldReturnGatewayAccountForGatewayAccountCredentials() {
+            GatewayAccountEntity gatewayAccountEntity = aGatewayAccountEntity()
+                    .withGatewayName(ADYEN.getName())
+                    .build();
+
+            String id = "1234567";
+            var gatewayAccountCredential = aGatewayAccountCredentialsEntity()
+                    .withCredentials(Map.of(
+                            "legal_entity_id", "legal_entity_id",
+                            "store_id", "store_id",
+                            "account_holder_id", "account_holder_id",
+                            "balance_account_id", id))
+                    .withPaymentProvider(ADYEN.getName())
+                    .withGatewayAccountEntity(gatewayAccountEntity)
+                    .build();
+
+            when(mockGatewayAccountCredentialsDao.findByCredentialsKeyValue(eq("balance_account_id"), eq(id))).thenReturn(Optional.of(gatewayAccountCredential));
+
+            var result = gatewayAccountCredentialsService.findGatewayAccountForCredentialKeyAndValue("balance_account_id", id);
+
+            assertThat(result, is(gatewayAccountEntity));
+        }
+
+        @Test
+        void shouldThrowRuntimeExceptionIfBalanceAccountIdNotFound() {
+            var balanceAccountId = "balanceAccountId";
+            GatewayAccountCredentialsEntity gatewayAccountCredentialsEntity = aGatewayAccountCredentialsEntity()
+                    .withCredentials(Map.of("balance_account_id", balanceAccountId))
+                    .withPaymentProvider(STRIPE.getName())
+                    .build();
+
+            when(mockGatewayAccountCredentialsDao.findByCredentialsKeyValue(eq("balance_account_id"), eq(balanceAccountId))).thenReturn(Optional.of(gatewayAccountCredentialsEntity));
+
+            assertThrows(GatewayAccountNotFoundException.class,
+                    () -> gatewayAccountCredentialsService.findStripeGatewayAccountForCredentialKeyAndValue("balance_account_id", balanceAccountId));
+        }
+
+        @Test
+        void shouldThrowRuntimeExceptionIfGatewayAccountCredentialsNotFoundFromBalanceAccountId() {
+            var balanceAccountId = "balanceAccountId";
+            when(mockGatewayAccountCredentialsDao.findByCredentialsKeyValue(eq("balance_account_id"), eq(balanceAccountId))).thenReturn(Optional.empty());
+
+            assertThrows(GatewayAccountCredentialsNotFoundException.class,
+                    () -> gatewayAccountCredentialsService.findStripeGatewayAccountForCredentialKeyAndValue("balance_account_id", balanceAccountId));
         }
     }
 
