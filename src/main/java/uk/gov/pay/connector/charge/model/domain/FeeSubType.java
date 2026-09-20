@@ -6,14 +6,11 @@ import java.util.Arrays;
 
 import static org.apache.commons.lang3.Strings.CS;
 
-public enum FeeType {
-    FRAUD_PROTECTION("fraud_protection"),
-    GATEWAY("gateway"),
-    RADAR("radar"),
-    THREE_D_S("three_ds"),
-    TRANSACTION("transaction");
+public enum FeeSubType {
+    FIXED("fixed"),
+    VARIABLE("variable");
 
-    FeeType(String name) {
+    FeeSubType(String name) {
         this.name = name;
     }
 
@@ -24,10 +21,10 @@ public enum FeeType {
         return name;
     }
 
-    public static FeeType fromString(String feeTypeValue) {
-        return Arrays.stream(FeeType.values())
+    public static FeeSubType fromString(String feeTypeValue) {
+        return Arrays.stream(FeeSubType.values())
                 .filter(feeTypeEnum -> CS.equals(feeTypeEnum.getName(), feeTypeValue))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("fee type not recognized: " + feeTypeValue));
+                .orElseThrow(() -> new IllegalArgumentException("fee sub type not recognized: " + feeTypeValue));
     }
 }

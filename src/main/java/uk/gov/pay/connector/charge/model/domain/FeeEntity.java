@@ -3,6 +3,7 @@ package uk.gov.pay.connector.charge.model.domain;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import uk.gov.pay.connector.common.model.domain.UTCDateTimeConverter;
 import uk.gov.pay.connector.fee.model.Fee;
+import uk.gov.pay.connector.refund.model.domain.RefundEntity;
 import uk.gov.pay.connector.util.RandomIdGenerator;
 import uk.gov.service.payments.commons.jpa.InstantToUtcTimestampWithoutTimeZoneConverter;
 
@@ -18,6 +19,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+
 import java.time.Instant;
 import java.time.ZonedDateTime;
 
@@ -27,7 +29,7 @@ import java.time.ZonedDateTime;
 @SequenceGenerator(name = "charges_charge_id_seq",
         sequenceName = "charges_charge_id_seq", allocationSize = 1)
 public class FeeEntity {
-    
+
     public FeeEntity() {
     }
 
@@ -40,8 +42,24 @@ public class FeeEntity {
         this.feeType = feeType;
     }
 
+    private FeeEntity(ChargeEntity chargeEntity, RefundEntity refundEntity, Instant createdDate, Long amount,
+                      FeeType feeType, FeeSubType feeSubType) {
+        this.externalId = RandomIdGenerator.newId();
+        this.chargeEntity = chargeEntity;
+        this.refundEntity = refundEntity;
+        this.amountDue = amount;
+        this.amountCollected = amount;
+        this.createdDate = createdDate;
+        this.feeType = feeType;
+        this.feeSubType = feeSubType;
+    }
+
     public FeeEntity(ChargeEntity chargeEntity, Instant createdDate, Fee fee) {
-        this(chargeEntity, createdDate, fee.amount(), fee.feeType());
+        this(chargeEntity, null, createdDate, fee.amount(), fee.feeType(), fee.feeSubType());
+    }
+
+    public FeeEntity(RefundEntity refundEntity, Instant createdDate, Fee fee) {
+        this(null, refundEntity, createdDate, fee.amount(), fee.feeType(), fee.feeSubType());
     }
 
     @Id
@@ -56,10 +74,19 @@ public class FeeEntity {
     @Convert(converter = FeeTypeConverter.class)
     private FeeType feeType;
 
+    @Column(name = "fee_sub_type")
+    @Convert(converter = FeeSubTypeConverter.class)
+    private FeeSubType feeSubType;
+
     @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "charge_id", updatable = false)
     private ChargeEntity chargeEntity;
+
+    @JsonIgnore
+    @ManyToOne
+    @JoinColumn(name = "refund_id", updatable = false)
+    private RefundEntity refundEntity;
 
     @Column(name = "amount_due")
     private long amountDue;
@@ -74,10 +101,10 @@ public class FeeEntity {
     @Column(name = "collected_date")
     @Convert(converter = UTCDateTimeConverter.class)
     private ZonedDateTime collectedDate;
-    
+
     @Column(name = "gateway_transaction_id")
     private String gatewayTransactionId;
-    
+
     public long getAmountCollected() {
         return amountCollected;
     }
@@ -92,5 +119,9 @@ public class FeeEntity {
 
     public void setFeeType(FeeType feeType) {
         this.feeType = feeType;
+    }
+
+    public FeeSubType getFeeSubType() {
+        return feeSubType;
     }
 }

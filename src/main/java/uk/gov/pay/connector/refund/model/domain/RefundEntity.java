@@ -3,6 +3,7 @@ package uk.gov.pay.connector.refund.model.domain;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Access;
 import jakarta.persistence.AccessType;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.ColumnResult;
 import jakarta.persistence.ConstructorResult;
@@ -13,10 +14,12 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.SqlResultSetMapping;
 import jakarta.persistence.Table;
 import org.eclipse.persistence.annotations.Customizer;
+import uk.gov.pay.connector.charge.model.domain.FeeEntity;
 import uk.gov.pay.connector.charge.model.domain.ParityCheckStatus;
 import uk.gov.pay.connector.common.model.domain.AbstractVersionedEntity;
 import uk.gov.pay.connector.common.model.domain.HistoryCustomizer;
@@ -26,7 +29,9 @@ import uk.gov.pay.connector.util.RandomIdGenerator;
 import java.sql.Timestamp;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import static java.time.temporal.ChronoUnit.MICROS;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
@@ -92,6 +97,9 @@ public class RefundEntity extends AbstractVersionedEntity {
     @Column(name = "parity_check_date")
     @Convert(converter = UTCDateTimeConverter.class)
     private ZonedDateTime parityCheckDate;
+
+    @OneToMany(mappedBy = "refundEntity")
+    private List<FeeEntity> fees = new ArrayList<>();
 
     public RefundEntity() {
         //for jpa
@@ -217,5 +225,9 @@ public class RefundEntity extends AbstractVersionedEntity {
 
     public void setParityCheckDate(ZonedDateTime parityCheckDate) {
         this.parityCheckDate = parityCheckDate;
+    }
+
+    public List<FeeEntity> getFees() {
+        return fees;
     }
 }
