@@ -7,9 +7,9 @@ import org.slf4j.LoggerFactory;
 import uk.gov.pay.connector.events.model.payout.PayoutCreated;
 import uk.gov.pay.connector.events.model.payout.PayoutFailed;
 import uk.gov.pay.connector.events.model.payout.PayoutUpdated;
+import uk.gov.pay.connector.gateway.adyen.webhook.AdyenWebhookDeserialiser;
 import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.AdyenTransferNotification;
 import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.TransferEventStatus;
-import uk.gov.pay.connector.gateway.adyen.webhook.AdyenWebhookDeserialiser;
 import uk.gov.pay.connector.gateway.exception.AdyenNotificationException;
 import uk.gov.pay.connector.gatewayaccountcredentials.service.GatewayAccountCredentialsService;
 import uk.gov.pay.connector.payout.PayoutEmitterService;
@@ -19,20 +19,22 @@ public class AdyenTransferNotificationHandler {
     private final PayoutEmitterService payoutEmitterService;
     private final AdyenWebhookDeserialiser adyenWebhookDeserialiser;
     private final GatewayAccountCredentialsService gatewayAccountCredentialsService;
+    private final AdyenTransferNotificationHandlerForFees adyenTransferNotificationHandlerForFees;
     private static final Logger LOGGER = LoggerFactory.getLogger(AdyenTransferNotificationHandler.class);
 
     @Inject
     public AdyenTransferNotificationHandler(PayoutEmitterService payoutEmitterService,
                                             AdyenWebhookDeserialiser adyenWebhookDeserialiser,
-                                            GatewayAccountCredentialsService gatewayAccountCredentialsService) {
+                                            GatewayAccountCredentialsService gatewayAccountCredentialsService,
+                                            AdyenTransferNotificationHandlerForFees adyenTransferNotificationHandlerForFees) {
         this.payoutEmitterService = payoutEmitterService;
         this.adyenWebhookDeserialiser = adyenWebhookDeserialiser;
         this.gatewayAccountCredentialsService = gatewayAccountCredentialsService;
+        this.adyenTransferNotificationHandlerForFees = adyenTransferNotificationHandlerForFees;
     }
 
     @Transactional
     public void process(String payload) {
-        
         var transferNotification = adyenWebhookDeserialiser.deserialisePayload(payload, AdyenTransferNotification.class);
         var transferNotificationData = transferNotification.data();
         var timestamp = transferNotification.timestamp();
@@ -47,8 +49,9 @@ public class AdyenTransferNotificationHandler {
             throw new AdyenNotificationException("Data for Adyen transfer notification is missing");
         }
 
-        if ("bankTransfer".equals(transferNotificationData.type())) {
-
+        if ("platformPayment".equals(transferNotificationData.category())) {
+            adyenTransferNotificationHandlerForFees.process(transferNotification);
+        } else if ("bankTransfer".equals(transferNotificationData.type())) {
             var gatewayAccountId = gatewayAccountCredentialsService.findGatewayAccountForCredentialKeyAndValue(
                             "balance_account_id",
                             transferNotificationData.balanceAccount().id())
@@ -79,6 +82,10 @@ public class AdyenTransferNotificationHandler {
                             .log();
                     break;
             }
+        } else {
+            LOGGER.atInfo()
+                    .setMessage("Ignoring unsupported transfer webhook as status is missing")
+                    .log();
         }
     }
 }

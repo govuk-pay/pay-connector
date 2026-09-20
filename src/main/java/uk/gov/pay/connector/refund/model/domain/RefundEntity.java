@@ -31,8 +31,10 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static java.time.temporal.ChronoUnit.MICROS;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
@@ -241,10 +243,18 @@ public class RefundEntity extends AbstractVersionedEntity {
     }
 
     public Optional<Long> getFeeAmount() {
-        return fees.isEmpty() ? Optional.empty() :
-                Optional.of(fees.stream()
-                        .map(FeeEntity::getAmountCollected)
-                        .reduce(0L, Long::sum));
+        Set<String> uniqueFees = new HashSet<>();
+        long total = 0;
+
+        for (FeeEntity fee : fees) {
+            String key = fee.getFeeType() + "|" + fee.getFeeSubType();
+
+            if (uniqueFees.add(key)) {
+                total += fee.getAmountCollected();
+            }
+        }
+
+        return fees.isEmpty() ? Optional.empty() : Optional.of(total);
     }
 
     public Optional<Long> getNetAmount() {
@@ -254,5 +264,9 @@ public class RefundEntity extends AbstractVersionedEntity {
             }
             return -fee;
         });
+    }
+
+    public void addFee(FeeEntity feeEntity) {
+        this.fees.add(feeEntity);
     }
 }

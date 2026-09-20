@@ -58,6 +58,9 @@ class AdyenTransferNotificationHandlerTest {
     @Mock
     private AdyenTransferNotificationHandler handler;
 
+    @Mock
+    private AdyenTransferNotificationHandlerForFees mockAdyenTransferNotificationHandlerForFees;
+
     @Captor
     private ArgumentCaptor<LoggingEvent> loggingEventArgumentCaptor;
 
@@ -67,7 +70,8 @@ class AdyenTransferNotificationHandlerTest {
     @BeforeEach
     void setUp() {
         AdyenWebhookDeserialiser adyenWebhookDeserialiser = new AdyenWebhookDeserialiser(new JsonObjectMapper(new ObjectMapper()));
-        handler = new AdyenTransferNotificationHandler(payoutEmitterService, adyenWebhookDeserialiser, gatewayAccountCredentialsService);
+        handler = new AdyenTransferNotificationHandler(payoutEmitterService, adyenWebhookDeserialiser, gatewayAccountCredentialsService,
+                mockAdyenTransferNotificationHandlerForFees);
         Logger root = (Logger) LoggerFactory.getLogger(AdyenTransferNotificationHandler.class);
         root.setLevel(Level.INFO);
         root.addAppender(mockAppender);
@@ -151,7 +155,7 @@ class AdyenTransferNotificationHandlerTest {
         verify(payoutEmitterService).emitPayoutEvent(eventArgumentCaptor.capture(), accountId.capture());
 
         PayoutEvent event = eventArgumentCaptor.getAllValues().getFirst();
-        assertEquals("PAYOUT_UPDATED",event.getEventType());
+        assertEquals("PAYOUT_UPDATED", event.getEventType());
     }
 
     @ParameterizedTest
@@ -162,13 +166,13 @@ class AdyenTransferNotificationHandlerTest {
         GatewayAccountEntity gatewayAccountEntity = aGatewayAccountEntity()
                 .withGatewayName(ADYEN.getName())
                 .build();
-        
+
 
         var payload = load(ADYEN_TRANSFER_NOTIFICATION)
                 .replace("{{type}}", "balancePlatform.transfer.updated")
                 .replace("{{status}}", status.getValue())
                 .replace("22222222222", id)
-                .replace( "{{eventStatus2}}", status.getValue())
+                .replace("{{eventStatus2}}", status.getValue())
                 .replace("{{reasonCode}}", "some reason");
 
         when(gatewayAccountCredentialsService.findGatewayAccountForCredentialKeyAndValue("balance_account_id", id))
@@ -179,7 +183,7 @@ class AdyenTransferNotificationHandlerTest {
         verify(payoutEmitterService).emitPayoutEvent(eventArgumentCaptor.capture(), accountId.capture());
 
         PayoutEvent event = eventArgumentCaptor.getAllValues().getFirst();
-        assertEquals("PAYOUT_FAILED",event.getEventType());
+        assertEquals("PAYOUT_FAILED", event.getEventType());
     }
 
     @Test

@@ -5,6 +5,7 @@ import uk.gov.pay.connector.charge.model.domain.FeeEntity;
 import uk.gov.pay.connector.events.eventdetails.EventDetails;
 import uk.gov.pay.connector.events.eventdetails.charge.FeeIncurredEventDetails;
 import uk.gov.pay.connector.events.exception.EventCreationException;
+import uk.gov.pay.connector.refund.model.domain.RefundEntity;
 
 import java.time.Instant;
 
