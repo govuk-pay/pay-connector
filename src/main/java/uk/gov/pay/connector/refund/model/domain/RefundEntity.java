@@ -31,10 +31,14 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import static java.time.temporal.ChronoUnit.MICROS;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static uk.gov.pay.connector.common.model.api.ExternalRefundStatus.EXTERNAL_SUCCESS;
 
 @SqlResultSetMapping(
         name = "RefundEntityHistoryMapping",
@@ -98,7 +102,7 @@ public class RefundEntity extends AbstractVersionedEntity {
     @Convert(converter = UTCDateTimeConverter.class)
     private ZonedDateTime parityCheckDate;
 
-    @OneToMany(mappedBy = "refundEntity")
+    @OneToMany(mappedBy = "refundEntity", cascade = CascadeType.PERSIST)
     private List<FeeEntity> fees = new ArrayList<>();
 
     public RefundEntity() {
@@ -229,5 +233,33 @@ public class RefundEntity extends AbstractVersionedEntity {
 
     public List<FeeEntity> getFees() {
         return fees;
+    }
+
+    public void addFee(FeeEntity fee) {
+        this.fees.add(fee);
+    }
+
+    public Optional<Long> getFeeAmount() {
+        Set<String> uniqueFees = new HashSet<>();
+        long total = 0;
+
+        for (FeeEntity fee : fees) {
+            String key = fee.getFeeType() + "|" + fee.getFeeSubType();
+
+            if (uniqueFees.add(key)) {
+                total += fee.getAmountCollected();
+            }
+        }
+
+        return fees.isEmpty() ? Optional.empty() : Optional.of(total);
+    }
+
+    public Optional<Long> getNetAmount() {
+        return getFeeAmount().map(fee -> {
+            if (getStatus().toExternal() == EXTERNAL_SUCCESS) {
+                return -(getAmount() + fee);
+            }
+            return -fee;
+        });
     }
 }

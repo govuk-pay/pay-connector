@@ -2190,14 +2190,4 @@
         </addColumn>
     </changeSet>
 
-    <changeSet id="add unique key constraint to fees for charge related columns" author="">
-        <sql>alter table fees add CONSTRAINT fees_unique_charge_fields
-            unique (charge_id, fee_type, fee_sub_type)</sql>
-    </changeSet>
-
-    <changeSet id="add unique key constraint to fees for refund related columns" author="">
-        <sql>alter table fees add CONSTRAINT fees_unique_refund_fields
-            unique (refund_id, fee_type, fee_sub_type)</sql>
-    </changeSet>
-
 </databaseChangeLog>

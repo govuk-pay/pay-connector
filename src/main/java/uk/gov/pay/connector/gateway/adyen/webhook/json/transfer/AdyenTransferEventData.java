@@ -8,7 +8,7 @@ import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record AdyenTransferEventData (
+public record AdyenTransferEventData(
 
         @JsonProperty("id")
         String id,
@@ -56,5 +56,9 @@ public record AdyenTransferEventData (
         Integer sequenceNumber,
 
         @JsonProperty("status")
-        String status
-) {}
+        String status,
+
+        @JsonProperty("eventId")
+        String eventId
+) {
+}
