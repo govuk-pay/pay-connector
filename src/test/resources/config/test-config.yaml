@@ -67,6 +67,8 @@ adyen:
       test: adyen-test-legal-entity-management-api-key
       live: adyen-live-legal-entity-management-api-key
   notificationDomain: .adyen.com
+  paymentOrRefundGatewayFeeInPence: 12
+  fraudAvoidanceFeeInPence: 10
   hmacKeys:
     payments:
       test:

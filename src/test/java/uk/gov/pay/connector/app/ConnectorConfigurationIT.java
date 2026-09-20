@@ -93,6 +93,9 @@ public class ConnectorConfigurationIT {
         assertThat(balancePlatformLiveKeys.getPrimary().get(), is("adyen-live-balance-platform-hmac-primary"));
         assertThat(balancePlatformLiveKeys.getSecondary().isPresent(), is(true));
         assertThat(balancePlatformLiveKeys.getSecondary().get(), is("adyen-live-balance-platform-hmac-secondary"));
+
+        assertThat(adyenGatewayConfig.getFraudAvoidanceFeeInPence(), is(10));
+        assertThat(adyenGatewayConfig.getPaymentOrRefundGatewayFeeInPence(), is(12));
     }
 
 }
