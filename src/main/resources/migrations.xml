@@ -2161,4 +2161,43 @@
         <sql>CREATE INDEX CONCURRENTLY idx_payment_instruments_charge_external_id ON payment_instruments (charge_external_id);</sql>
     </changeSet>
 
+    <changeSet id="add fee_sub_type column to fees table" author="">
+        <addColumn tableName="fees">
+            <column name="fee_sub_type" type="varchar(30)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="drop charge_id as identity column" author="">
+        <sql>ALTER TABLE fees
+            ALTER COLUMN charge_id DROP IDENTITY</sql>
+    </changeSet>
+
+    <changeSet id="change fees.charge_id column to nullable" author="">
+        <sql>alter table fees
+            alter column charge_id drop not null</sql>
+    </changeSet>
+
+    <changeSet id="add refund_id column to fee table" author="">
+        <addColumn tableName="fees">
+            <column name="refund_id" type="bigint">
+                <constraints foreignKeyName="fk__refund_fees"
+                             referencedTableName="refunds"
+                             referencedColumnNames="id"
+                />
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="add unique key constraint to fees for charge related columns" author="">
+        <sql>alter table fees add CONSTRAINT fees_unique_charge_fields
+            unique (charge_id, fee_type, fee_sub_type)</sql>
+    </changeSet>
+
+    <changeSet id="add unique key constraint to fees for refund related columns" author="">
+        <sql>alter table fees add CONSTRAINT fees_unique_refund_fields
+            unique (refund_id, fee_type, fee_sub_type)</sql>
+    </changeSet>
+
 </databaseChangeLog>
