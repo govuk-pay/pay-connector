@@ -279,7 +279,7 @@ class AdyenAuthoriseResponseTest {
 
     @Test
     void should_return_expiry_date_when_getCardExpiryDate_is_called() {
-        var expiryDate = "01/30";
+        var expiryDate = "3/2030";
         var adyenPaymentResponse = anAdyenPaymentResponse()
                 .withAdditionalData(new AdditionalData("", expiryDate))
                 .build();
@@ -288,6 +288,6 @@ class AdyenAuthoriseResponseTest {
 
         var cardExpiryDate = adyenAuthoriseResponse.getCardExpiryDate();
         assertThat(cardExpiryDate.isPresent(), is(true));
-        assertThat(cardExpiryDate.get().toString(), is(expiryDate));
+        assertThat(cardExpiryDate.get().toString(), is("03/30"));
     }
 }
