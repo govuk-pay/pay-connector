@@ -249,7 +249,7 @@
         <dependency>
             <groupId>uk.gov.service.notify</groupId>
             <artifactId>notifications-java-client</artifactId>
-            <version>6.2.0-RELEASE</version>
+            <version>6.2.1-RELEASE</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.persistence</groupId>
