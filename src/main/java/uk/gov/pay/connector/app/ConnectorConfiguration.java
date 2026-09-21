@@ -104,12 +104,6 @@ public class ConnectorConfiguration extends Configuration {
     private AuthorisationConfig authorisationConfig;
 
     @NotNull
-    private String graphiteHost;
-
-    @NotNull
-    private String graphitePort;
-
-    @NotNull
     private Boolean xrayEnabled;
 
     @NotNull
@@ -229,14 +223,6 @@ public class ConnectorConfiguration extends Configuration {
 
     public CustomJerseyClientConfiguration getCustomJerseyClient() {
         return customJerseyClient;
-    }
-
-    public String getGraphiteHost() {
-        return graphiteHost;
-    }
-
-    public String getGraphitePort() {
-        return graphitePort;
     }
 
     public CaptureProcessConfig getCaptureProcessConfig() {
