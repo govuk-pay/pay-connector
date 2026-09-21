@@ -192,12 +192,30 @@ class TaskQueueMessageHandlerTest {
     }
 
     @Test
+    void shouldProcessAdyenPaymentsWebhookNotificationTask() throws QueueException {
+        TaskMessage taskMessage = setupQueueMessage("{}", TaskType.HANDLE_ADYEN_PAYMENTS_WEBHOOK_NOTIFICATION);
+        taskQueueMessageHandler.processMessages();
+        verify(mockAdyenWebhookTaskHandler).processAdyenWebhookNotification("{}");
+        verify(taskQueue).markMessageAsProcessed(taskMessage.getQueueMessage());
+        logs.assertContains("Processing [handle_adyen_payments_webhook_notification] task.");
+    }
+
+    @Test
     void shouldProcessAdyenTokenWebhookNotificationTask() throws QueueException {
         TaskMessage taskMessage = setupQueueMessage("{}", TaskType.HANDLE_ADYEN_TOKEN_WEBHOOK_NOTIFICATION);
         taskQueueMessageHandler.processMessages();
         verify(mockAdyenWebhookTaskHandler).processAdyenTokenWebhookNotification("{}");
         verify(taskQueue).markMessageAsProcessed(taskMessage.getQueueMessage());
         logs.assertContains("Processing [handle_adyen_token_webhook_notification] task.");
+    }
+
+    @Test
+    void shouldProcessAdyenTransferWebhookNotificationTask() throws QueueException {
+        TaskMessage taskMessage = setupQueueMessage("{}", TaskType.HANDLE_ADYEN_TRANSFER_WEBHOOK_NOTIFICATION);
+        taskQueueMessageHandler.processMessages();
+        verify(mockAdyenWebhookTaskHandler).processAdyenTransferWebhookNotification("{}");
+        verify(taskQueue).markMessageAsProcessed(taskMessage.getQueueMessage());
+        logs.assertContains("Processing [handle_adyen_transfer_webhook_notification] task.");
     }
 
     private TaskMessage setupQueueMessage(String data, TaskType taskType) throws QueueException {

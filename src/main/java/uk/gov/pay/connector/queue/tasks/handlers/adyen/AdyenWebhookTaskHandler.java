@@ -23,6 +23,7 @@ public class AdyenWebhookTaskHandler {
     private final AdyenCancellationNotificationHandler adyenCancellationNotificationHandler;
     private final AdyenRefundNotificationHandler adyenRefundNotificationHandler;
     private final AdyenTokenWebhookNotificationHandler adyenTokenWebhookNotificationHandler;
+    private final AdyenTransferNotificationHandler adyenTransferNotificationHandler;
     private final AdyenWebhookDeserialiser adyenWebhookDeserialiser;
 
     @Inject
@@ -31,17 +32,23 @@ public class AdyenWebhookTaskHandler {
                                    AdyenCancellationNotificationHandler adyenCancellationNotificationHandler,
                                    AdyenRefundNotificationHandler adyenRefundNotificationHandler,
                                    AdyenCaptureNotificationHandler adyenCaptureNotificationHandler,
-                                   AdyenTokenWebhookNotificationHandler adyenTokenWebhookNotificationHandler) {
+                                   AdyenTokenWebhookNotificationHandler adyenTokenWebhookNotificationHandler,
+                                   AdyenTransferNotificationHandler adyenTransferNotificationHandler) {
         this.chargeService = chargeService;
         this.adyenWebhookDeserialiser = adyenWebhookDeserialiser;
         this.adyenCancellationNotificationHandler = adyenCancellationNotificationHandler;
         this.adyenRefundNotificationHandler = adyenRefundNotificationHandler;
         this.adyenCaptureNotificationHandler = adyenCaptureNotificationHandler;
         this.adyenTokenWebhookNotificationHandler = adyenTokenWebhookNotificationHandler;
+        this.adyenTransferNotificationHandler = adyenTransferNotificationHandler;
     }
 
     public void processAdyenTokenWebhookNotification(String payload) {
         adyenTokenWebhookNotificationHandler.process(payload);
+    }
+    
+    public void processAdyenTransferWebhookNotification(String payload) {
+        adyenTransferNotificationHandler.process(payload);
     }
 
     @Transactional
