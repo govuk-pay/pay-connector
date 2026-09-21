@@ -13,4 +13,3 @@ public class Payout extends StripePayoutReconciliationPayload {
         super(gatewayPayoutId, connectAccountId, createdDate);
     }
 }
-
