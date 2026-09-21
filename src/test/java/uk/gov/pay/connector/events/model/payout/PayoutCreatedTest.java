@@ -2,11 +2,18 @@ package uk.gov.pay.connector.events.model.payout;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.Test;
+import uk.gov.pay.connector.gateway.adyen.request.json.Amount;
+import uk.gov.pay.connector.gateway.adyen.response.transfer.AdyenAccountHolder;
+import uk.gov.pay.connector.gateway.adyen.response.transfer.AdyenTransferData;
 import uk.gov.pay.connector.gateway.stripe.json.StripePayout;
 
+import java.time.Instant;
+
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
+import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasNoJsonPath;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static uk.gov.pay.connector.gateway.adyen.response.transfer.TransferEventStatus.RECEIVED;
 
 public class PayoutCreatedTest {
 
@@ -27,5 +34,39 @@ public class PayoutCreatedTest {
         assertThat(payoutCreatedJson, hasJsonPath("$.event_details.gateway_status", equalTo(payout.getStatus())));
         assertThat(payoutCreatedJson, hasJsonPath("$.event_details.destination_type", equalTo(payout.getType())));
         assertThat(payoutCreatedJson, hasJsonPath("$.event_details.statement_descriptor", equalTo(payout.getStatementDescriptor())));
+    }
+
+    @Test
+    void shouldSerializePayoutCreatedForTransferEventWithCorrectEventDetails() throws JsonProcessingException {
+        var gatewayAccountId = "321";
+
+        AdyenTransferData transferEventData = new AdyenTransferData("123",
+                "bankTransfer",
+                new AdyenAccountHolder("some account holder", gatewayAccountId, "some reference"), 
+                new Amount("GBP", 1000L), 
+                null, null, null, null, null,
+                Instant.parse("2026-09-13T18:50:00Z").toString(),
+                "some description",
+                "some description",
+                null,
+                "some reason",
+                "some reference",
+                1,
+                RECEIVED.getValue(),
+                null);
+
+        String payoutCreatedJson = PayoutCreated.from(transferEventData, Long.valueOf(gatewayAccountId)).toJsonString();
+
+        assertThat(payoutCreatedJson, hasJsonPath("$.event_type", equalTo("PAYOUT_CREATED")));
+        assertThat(payoutCreatedJson, hasJsonPath("$.resource_type", equalTo("payout")));
+        assertThat(payoutCreatedJson, hasJsonPath("$.resource_external_id", equalTo(transferEventData.id())));
+        assertThat(payoutCreatedJson, hasJsonPath("$.timestamp", equalTo("2026-09-13T18:50:00.000000Z")));
+
+        assertThat(payoutCreatedJson, hasJsonPath("$.event_details.gateway_account_id", equalTo(gatewayAccountId)));
+        assertThat(payoutCreatedJson, hasJsonPath("$.event_details.amount", equalTo(1000)));
+        assertThat(payoutCreatedJson, hasNoJsonPath("$.event_details.estimated_arrival_date_in_bank"));
+        assertThat(payoutCreatedJson, hasJsonPath("$.event_details.gateway_status", equalTo(transferEventData.status())));
+        assertThat(payoutCreatedJson, hasJsonPath("$.event_details.destination_type", equalTo(transferEventData.type())));
+        assertThat(payoutCreatedJson, hasJsonPath("$.event_details.statement_descriptor", equalTo(transferEventData.referenceForBeneficiary())));
     }
 }

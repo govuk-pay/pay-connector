@@ -25,6 +25,7 @@ import static uk.gov.pay.connector.gatewayaccount.model.StripeCredentials.STRIPE
 import static uk.gov.service.payments.logging.LoggingKeys.CONNECT_ACCOUNT_ID;
 import static uk.gov.service.payments.logging.LoggingKeys.GATEWAY_PAYOUT_ID;
 import static uk.gov.service.payments.logging.LoggingKeys.LEDGER_EVENT_TYPE;
+import static uk.gov.service.payments.logging.LoggingKeys.PSP_ACCOUNT_ID;
 
 public class PayoutEmitterService {
 
@@ -52,6 +53,11 @@ public class PayoutEmitterService {
                 .ifPresent(payoutEvent -> sendToEventQueue(payoutEvent, connectAccount));
     }
 
+    public void emitPayoutEvent(PayoutEvent event,
+                                String balanceAccount) {
+        sendToEventQueue(event, balanceAccount);
+    }
+
     private void sendToEventQueue(Event event, String connectAccount) {
         try {
             if (shouldEmitPayoutEvents) {
@@ -59,7 +65,7 @@ public class PayoutEmitterService {
                 logger.info("Payout event sent to event queue",
                         kv(LEDGER_EVENT_TYPE, event.getEventType()),
                         kv(GATEWAY_PAYOUT_ID, event.getResourceExternalId()),
-                        kv(CONNECT_ACCOUNT_ID, connectAccount));
+                        kv(PSP_ACCOUNT_ID, connectAccount));
             }
         } catch (QueueException e) {
             logger.error(format("Error sending payout event to event queue: exception [%s]", e.getMessage()),
