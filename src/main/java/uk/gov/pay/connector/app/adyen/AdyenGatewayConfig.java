@@ -24,6 +24,15 @@ public class AdyenGatewayConfig extends Configuration {
     @Valid
     @NotNull
     private AdyenSplitConfigurationIds splitConfigurationIds;
+    
+    @Valid
+    private int paymentOrRefundGatewayFeeInPence;
+
+    @Valid
+    private int fraudAvoidanceFeeInPence;
+
+    @Valid
+    private int disputeFeeInPence;
 
     @Valid
     @NotNull
@@ -68,6 +77,18 @@ public class AdyenGatewayConfig extends Configuration {
 
     public Optional<JerseyClientOverrides> getJerseyClientOverrides() {
         return Optional.ofNullable(jerseyClientOverrides);
+    }
+    
+    public int getPaymentOrRefundGatewayFeeInPence() {
+        return paymentOrRefundGatewayFeeInPence;
+    }
+
+    public int getFraudAvoidanceFeeInPence() {
+        return fraudAvoidanceFeeInPence;
+    }
+
+    public int getDisputeFeeInPence() {
+        return disputeFeeInPence;
     }
 }
 

@@ -55,6 +55,9 @@ public class ConnectorConfigurationIT {
         assertThat(adyenGatewayConfig.getApiKeys().balancePlatform().test(), is("adyen-test-balance-platform-api-key"));
         assertThat(adyenGatewayConfig.getApiKeys().legalEntityManagement().live(), is("adyen-live-legal-entity-management-api-key"));
         assertThat(adyenGatewayConfig.getApiKeys().legalEntityManagement().test(), is("adyen-test-legal-entity-management-api-key"));
+        assertThat(adyenGatewayConfig.getPaymentOrRefundGatewayFeeInPence(),is(10));
+        assertThat(adyenGatewayConfig.getFraudAvoidanceFeeInPence(),is(20));
+        assertThat(adyenGatewayConfig.getDisputeFeeInPence(),is(25));
 
         assertThat(adyenGatewayConfig.getNotificationDomain(), is(".adyen.com"));
 
