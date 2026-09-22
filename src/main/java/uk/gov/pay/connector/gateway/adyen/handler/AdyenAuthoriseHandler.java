@@ -114,11 +114,6 @@ public class AdyenAuthoriseHandler {
             var paymentResponse = jsonObjectMapper.getObject(
                     jsonResponse,
                     AuthoriseResponseBody.class);
-            
-            String expiryDate = paymentResponse.additionalData() == null
-                    ? "is not available" 
-                    : paymentResponse.additionalData().expiryDate();
-            logger.info("Card expiry date " + expiryDate);
 
             return responseBuilder
                     .withResponse(AdyenAuthoriseResponse.of(paymentResponse))
