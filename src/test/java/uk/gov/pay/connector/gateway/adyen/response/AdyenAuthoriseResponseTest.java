@@ -290,4 +290,57 @@ class AdyenAuthoriseResponseTest {
         assertThat(cardExpiryDate.isPresent(), is(true));
         assertThat(cardExpiryDate.get().toString(), is("03/30"));
     }
+    
+    @Test
+    void should_toString_when_authorisation_successful() {
+        var adyenPaymentResponse = anAdyenPaymentResponse()
+                .withPspReference("LRXBMXZ9JZFBP285")
+                .withResultCode("Authorised")
+                .build();
+
+        var adyenAuthoriseResponse = AdyenAuthoriseResponse.of(adyenPaymentResponse);
+        
+        assertThat(adyenAuthoriseResponse.toString(), is("Adyen authorisation response (pspReference: LRXBMXZ9JZFBP285, resultCode: Authorised)"));
+    }
+
+    @Test
+    void should_toString_when_authorisation_successful_for_initial_recurring_payment() {
+        var testStoredPaymentMethodId = "testStoredPaymentMethodId";
+        var adyenPaymentResponse = anAdyenPaymentResponse()
+                .withPspReference("LRXBMXZ9JZFBP285")
+                .withResultCode("Authorised")
+                .withAdditionalData(new AdditionalData(testStoredPaymentMethodId, ""))
+                .build();
+
+        var adyenAuthoriseResponse = AdyenAuthoriseResponse.of(adyenPaymentResponse);
+
+        assertThat(adyenAuthoriseResponse.toString(), is("Adyen authorisation response (pspReference: LRXBMXZ9JZFBP285, resultCode: Authorised, storedPaymentMethodId: present)"));
+    }
+
+    @Test
+    void should_toString_when_authorisation_rejected() {
+        var adyenPaymentResponse = anAdyenPaymentResponse()
+                .withPspReference("LRXBMXZ9JZFBP285")
+                .withResultCode("Refused")
+                .withRefusalReason("Expired Card")
+                .withRefusalReasonCode("6")
+                .build();
+
+        var adyenAuthoriseResponse = AdyenAuthoriseResponse.of(adyenPaymentResponse);
+
+        assertThat(adyenAuthoriseResponse.toString(), is("Adyen authorisation response (pspReference: LRXBMXZ9JZFBP285, resultCode: Refused, Mapped rejected reason: EXPIRED_CARD, refusalReason: Expired Card, refusalReasonCode: 6)"));
+    }
+
+    @Test
+    void should_toString_when_3ds_required() {
+        var adyenPaymentResponse = anAdyenPaymentResponse()
+                .withPspReference("LRXBMXZ9JZFBP285")
+                .withResultCode("RedirectShopper")
+                .withAction(new ActionFixture().withData(Map.of("PaReq", "abcdef", "MD", "md")).build())
+                .build();
+
+        var adyenAuthoriseResponse = AdyenAuthoriseResponse.of(adyenPaymentResponse);
+
+        assertThat(adyenAuthoriseResponse.toString(), is("Adyen authorisation response (pspReference: LRXBMXZ9JZFBP285, resultCode: RedirectShopper, PaReq: present, MD: present)"));
+    }
 }
