@@ -12,8 +12,11 @@ import uk.gov.service.payments.commons.model.CardExpiryDate;
 import java.time.YearMonth;
 import java.util.Map;
 import java.util.Optional;
+import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.apache.commons.lang3.StringUtils.join;
 import static uk.gov.pay.connector.gateway.model.response.BaseAuthoriseResponse.AuthoriseStatus.AUTHORISED;
 import static uk.gov.pay.connector.gateway.model.response.BaseAuthoriseResponse.AuthoriseStatus.ERROR;
 import static uk.gov.pay.connector.gateway.model.response.BaseAuthoriseResponse.AuthoriseStatus.REJECTED;
@@ -31,6 +34,7 @@ public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
     private final String md;
     private final String storedPaymentMethodId;
     private final String expiryDate;
+    private final String resultCode;
     private static final Pattern CARD_EXPIRY_DATE_PATTERN = Pattern.compile("([0-9]{1,2})/(20[0-9][0-9])");
 
     public static AdyenAuthoriseResponse of(AuthoriseResponseBody authoriseResponseBody) {
@@ -80,6 +84,7 @@ public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
                                    String expiryDate) {
         this.transactionId = transactionId;
         authoriseStatus = mapAuthorisationStatusFrom(resultCode);
+        this.resultCode = resultCode;
         this.redirectUrl = redirectUrl;
         this.httpMethod3ds = httpMethod3ds;
         this.paReq = paReq;
@@ -191,5 +196,39 @@ public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
         }
         
         return Optional.empty();
+    }
+    
+    @Override
+    public String toString() {
+        StringJoiner joiner = new StringJoiner(", ", "Adyen authorisation response (", ")");
+        if (isNotBlank(getTransactionId())) {
+            joiner.add("pspReference: " + getTransactionId());
+        }
+        if (isNotBlank(resultCode)) {
+            joiner.add("resultCode: " + resultCode);
+        }
+        
+        getMappedAuthorisationRejectedReason().ifPresent(reason -> joiner.add("Mapped rejected reason: " + reason));
+
+        if (isNotBlank(refusalReason)) {
+            joiner.add("refusalReason: " + refusalReason);
+        }
+        if (isNotBlank(refusalReasonCode)) {
+            joiner.add("refusalReasonCode: " + refusalReasonCode);
+        }
+        
+        if (isNotBlank(storedPaymentMethodId)) {
+            joiner.add("storedPaymentMethodId: present");
+        }
+        
+        if (isNotBlank((paReq))) {
+            joiner.add("PaReq: present");
+        }
+
+        if (isNotBlank((md))) {
+            joiner.add("MD: present");
+        }
+        
+        return joiner.toString();
     }
 }
