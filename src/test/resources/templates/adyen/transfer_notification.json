@@ -1,5 +1,6 @@
 {
   "data": {
+    "id": "333333",
     "accountHolder": {
       "id": "111111111111"
     },
@@ -7,6 +8,7 @@
       "currency": "EUR",
       "value": 1000
     },
+    "description": "description for bank statement",
     "referenceForBeneficiary": "reference for bank statement",
     "tracking": {
       "estimatedArrivalTime": "2023-03-02T07:00:00+00:00"
@@ -15,9 +17,9 @@
     "balanceAccount": {
       "id": "22222222222"
     },
-    "category": "internal",
+    "category": "bank",
     "type": "bankTransfer",
-    "status": "received"
+    "status": "{{status}}"
   },
   "environment": "test",
   "timestamp": "2023-02-28T13:27:05+02:00",

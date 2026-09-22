@@ -18,4 +18,13 @@ public enum TransferEventStatus {
     public String getValue() {
         return eventStatus;
     }
+
+    public static TransferEventStatus fromValue(String statusString) {
+        for (TransferEventStatus status : TransferEventStatus.values()) {
+            if (status.getValue().equals(statusString)) {
+                return status;
+            }
+        }
+        return null;
+    }
 }
