@@ -154,6 +154,34 @@ class AdyenTransferNotificationHandlerTest {
         assertEquals("PAYOUT_UPDATED",event.getEventType());
     }
 
+    @ParameterizedTest
+    @EnumSource(value = TransferEventStatus.class, names = {"FAILED", "RETURNED", "REFUSED"})
+    void processAdyenTransferFailedNotifications(TransferEventStatus status) {
+        String id = "balanceAccountId";
+
+        GatewayAccountEntity gatewayAccountEntity = aGatewayAccountEntity()
+                .withGatewayName(ADYEN.getName())
+                .build();
+        
+
+        var payload = load(ADYEN_TRANSFER_NOTIFICATION)
+                .replace("{{type}}", "balancePlatform.transfer.updated")
+                .replace("{{status}}", status.getValue())
+                .replace("22222222222", id)
+                .replace( "{{eventStatus2}}", status.getValue())
+                .replace("{{reasonCode}}", "some reason");
+
+        when(gatewayAccountCredentialsService.findGatewayAccountForCredentialKeyAndValue("balance_account_id", id))
+                .thenReturn(gatewayAccountEntity);
+
+        handler.process(payload);
+
+        verify(payoutEmitterService).emitPayoutEvent(eventArgumentCaptor.capture(), accountId.capture());
+
+        PayoutEvent event = eventArgumentCaptor.getAllValues().getFirst();
+        assertEquals("PAYOUT_FAILED",event.getEventType());
+    }
+
     @Test
     void shouldIgnoreAdyenTransferUpdatedNotificationWhenStatusIsInvalid() {
         String id = "balanceAccountId";

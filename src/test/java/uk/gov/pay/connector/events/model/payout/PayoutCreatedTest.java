@@ -53,6 +53,7 @@ public class PayoutCreatedTest {
                 "some reference",
                 1,
                 RECEIVED.getValue(),
+                null,
                 null);
 
         String payoutCreatedJson = PayoutCreated.from(transferEventData, Long.valueOf(gatewayAccountId)).toJsonString();
