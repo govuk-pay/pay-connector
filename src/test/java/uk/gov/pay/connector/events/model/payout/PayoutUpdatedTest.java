@@ -2,9 +2,7 @@ package uk.gov.pay.connector.events.model.payout;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.Test;
-import uk.gov.pay.connector.gateway.adyen.request.json.Amount;
 import uk.gov.pay.connector.gateway.adyen.response.transfer.AdyenTransferData;
-import uk.gov.pay.connector.gateway.adyen.response.transfer.Tracking;
 import uk.gov.pay.connector.gateway.stripe.json.StripePayout;
 
 import java.time.Instant;
@@ -12,7 +10,7 @@ import java.time.Instant;
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static uk.gov.pay.connector.gateway.adyen.response.transfer.TransferEventStatus.RECEIVED;
+import static uk.gov.pay.connector.gateway.adyen.response.AdyenTransferDataFixture.anAdyenTransferDataFixture;
 
 class PayoutUpdatedTest {
 
@@ -32,21 +30,7 @@ class PayoutUpdatedTest {
 
     @Test
     void shouldSerializePayoutUpdatedEventsForAdyenWithStatus() throws JsonProcessingException {
-        AdyenTransferData transferData = new AdyenTransferData("123",
-                "bankTransfer",
-                null,
-                new Amount("GBP", 1000L),
-                null, null, null, null, null,
-                Instant.parse("2026-09-13T18:50:00Z").toString(),
-                "some description",
-                "some description",
-                "some direction",
-                "some reason",
-                "someReference",
-                1,
-                RECEIVED.getValue(),
-                null,
-                null);
+        AdyenTransferData transferData = anAdyenTransferDataFixture().withTracking(null).build();
         
         String payoutEventJson = PayoutUpdated.from(transferData).toJsonString();
 
@@ -60,21 +44,7 @@ class PayoutUpdatedTest {
 
     @Test
     void shouldSerializePayoutUpdatedEventsForAdyenWithArrivalDate() throws JsonProcessingException {
-        AdyenTransferData transferData = new AdyenTransferData("123",
-                "bankTransfer",
-                null,
-                new Amount("GBP", 1000L),
-                null, null, null, null, null,
-                "2026-09-13T18:50:00.000000Z",
-                "some statement reference",
-                "some description",
-                null,
-                "some reason",
-                "some reference",
-                1,
-                RECEIVED.getValue(),
-                new Tracking("2026-09-15T23:50:00.000000Z"),
-                null);
+        AdyenTransferData transferData = anAdyenTransferDataFixture().build();
 
         String payoutEventJson = PayoutUpdated.from(transferData).toJsonString();
 

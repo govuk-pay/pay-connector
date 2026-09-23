@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import uk.gov.pay.connector.gateway.adyen.request.json.Amount;
 import uk.gov.pay.connector.gateway.adyen.response.transfer.AdyenTransferData;
 import uk.gov.pay.connector.gateway.adyen.response.transfer.TransferEvent;
 import uk.gov.pay.connector.gateway.stripe.json.StripePayout;
@@ -15,6 +14,7 @@ import java.util.List;
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static uk.gov.pay.connector.gateway.adyen.response.AdyenTransferDataFixture.anAdyenTransferDataFixture;
 
 class PayoutFailedTest {
     @Test
@@ -40,28 +40,17 @@ class PayoutFailedTest {
     @ParameterizedTest
     @ValueSource(strings = {"failed", "returned", "refused"})
     void shouldSerializePayoutFailedEventFromAdyenTransferDataWithFailedOrReturnedStatus(String status) throws JsonProcessingException {
-        AdyenTransferData payout = new AdyenTransferData("123",
-                "bankTransfer",
-                null,
-                new Amount("GBP", 1000L),
-                null, null, null, null, null,
-                "2026-09-13T18:50:00.000000Z",
-                "some statement reference",
-                "some description",
-                null,
-                "some reason",
-                "some reference",
-                1,
-                status,
-                null,
-                List.of(new TransferEvent(
+        AdyenTransferData payout = anAdyenTransferDataFixture()
+                .withStatus(status)
+                .withEvents(List.of(new TransferEvent(
                                 null,
                                 null,
                                 "received"),
                         new TransferEvent(
                                 "transaction_id",
                                 "failure_reason_code",
-                                status)));
+                                status)))
+                .build();
 
         String payoutEventJson = PayoutFailed.from(payout).toJsonString();
 

@@ -2,18 +2,14 @@ package uk.gov.pay.connector.events.model.payout;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.Test;
-import uk.gov.pay.connector.gateway.adyen.request.json.Amount;
-import uk.gov.pay.connector.gateway.adyen.response.transfer.AdyenAccountHolder;
 import uk.gov.pay.connector.gateway.adyen.response.transfer.AdyenTransferData;
 import uk.gov.pay.connector.gateway.stripe.json.StripePayout;
-
-import java.time.Instant;
 
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasNoJsonPath;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static uk.gov.pay.connector.gateway.adyen.response.transfer.TransferEventStatus.RECEIVED;
+import static uk.gov.pay.connector.gateway.adyen.response.AdyenTransferDataFixture.anAdyenTransferDataFixture;
 
 public class PayoutCreatedTest {
 
@@ -40,21 +36,7 @@ public class PayoutCreatedTest {
     void shouldSerializePayoutCreatedForTransferEventWithCorrectEventDetails() throws JsonProcessingException {
         var gatewayAccountId = "321";
 
-        AdyenTransferData transferEventData = new AdyenTransferData("123",
-                "bankTransfer",
-                new AdyenAccountHolder("some account holder", gatewayAccountId, "some reference"), 
-                new Amount("GBP", 1000L), 
-                null, null, null, null, null,
-                Instant.parse("2026-09-13T18:50:00Z").toString(),
-                "some reference",
-                "some description",
-                null,
-                "some reason",
-                "some reference",
-                1,
-                RECEIVED.getValue(),
-                null,
-                null);
+        AdyenTransferData transferEventData = anAdyenTransferDataFixture().build();
 
         String payoutCreatedJson = PayoutCreated.from(transferEventData, Long.valueOf(gatewayAccountId)).toJsonString();
 
