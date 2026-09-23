@@ -204,6 +204,7 @@ public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
         if (isNotBlank(getTransactionId())) {
             joiner.add("pspReference: " + getTransactionId());
         }
+        
         if (isNotBlank(resultCode)) {
             joiner.add("resultCode: " + resultCode);
         }
@@ -213,6 +214,7 @@ public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
         if (isNotBlank(refusalReason)) {
             joiner.add("refusalReason: " + refusalReason);
         }
+        
         if (isNotBlank(refusalReasonCode)) {
             joiner.add("refusalReasonCode: " + refusalReasonCode);
         }
