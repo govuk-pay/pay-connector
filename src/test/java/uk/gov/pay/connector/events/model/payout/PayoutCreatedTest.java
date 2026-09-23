@@ -46,7 +46,7 @@ public class PayoutCreatedTest {
                 new Amount("GBP", 1000L), 
                 null, null, null, null, null,
                 Instant.parse("2026-09-13T18:50:00Z").toString(),
-                "some description",
+                "some reference",
                 "some description",
                 null,
                 "some reason",
