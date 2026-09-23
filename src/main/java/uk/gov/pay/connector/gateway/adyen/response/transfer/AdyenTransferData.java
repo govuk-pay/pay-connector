@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import uk.gov.pay.connector.gateway.adyen.request.json.Amount;
 
 import java.util.List;
+import java.util.Optional;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonFormat(shape = JsonFormat.Shape.OBJECT)
@@ -63,7 +64,22 @@ public record AdyenTransferData(
 
         @JsonProperty("status")
         String status,
-        
+
         @JsonProperty("tracking")
-        Tracking tracking
-) {}
+        Tracking tracking,
+
+        @JsonProperty("events")
+        List<TransferEvent> events
+) {
+
+    public String getReasonCode() {
+        Optional<TransferEvent> transferEventForStatus = Optional.ofNullable(events)
+                .stream()
+                .flatMap(List::stream)
+                .filter(event -> status.equals(event.status()))
+                .findFirst();
+
+        return transferEventForStatus.map(TransferEvent::reason)
+                .orElse(null);
+    }
+}

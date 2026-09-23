@@ -5,6 +5,7 @@ import com.google.inject.persist.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.pay.connector.events.model.payout.PayoutCreated;
+import uk.gov.pay.connector.events.model.payout.PayoutFailed;
 import uk.gov.pay.connector.events.model.payout.PayoutUpdated;
 import uk.gov.pay.connector.gateway.adyen.response.transfer.AdyenTransferNotification;
 import uk.gov.pay.connector.gateway.adyen.response.transfer.TransferEventStatus;
@@ -63,7 +64,12 @@ public class AdyenTransferNotificationHandler {
                     payoutEmitterService.emitPayoutEvent(payoutUpdatedEvent, gatewayAccountId.toString());
                     break;
                 }
-                case null, default: 
+                case REFUSED, FAILED, RETURNED: {
+                    var payoutFailedEvent = PayoutFailed.from(transferNotificationData);
+                    payoutEmitterService.emitPayoutEvent(payoutFailedEvent, gatewayAccountId.toString());
+                    break;
+                }
+                case null, default:
                     LOGGER.atInfo()
                             .setMessage("Ignoring unsupported transfer webhook as status is unrecognised or missing")
                             .addKeyValue("transfer_id", transferNotificationData.id())

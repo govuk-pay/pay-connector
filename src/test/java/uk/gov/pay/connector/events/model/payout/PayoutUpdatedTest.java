@@ -45,6 +45,7 @@ class PayoutUpdatedTest {
                 "someReference",
                 1,
                 RECEIVED.getValue(),
+                null,
                 null);
         
         String payoutEventJson = PayoutUpdated.from(transferData).toJsonString();
@@ -72,7 +73,8 @@ class PayoutUpdatedTest {
                 "some reference",
                 1,
                 RECEIVED.getValue(),
-                new Tracking("2026-09-15T23:50:00.000000Z"));
+                new Tracking("2026-09-15T23:50:00.000000Z"),
+                null);
 
         String payoutEventJson = PayoutUpdated.from(transferData).toJsonString();
 
