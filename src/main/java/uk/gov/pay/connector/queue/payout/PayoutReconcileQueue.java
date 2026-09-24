@@ -2,6 +2,7 @@ package uk.gov.pay.connector.queue.payout;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.pay.connector.app.ConnectorConfiguration;
@@ -10,7 +11,6 @@ import uk.gov.service.payments.commons.queue.model.QueueMessage;
 import uk.gov.service.payments.commons.queue.sqs.AbstractQueue;
 import uk.gov.service.payments.commons.queue.sqs.SqsQueueService;
 
-import jakarta.inject.Inject;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
@@ -30,11 +30,10 @@ public class PayoutReconcileQueue extends AbstractQueue {
                         .getFailedPayoutReconcileMessageRetryDelayInSeconds());
     }
 
-    public void sendPayout(Payout payout) throws QueueException, JsonProcessingException {
+    public String sendPayout(PayoutReconciliationPayload payout) throws QueueException, JsonProcessingException {
         String message = objectMapper.writeValueAsString(payout);
         QueueMessage queueMessage = sendMessageToQueue(message);
-        logger.info("Payout [{}] added to queue. Message ID [{}]",
-                payout.getGatewayPayoutId(), queueMessage.getMessageId());
+        return queueMessage.getMessageId();
     }
 
     public List<PayoutReconcileMessage> retrievePayoutMessages() throws QueueException {
@@ -49,8 +48,7 @@ public class PayoutReconcileQueue extends AbstractQueue {
 
     private PayoutReconcileMessage getPayoutReconcileMessage(QueueMessage qm) {
         try {
-            Payout payout = objectMapper.readValue(qm.getMessageBody(), Payout.class);
-
+            PayoutReconciliationPayload payout = objectMapper.readValue(qm.getMessageBody(), PayoutReconciliationPayload.class);
             return PayoutReconcileMessage.of(payout, qm);
         } catch (IOException e) {
             logger.warn("Error parsing payout message [message={}] from queue [error={}]",

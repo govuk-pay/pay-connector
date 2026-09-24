@@ -31,7 +31,7 @@ public class PayoutReconcileMessage {
     }
 
     public Instant getCreatedDate() {
-        return payout.getCreatedDate();
+        return payout instanceof StripePayoutReconciliationPayload stripePayout ? stripePayout.getCreatedDate() : null;
     }
 
     public PayoutReconciliationPayload getPayout() {
