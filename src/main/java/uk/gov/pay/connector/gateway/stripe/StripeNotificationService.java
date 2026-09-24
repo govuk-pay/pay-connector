@@ -6,6 +6,7 @@ import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.net.Webhook;
+import jakarta.ws.rs.WebApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -24,15 +25,14 @@ import uk.gov.pay.connector.gateway.stripe.json.StripePayout;
 import uk.gov.pay.connector.gateway.stripe.response.StripeNotification;
 import uk.gov.pay.connector.paymentprocessor.service.Card3dsResponseAuthService;
 import uk.gov.pay.connector.payout.PayoutEmitterService;
-import uk.gov.pay.connector.queue.payout.Payout;
 import uk.gov.pay.connector.queue.payout.PayoutReconcileQueue;
+import uk.gov.pay.connector.queue.payout.StripePayoutReconciliationPayload;
 import uk.gov.pay.connector.queue.tasks.TaskQueueService;
 import uk.gov.pay.connector.queue.tasks.TaskType;
 import uk.gov.pay.connector.queue.tasks.model.Task;
 import uk.gov.pay.connector.util.IpAddressMatcher;
 import uk.gov.service.payments.commons.queue.exception.QueueException;
 
-import jakarta.ws.rs.WebApplicationException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -195,7 +195,11 @@ public class StripeNotificationService {
             StripeNotificationType stripeNotificationType = byType(notification.getType());
 
             if (PAYOUT_CREATED.equals(stripeNotificationType)) {
-                Payout payout = new Payout(stripePayout.getId(), notification.getAccount(), stripePayout.getCreated());
+                StripePayoutReconciliationPayload payout = new StripePayoutReconciliationPayload(
+                        stripePayout.getId(), 
+                        notification.getAccount(), 
+                        stripePayout.getCreated()
+                );
                 sendToPayoutReconcileQueue(notification.getAccount(), payout);
             } else {
                 Optional<Class<? extends PayoutEvent>> mayBeEventClass = stripeNotificationType.getEventClass();
@@ -217,9 +221,14 @@ public class StripeNotificationService {
         }
     }
 
-    private void sendToPayoutReconcileQueue(String connectAccount, Payout payout) {
+    private void sendToPayoutReconcileQueue(String connectAccount, StripePayoutReconciliationPayload payout) {
         try {
-            payoutReconcileQueue.sendPayout(payout);
+            String messageId = payoutReconcileQueue.sendPayout(payout);
+            logger.atInfo()
+                    .setMessage("Payout added to queue")
+                    .addKeyValue("gateway_payout_id", payout.getGatewayPayoutId())
+                    .addKeyValue("queue_message_id", messageId)
+                    .log();
         } catch (QueueException | JsonProcessingException e) {
             logger.error(format("Error sending payout to payout reconcile queue: exception [%s]", e.getMessage()),
                     kv(GATEWAY_PAYOUT_ID, payout.getGatewayPayoutId()),

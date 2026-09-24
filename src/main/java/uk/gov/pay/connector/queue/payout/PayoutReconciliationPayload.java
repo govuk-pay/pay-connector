@@ -1,37 +1,36 @@
 package uk.gov.pay.connector.queue.payout;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import uk.gov.service.payments.commons.api.json.IsoInstantMicrosecondDeserializer;
-import uk.gov.service.payments.commons.api.json.IsoInstantMicrosecondSerializer;
 
-import java.time.Instant;
-
+@JsonTypeInfo(
+        use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.PROPERTY,
+        property = "payment_provider",
+        visible = true,
+        defaultImpl = PayoutReconciliationPayload.class)
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = StripePayoutReconciliationPayload.class, name = "stripe"),
+        @JsonSubTypes.Type(value = AdyenPayoutReconciliationPayload.class, name = "adyen")
+})
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(SnakeCaseStrategy.class)
 public class PayoutReconciliationPayload {
-    
-    private String paymentProvider;
 
-    @JsonSerialize(using = IsoInstantMicrosecondSerializer.class)
-    @JsonDeserialize(using = IsoInstantMicrosecondDeserializer.class)
-    private Instant createdDate;
+    private final String paymentProvider;
 
-    public PayoutReconciliationPayload() {
-    }
-
-    public PayoutReconciliationPayload(String paymentProvider, Instant createdDate) {
+    public PayoutReconciliationPayload(String paymentProvider) {
         this.paymentProvider = paymentProvider;
-        this.createdDate = createdDate;
     }
-    
-    public String getPaymentProvider() {return paymentProvider;}
 
-    public Instant getCreatedDate() {
-        return createdDate;
+    @JsonIgnore
+    public String getPaymentProvider() {
+       return paymentProvider;
     }
+
 }
 

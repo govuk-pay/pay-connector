@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -30,7 +31,7 @@ import static org.mockito.Mockito.when;
 class PayoutReconcileQueueTest {
 
     private static ObjectMapper objectMapper = new ObjectMapper();
-    
+
     @Mock
     private SqsQueueService sqsQueueService;
     @Mock
@@ -49,7 +50,7 @@ class PayoutReconcileQueueTest {
     }
 
     @Test
-    void shouldParsePayoutFromQueueGivenWellFormattedJSON() throws QueueException {
+    void shouldParseStripePayoutFromQueueGivenWellFormattedJSON() throws QueueException {
         String validJsonMessage = "{ \"gateway_payout_id\": \"payout-id\", \"connect_account_id\": \"connect-accnt-id\",\"payment_provider\":\"stripe\",\"created_date\":\"2020-05-01T10:30:00.000000Z\"}";
         SendMessageResponse messageResult = mock(SendMessageResponse.class);
 
@@ -60,7 +61,9 @@ class PayoutReconcileQueueTest {
 
         List<PayoutReconcileMessage> payoutReconcileMessages = payoutReconcileQueue.retrievePayoutMessages();
 
+
         assertNotNull(payoutReconcileMessages);
+        assertInstanceOf(StripePayoutReconciliationPayload.class, payoutReconcileMessages.getFirst().getPayout());
         assertEquals("payout-id", payoutReconcileMessages.getFirst().getGatewayPayoutId());
         assertEquals("connect-accnt-id", payoutReconcileMessages.getFirst().getConnectAccountId());
         assertEquals("stripe", payoutReconcileMessages.getFirst().getPaymentProvider());
@@ -68,13 +71,41 @@ class PayoutReconcileQueueTest {
     }
 
     @Test
-    void shouldSendValidSerialisedPayoutToQueue() throws QueueException, JsonProcessingException {
-        Payout payout = new Payout("payout-id", "connect-accnt-id", Instant.parse("2020-05-01T10:30:00.000Z"));
+    void shouldParseAdyenPayoutFromQueueGivenWellFormattedJSON() throws QueueException {
+        String validJsonMessage = "{ \"payment_provider\":\"adyen\"}";
+        SendMessageResponse messageResult = mock(SendMessageResponse.class);
+
+        List<QueueMessage> messages = Arrays.asList(
+                QueueMessage.of(messageResult, validJsonMessage)
+        );
+        when(sqsQueueService.receiveMessages(anyString(), anyString())).thenReturn(messages);
+
+        List<PayoutReconcileMessage> payoutReconcileMessages = payoutReconcileQueue.retrievePayoutMessages();
+
+        assertNotNull(payoutReconcileMessages);
+        assertInstanceOf(AdyenPayoutReconciliationPayload.class, payoutReconcileMessages.getFirst().getPayout());
+        assertEquals("adyen", payoutReconcileMessages.getFirst().getPaymentProvider());
+    }
+
+    @Test
+    void shouldSendValidSerialisedStripePayoutToQueue() throws QueueException, JsonProcessingException {
+        StripePayoutReconciliationPayload payout = new StripePayoutReconciliationPayload("payout-id", "connect-accnt-id", Instant.parse("2020-05-01T10:30:00.000Z"));
         when(sqsQueueService.sendMessage(anyString(), anyString())).thenReturn(mock(QueueMessage.class));
 
         payoutReconcileQueue.sendPayout(payout);
 
         verify(sqsQueueService).sendMessage(connectorConfiguration.getSqsConfig().getPayoutReconcileQueueUrl(),
-                "{\"payment_provider\":\"stripe\",\"created_date\":\"2020-05-01T10:30:00.000000Z\",\"gateway_payout_id\":\"payout-id\",\"connect_account_id\":\"connect-accnt-id\"}");
+                "{\"payment_provider\":\"stripe\",\"gateway_payout_id\":\"payout-id\",\"connect_account_id\":\"connect-accnt-id\",\"created_date\":\"2020-05-01T10:30:00.000000Z\"}");
+    }
+
+    @Test
+    void shouldSendValidSerialisedAdyenPayoutToQueue() throws QueueException, JsonProcessingException {
+        AdyenPayoutReconciliationPayload payout = new AdyenPayoutReconciliationPayload();
+        when(sqsQueueService.sendMessage(anyString(), anyString())).thenReturn(mock(QueueMessage.class));
+
+        payoutReconcileQueue.sendPayout(payout);
+
+        verify(sqsQueueService).sendMessage(connectorConfiguration.getSqsConfig().getPayoutReconcileQueueUrl(),
+                "{\"payment_provider\":\"adyen\"}");
     }
 }

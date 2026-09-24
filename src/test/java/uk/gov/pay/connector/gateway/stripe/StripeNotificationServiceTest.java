@@ -25,8 +25,9 @@ import uk.gov.pay.connector.gateway.stripe.json.StripePayout;
 import uk.gov.pay.connector.gatewayaccountcredentials.service.GatewayAccountCredentialsService;
 import uk.gov.pay.connector.paymentprocessor.service.Card3dsResponseAuthService;
 import uk.gov.pay.connector.payout.PayoutEmitterService;
-import uk.gov.pay.connector.queue.payout.Payout;
 import uk.gov.pay.connector.queue.payout.PayoutReconcileQueue;
+import uk.gov.pay.connector.queue.payout.PayoutReconciliationPayload;
+import uk.gov.pay.connector.queue.payout.StripePayoutReconciliationPayload;
 import uk.gov.pay.connector.queue.tasks.TaskQueueService;
 import uk.gov.pay.connector.util.CidrUtils;
 import uk.gov.pay.connector.util.IpAddressMatcher;
@@ -44,6 +45,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -108,7 +110,7 @@ class StripeNotificationServiceTest {
     private TaskQueueService mockTaskQueueService;
 
     @Captor
-    private ArgumentCaptor<Payout> payoutArgumentCaptor;
+    private ArgumentCaptor<PayoutReconciliationPayload> payoutArgumentCaptor;
 
     private final StripeRefundUpdatedHandler stripeRefundUpdatedHandler = new StripeRefundUpdatedHandler(objectMapper);
 
@@ -243,7 +245,7 @@ class StripeNotificationServiceTest {
         final boolean result = notificationService.handleNotificationFor(payload, signPayload(payload), FORWARDED_IP_ADDRESSES);
 
         assertTrue(result);
-        assertThat(stripeNotificationServiceLogs.size(), is(3));
+        assertThat(stripeNotificationServiceLogs.size(), is(4));
         var loggingEvent = stripeNotificationServiceLogs.assertContains(
                 "Processing stripe payout created notification with id [evt_aaaaaaaaaaaaaaaaaaaaa]");
 
@@ -266,7 +268,9 @@ class StripeNotificationServiceTest {
         verify(mockPayoutEmitterService, never()).emitPayoutEvent(any(), any(), any(), any());
 
         verify(mockPayoutReconcileQueue).sendPayout(payoutArgumentCaptor.capture());
-        Payout payout = payoutArgumentCaptor.getValue();
+        PayoutReconciliationPayload payoutPayload = payoutArgumentCaptor.getValue();
+        assertThat(payoutPayload, is(instanceOf(StripePayoutReconciliationPayload.class)));
+        StripePayoutReconciliationPayload payout = (StripePayoutReconciliationPayload) payoutPayload;
         assertThat(payout.getGatewayPayoutId(), is("po_aaaaaaaaaaaaaaaaaaaaa"));
         assertThat(payout.getConnectAccountId(), is("connect_account_id"));
         assertThat(payout.getCreatedDate(), is(Instant.parse("2020-03-24T01:30:46Z")));
