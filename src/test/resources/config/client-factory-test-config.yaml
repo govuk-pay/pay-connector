@@ -83,6 +83,9 @@ adyen:
       live:
         primary: adyen-live-transfer-hmac-primary
         secondary: ""
+  paymentOrRefundGatewayFeeInPence: ${GDS_CONNECTOR_ADYEN_GATEWAY_FEE_IN_PENCE:-10}
+  fraudAvoidanceFeeInPence: ${GDS_CONNECTOR_ADYEN_FRAUD_AVOIDANCE_FEE_IN_PENCE:-20}
+  disputeFeeInPence: ${GDS_CONNECTOR_ADYEN_CHARGEBACK_FEE_IN_PENCE:-25}
 
 sandbox:
   allowedCidrs: ${SANDBOX_ALLOWED_CIDRS:-[]}

@@ -78,6 +78,9 @@ are required and overridden in integration tests only, and do not require values
 | `GDS_CONNECTOR_ADYEN_HMAC_KEY_TRANSFER_TEST_SECONDARY`      | -                                     | Secondary HMAC key to validate HMAC signature for test transfer webhooks (set when rotating HMAC key)                                                                                      |
 | `GDS_CONNECTOR_ADYEN_HMAC_KEY_TRANSFER_LIVE_PRIMARY`        | -                                     | Primary HMAC key to validate HMAC signature for live transfer webhooks                                                                                                                     |
 | `GDS_CONNECTOR_ADYEN_HMAC_KEY_TRANSFER_LIVE_SECONDARY`      | -                                     | Secondary HMAC key to validate HMAC signature for live transfer webhooks (set when rotating HMAC key) 
+| `GDS_CONNECTOR_ADYEN_GATEWAY_FEE_IN_PENCE`                  | -                                     | Standard gateway fee for all payments and refunds    |
+| `GDS_CONNECTOR_ADYEN_FRAUD_AVOIDANCE_FEE_IN_PENCE`          | -                                     | Standard fee for all payments   |
+| `GDS_CONNECTOR_ADYEN_CHARGEBACK_FEE_IN_PENCE`               | -                                     | Chargeback fee in pence   |
 
 ### Queues
 
