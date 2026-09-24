@@ -1,0 +1,6 @@
+{
+  "splitConfiguration": {
+    "balanceAccountId": "BA0000000000000000000001",
+    "splitConfigurationId": "adyen-test-split-config-id"
+  }
+}

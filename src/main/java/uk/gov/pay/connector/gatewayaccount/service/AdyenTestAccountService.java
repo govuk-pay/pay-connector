@@ -39,6 +39,8 @@ import com.adyen.model.management.PaymentMethodSetupInfo;
 import com.adyen.model.management.Store;
 import com.adyen.model.management.StoreCreationWithMerchantCodeRequest;
 import com.adyen.model.management.StoreLocation;
+import com.adyen.model.management.StoreSplitConfiguration;
+import com.adyen.model.management.UpdateStoreRequest;
 import com.adyen.service.exception.ApiException;
 import com.adyen.service.legalentitymanagement.LegalEntitiesApi;
 import jakarta.inject.Inject;
@@ -61,17 +63,17 @@ import static com.adyen.model.balanceplatform.CreateSweepConfigurationV2.Categor
 import static com.adyen.model.balanceplatform.CreateSweepConfigurationV2.PrioritiesEnum.FAST;
 import static com.adyen.model.balanceplatform.CreateSweepConfigurationV2.PrioritiesEnum.REGULAR;
 import static com.adyen.model.legalentitymanagement.UKLocalAccountIdentification.TypeEnum.UKLOCAL;
+import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.AMEX;
 import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.APPLEPAY;
+import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.CUP;
+import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.DINERS;
+import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.DISCOVER;
 import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.GOOGLEPAY;
 import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.JCB;
 import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.MAESTRO;
 import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.MC;
-import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.VISA;
 import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.PAYBYBANK;
-import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.AMEX;
-import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.CUP;
-import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.DINERS;
-import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.DISCOVER;
+import static com.adyen.model.management.PaymentMethodSetupInfo.TypeEnum.VISA;
 import static net.logstash.logback.argument.StructuredArguments.kv;
 import static org.apache.hc.core5.http.HttpStatus.SC_BAD_GATEWAY;
 
@@ -122,6 +124,8 @@ public class AdyenTestAccountService {
         String balanceAccountId = createBalanceAccount(accountHolderId, serviceName);
 
         setSweepSchedule(transferInstrumentId, balanceAccountId);
+        applySplitConfigurationToStore(merchantAccountIdTest, storeId, balanceAccountId);
+
         acceptTermsOfService(legalEntityId, sroLegalEntityId);
         signPciQuestionnaire(legalEntityId, sroLegalEntityId);
 
@@ -133,6 +137,28 @@ public class AdyenTestAccountService {
         );
 
         return new AdyenCredentials(legalEntityId, storeId, accountHolderId, balanceAccountId);
+    }
+
+    private void applySplitConfigurationToStore(String merchantAccountIdTest, String storeId,
+                                                String balanceAccountId) {
+        String testSplitConfigurationId = adyenGatewayConfig.getSplitConfigurationIds().test();
+        var accountStoreLevelApi = adyenCompanyAccountApiFactory.getAccountStoreLevelApi();
+
+        StoreSplitConfiguration storeSplitConfiguration = new StoreSplitConfiguration()
+                .splitConfigurationId(testSplitConfigurationId)
+                .balanceAccountId(balanceAccountId);
+
+        UpdateStoreRequest updateStoreRequest = new UpdateStoreRequest()
+                .splitConfiguration(storeSplitConfiguration);
+
+        try {
+            accountStoreLevelApi.updateStore(merchantAccountIdTest, storeId, updateStoreRequest);
+            LOGGER.info("Added Split configuration to store",
+                    kv("store_id", storeId)
+            );
+        } catch (ApiException | IOException e) {
+            throw new WebApplicationException("Error applying Split configuration to Store", e);
+        }
     }
 
     private void signPciQuestionnaire(String legalEntityId, String sroLegalEntityId) {

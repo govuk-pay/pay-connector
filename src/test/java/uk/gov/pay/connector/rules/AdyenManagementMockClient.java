@@ -24,4 +24,10 @@ public class AdyenManagementMockClient extends AdyenMockClient {
         var path = format("/merchants/%s/paymentMethodSettings", merchantId);
         setupPostResponse(responseBody, path, SC_OK);
     }
+
+    public void mockApplySplitConfigurationToStore(String merchantId, String storeId) {
+        String responseBody = TestTemplateResourceLoader.load(ADYEN_STORE_RESPONSE);
+        var path = format("/merchants/%s/stores/%s", merchantId, storeId);
+        setupPatchResponse(responseBody, path, SC_OK);
+    }
 }

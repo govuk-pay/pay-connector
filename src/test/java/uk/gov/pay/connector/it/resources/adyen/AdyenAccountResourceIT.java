@@ -44,6 +44,7 @@ import static uk.gov.pay.connector.gatewayaccountcredentials.model.GatewayAccoun
 import static uk.gov.pay.connector.gatewayaccountcredentials.model.GatewayAccountCredentialState.RETIRED;
 import static uk.gov.pay.connector.util.AddGatewayAccountCredentialsParams.AddGatewayAccountCredentialsParamsBuilder.anAddGatewayAccountCredentialsParams;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_APPLE_PAY_PAYMENT_METHOD_REQUEST;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_APPLY_SPLIT_CONFIG_TO_STORE_REQUEST;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_BALANCE_ACCOUNT_SWEEP_REQUEST;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_CREATE_INDIVIDUAL_REQUEST;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_CREATE_LEGAL_ENTITY_REQUEST;
@@ -96,6 +97,7 @@ public class AdyenAccountResourceIT {
         app.getAdyenBalancePlatformMockClient().mockCreateAccountHolder();
         app.getAdyenBalancePlatformMockClient().mockCreateBalanceAccount();
         app.getAdyenBalancePlatformMockClient().mockCreateCustomSweepSchedule("BA0000000000000000000001");
+        app.getAdyenManagementMockClient().mockApplySplitConfigurationToStore(merchantId, "STORE_ID_123");
 
         app.getAdyenKycMockClient().mockGetTermsOfServiceDocument(legalEntityId);
         app.getAdyenKycMockClient().mockAcceptTermsOfService(legalEntityId, termsOfServiceDocumentId);
@@ -128,6 +130,8 @@ public class AdyenAccountResourceIT {
 
         app.getAdyenWireMockServer().verify(postRequestedFor(urlEqualTo("/accountHolders")));
         app.getAdyenWireMockServer().verify(postRequestedFor(urlEqualTo("/balanceAccounts")));
+        app.getAdyenWireMockServer().verify(patchRequestedFor(urlEqualTo(format("/merchants/%s/stores/%s", merchantId, "STORE_ID_123")))
+                .withRequestBody(equalToJson(TestTemplateResourceLoader.load(ADYEN_APPLY_SPLIT_CONFIG_TO_STORE_REQUEST))));
         app.getAdyenWireMockServer().verify(postRequestedFor(urlEqualTo("/balanceAccounts/BA0000000000000000000001/sweeps"))
                 .withRequestBody(equalToJson(TestTemplateResourceLoader.load(ADYEN_BALANCE_ACCOUNT_SWEEP_REQUEST))));
 
@@ -317,6 +321,7 @@ public class AdyenAccountResourceIT {
         app.getAdyenBalancePlatformMockClient().mockCreateAccountHolder();
         app.getAdyenBalancePlatformMockClient().mockCreateBalanceAccount();
         app.getAdyenBalancePlatformMockClient().mockCreateCustomSweepSchedule("BA0000000000000000000001");
+        app.getAdyenManagementMockClient().mockApplySplitConfigurationToStore(merchantId, "STORE_ID_123");
 
         app.getAdyenKycMockClient().mockGetTermsOfServiceDocument(legalEntityId);
         app.getAdyenKycMockClient().mockAcceptTermsOfService(legalEntityId, termsOfServiceDocumentId);
@@ -350,6 +355,8 @@ public class AdyenAccountResourceIT {
 
         app.getAdyenWireMockServer().verify(postRequestedFor(urlEqualTo("/accountHolders")));
         app.getAdyenWireMockServer().verify(postRequestedFor(urlEqualTo("/balanceAccounts")));
+        app.getAdyenWireMockServer().verify(patchRequestedFor(urlEqualTo(format("/merchants/%s/stores/%s", merchantId, "STORE_ID_123")))
+                .withRequestBody(equalToJson(TestTemplateResourceLoader.load(ADYEN_APPLY_SPLIT_CONFIG_TO_STORE_REQUEST))));
         app.getAdyenWireMockServer().verify(postRequestedFor(urlEqualTo("/balanceAccounts/BA0000000000000000000001/sweeps"))
                 .withRequestBody(equalToJson(TestTemplateResourceLoader.load(ADYEN_BALANCE_ACCOUNT_SWEEP_REQUEST))));
 
