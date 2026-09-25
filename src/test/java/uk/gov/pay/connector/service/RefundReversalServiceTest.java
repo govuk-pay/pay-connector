@@ -5,6 +5,8 @@ import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -141,8 +143,9 @@ public class RefundReversalServiceTest {
         assertThat(result.isPresent(), is(false));
     }
 
-    @Test
-    void shouldCreateTransferWhenRefundIsInFailedState() throws StripeException {
+    @ParameterizedTest
+    @ValueSource(strings = {"failed", "canceled"})
+    void shouldCreateTransferWhenRefundIsInFailedOrCancelledState(String refundStatus) throws StripeException {
 
         when(mockStripeSDKClientFactory.getInstance()).thenReturn(mockStripeSDKClient);
 
@@ -157,7 +160,7 @@ public class RefundReversalServiceTest {
         boolean isLiveGatewayAccount = gatewayAccountEntity.isLive();
         com.stripe.model.Refund mockedStripeRefund = mock(com.stripe.model.Refund.class);
         when(mockStripeSDKClient.getRefund(stripeRefundId, isLiveGatewayAccount)).thenReturn(mockedStripeRefund);
-        when(mockedStripeRefund.getStatus()).thenReturn("failed");
+        when(mockedStripeRefund.getStatus()).thenReturn(refundStatus);
 
         Map<String, Object> transferRequest = Map.of(
                 "destination", "acct_jdsa7789d",
@@ -178,7 +181,7 @@ public class RefundReversalServiceTest {
     }
 
     @Test
-    void shouldThrowExceptionWhenRefundIsNotInFailedState() throws StripeException {
+    void shouldThrowExceptionWhenRefundIsNotInFailedOrCancelledState() throws StripeException {
 
         when(mockStripeSDKClientFactory.getInstance()).thenReturn(mockStripeSDKClient);
 
@@ -231,8 +234,9 @@ public class RefundReversalServiceTest {
         verify(mockStripeSDKClient).getRefund(stripeRefundId, isLiveGatewayAccount);
     }
 
-    @Test
-    void shouldCreateCorrectEventsAfterRefundReversalToPostToLedger() throws StripeException {
+    @ParameterizedTest
+    @ValueSource(strings = {"failed", "canceled"})
+    void shouldCreateCorrectEventsAfterRefundReversalToPostToLedger(String refundStatus) throws StripeException {
         when(mockStripeSDKClientFactory.getInstance()).thenReturn(mockStripeSDKClient);
         GatewayAccountEntity gatewayAccountEntity = aGatewayAccountEntity().withType(LIVE).build();
         RefundEntity refundEntity = RefundEntityFixture.aValidRefundEntity()
@@ -244,7 +248,7 @@ public class RefundReversalServiceTest {
         com.stripe.model.Refund mockedStripeRefund = mock(com.stripe.model.Refund.class);
         when(mockStripeSDKClient.getRefund(refund.getGatewayTransactionId(), gatewayAccountEntity.isLive()))
                 .thenReturn(mockedStripeRefund);
-        when(mockedStripeRefund.getStatus()).thenReturn("failed");
+        when(mockedStripeRefund.getStatus()).thenReturn(refundStatus);
 
 
         refundReversalService.reverseFailedRefund(gatewayAccountEntity, refund, charge, githubUserId, zendeskId);
