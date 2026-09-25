@@ -6,6 +6,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.pay.connector.queue.payout.AdyenPayoutReconciliationPayload;
+import uk.gov.pay.connector.queue.payout.AdyenPayoutReconciliationPayloadFixture;
 import uk.gov.pay.connector.queue.payout.PayoutReconcileMessage;
 import uk.gov.pay.connector.queue.payout.PayoutReconcileQueue;
 import uk.gov.pay.connector.queue.payout.StripePayoutReconciliationPayload;
@@ -18,6 +19,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.pay.connector.queue.payout.AdyenPayoutReconciliationPayloadFixture.anAdyenPayoutReconciliationPayloadFixture;
 
 @ExtendWith(MockitoExtension.class)
 class PayoutReconcileProcessTest {
@@ -54,7 +56,7 @@ class PayoutReconcileProcessTest {
     void ShouldProcessAdyenPayoutUsingAdyenHandler() throws Exception {
         QueueMessage queueMessage = mock(QueueMessage.class);
         PayoutReconcileMessage payoutReconcileMessage = PayoutReconcileMessage.of(
-                new AdyenPayoutReconciliationPayload(),
+                anAdyenPayoutReconciliationPayloadFixture().build(), 
                 queueMessage
         );
 

@@ -23,7 +23,7 @@ public class PayoutReconciliationPayload {
 
     private final String paymentProvider;
 
-    public PayoutReconciliationPayload(String paymentProvider) {
+    protected PayoutReconciliationPayload(String paymentProvider) {
         this.paymentProvider = paymentProvider;
     }
 
