@@ -78,7 +78,7 @@ public class RefundReversalService {
 
         String refundStatus = refundFromStripe.getStatus();
 
-        if (!"failed".equals(refundStatus)) {
+        if (!"failed".equals(refundStatus) && !"canceled".equals(refundStatus)) {
             throw new WebApplicationException(badRequestResponse(
                     format("Refund with Refund ID: %s and Stripe ID: %s is not in a failed state", refundExternalId, stripeRefundId)));
         }
