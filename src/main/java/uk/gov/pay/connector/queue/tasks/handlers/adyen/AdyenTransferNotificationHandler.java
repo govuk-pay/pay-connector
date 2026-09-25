@@ -32,8 +32,10 @@ public class AdyenTransferNotificationHandler {
 
     @Transactional
     public void process(String payload) {
-
-        var transferNotificationData = adyenWebhookDeserialiser.deserialisePayload(payload, AdyenTransferNotification.class).data();
+        
+        var transferNotification = adyenWebhookDeserialiser.deserialisePayload(payload, AdyenTransferNotification.class);
+        var transferNotificationData = transferNotification.data();
+        var timestamp = transferNotification.timestamp();
 
         if (transferNotificationData == null) {
             LOGGER.error("Adyen transfer notification data is empty");
@@ -55,17 +57,17 @@ public class AdyenTransferNotificationHandler {
             var status = TransferEventStatus.fromValue(transferNotificationData.status());
             switch (status) {
                 case RECEIVED: {
-                    var payoutCreatedEvent = PayoutCreated.from(transferNotificationData, gatewayAccountId);
+                    var payoutCreatedEvent = PayoutCreated.from(transferNotificationData, gatewayAccountId, timestamp);
                     payoutEmitterService.emitPayoutEvent(payoutCreatedEvent, gatewayAccountId.toString());
                     break;
                 }
                 case AUTHORISED, BOOKED: {
-                    var payoutUpdatedEvent = PayoutUpdated.from(transferNotificationData);
+                    var payoutUpdatedEvent = PayoutUpdated.from(transferNotificationData, timestamp);
                     payoutEmitterService.emitPayoutEvent(payoutUpdatedEvent, gatewayAccountId.toString());
                     break;
                 }
                 case REFUSED, FAILED, RETURNED: {
-                    var payoutFailedEvent = PayoutFailed.from(transferNotificationData);
+                    var payoutFailedEvent = PayoutFailed.from(transferNotificationData, timestamp);
                     payoutEmitterService.emitPayoutEvent(payoutFailedEvent, gatewayAccountId.toString());
                     break;
                 }

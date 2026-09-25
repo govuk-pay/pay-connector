@@ -13,6 +13,8 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static uk.gov.pay.connector.gateway.adyen.response.AdyenTransferDataFixture.anAdyenTransferDataFixture;
 
 class PayoutUpdatedTest {
+    
+    private final String timestamp = "2026-09-23T00:00:09.477Z";
 
     @Test
     void shouldSerializePayoutUpdatedEventWithCorrectEventDetails() throws JsonProcessingException {
@@ -32,12 +34,12 @@ class PayoutUpdatedTest {
     void shouldSerializePayoutUpdatedEventsForAdyenWithStatus() throws JsonProcessingException {
         AdyenTransferData transferData = anAdyenTransferDataFixture().withTracking(null).build();
         
-        String payoutEventJson = PayoutUpdated.from(transferData).toJsonString();
+        String payoutEventJson = PayoutUpdated.from(transferData, timestamp).toJsonString();
 
         assertThat(payoutEventJson, hasJsonPath("$.event_type", equalTo("PAYOUT_UPDATED")));
         assertThat(payoutEventJson, hasJsonPath("$.resource_type", equalTo("payout")));
         assertThat(payoutEventJson, hasJsonPath("$.resource_external_id", equalTo(transferData.id())));
-        assertThat(payoutEventJson, hasJsonPath("$.timestamp", equalTo("2026-09-13T18:50:00.000000Z")));
+        assertThat(payoutEventJson, hasJsonPath("$.timestamp", equalTo("2026-09-23T00:00:09.477000Z")));
 
         assertThat(payoutEventJson, hasJsonPath("$.event_details.gateway_status", equalTo(transferData.status())));
     }
@@ -46,12 +48,12 @@ class PayoutUpdatedTest {
     void shouldSerializePayoutUpdatedEventsForAdyenWithArrivalDate() throws JsonProcessingException {
         AdyenTransferData transferData = anAdyenTransferDataFixture().build();
 
-        String payoutEventJson = PayoutUpdated.from(transferData).toJsonString();
+        String payoutEventJson = PayoutUpdated.from(transferData, timestamp).toJsonString();
 
         assertThat(payoutEventJson, hasJsonPath("$.event_type", equalTo("PAYOUT_UPDATED")));
         assertThat(payoutEventJson, hasJsonPath("$.resource_type", equalTo("payout")));
         assertThat(payoutEventJson, hasJsonPath("$.resource_external_id", equalTo(transferData.id())));
-        assertThat(payoutEventJson, hasJsonPath("$.timestamp", equalTo("2026-09-13T18:50:00.000000Z")));
+        assertThat(payoutEventJson, hasJsonPath("$.timestamp", equalTo("2026-09-23T00:00:09.477000Z")));
 
         assertThat(payoutEventJson, hasJsonPath("$.event_details.estimated_arrival_date", 
                 equalTo(transferData.tracking().estimatedArrivalTime())));

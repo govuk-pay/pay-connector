@@ -38,12 +38,12 @@ public class PayoutCreatedTest {
 
         AdyenTransferData transferEventData = anAdyenTransferDataFixture().build();
 
-        String payoutCreatedJson = PayoutCreated.from(transferEventData, Long.valueOf(gatewayAccountId)).toJsonString();
+        String payoutCreatedJson = PayoutCreated.from(transferEventData, Long.valueOf(gatewayAccountId), "2026-09-23T00:00:09.477Z").toJsonString();
 
         assertThat(payoutCreatedJson, hasJsonPath("$.event_type", equalTo("PAYOUT_CREATED")));
         assertThat(payoutCreatedJson, hasJsonPath("$.resource_type", equalTo("payout")));
         assertThat(payoutCreatedJson, hasJsonPath("$.resource_external_id", equalTo(transferEventData.id())));
-        assertThat(payoutCreatedJson, hasJsonPath("$.timestamp", equalTo("2026-09-13T18:50:00.000000Z")));
+        assertThat(payoutCreatedJson, hasJsonPath("$.timestamp", equalTo("2026-09-23T00:00:09.477000Z")));
 
         assertThat(payoutCreatedJson, hasJsonPath("$.event_details.gateway_account_id", equalTo(gatewayAccountId)));
         assertThat(payoutCreatedJson, hasJsonPath("$.event_details.amount", equalTo(1000)));

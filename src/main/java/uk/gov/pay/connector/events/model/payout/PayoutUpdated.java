@@ -24,7 +24,7 @@ public class PayoutUpdated extends PayoutEvent {
                 eventTimestamp);
     }
 
-    public static PayoutUpdated from(AdyenTransferData transferData) {
+    public static PayoutUpdated from(AdyenTransferData transferData, String timestamp) {
         var estimatedArrivalDate = Optional.ofNullable(transferData.tracking())
                 .map(Tracking :: estimatedArrivalTime)
                 .map(Instant :: parse)
@@ -32,6 +32,6 @@ public class PayoutUpdated extends PayoutEvent {
         
         return new PayoutUpdated(transferData.id(),
                 new PayoutUpdateEventDetails(transferData.status(), estimatedArrivalDate),
-                Instant.parse(transferData.createdAt()));
+                Instant.parse(timestamp));
     }
 }
