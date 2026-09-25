@@ -17,6 +17,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static uk.gov.pay.connector.gateway.adyen.response.AdyenTransferDataFixture.anAdyenTransferDataFixture;
 
 class PayoutFailedTest {
+    
     @Test
     void shouldSerializePayoutFailedEventWithCorrectEventDetails() throws JsonProcessingException {
         StripePayout payout = new StripePayout("po_123", "pending", "account_closed",
@@ -52,12 +53,12 @@ class PayoutFailedTest {
                                 status)))
                 .build();
 
-        String payoutEventJson = PayoutFailed.from(payout).toJsonString();
+        String payoutEventJson = PayoutFailed.from(payout, "2026-09-23T00:00:09.477Z").toJsonString();
 
         assertThat(payoutEventJson, hasJsonPath("$.event_type", equalTo("PAYOUT_FAILED")));
         assertThat(payoutEventJson, hasJsonPath("$.resource_type", equalTo("payout")));
         assertThat(payoutEventJson, hasJsonPath("$.resource_external_id", equalTo(payout.id())));
-        assertThat(payoutEventJson, hasJsonPath("$.timestamp", equalTo("2026-09-13T18:50:00.000000Z")));
+        assertThat(payoutEventJson, hasJsonPath("$.timestamp", equalTo("2026-09-23T00:00:09.477000Z")));
 
         assertThat(payoutEventJson, hasJsonPath("$.event_details.gateway_status", equalTo(payout.status())));
         assertThat(payoutEventJson, hasJsonPath("$.event_details.failure_code",

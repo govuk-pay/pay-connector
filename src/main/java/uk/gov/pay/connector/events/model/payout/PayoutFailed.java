@@ -23,11 +23,11 @@ public class PayoutFailed extends PayoutEvent {
                 eventTimestamp);
     }
 
-    public static PayoutFailed from(AdyenTransferData payout) {
+    public static PayoutFailed from(AdyenTransferData payout, String timestamp) {
             return new PayoutFailed(payout.id(),
                     new PayoutFailedEventDetails(
                             payout.status(),
                             payout.getReasonCode()),
-                    Instant.parse(payout.createdAt()));
+                    Instant.parse(timestamp));
         }
 }
