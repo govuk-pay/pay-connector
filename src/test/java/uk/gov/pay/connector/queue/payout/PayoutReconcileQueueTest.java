@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
@@ -19,13 +21,18 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 
+import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.pay.connector.queue.payout.AdyenPayoutReconciliationPayloadFixture.anAdyenPayoutReconciliationPayloadFixture;
 
 @ExtendWith(MockitoExtension.class)
 class PayoutReconcileQueueTest {
@@ -36,6 +43,9 @@ class PayoutReconcileQueueTest {
     private SqsQueueService sqsQueueService;
     @Mock
     private ConnectorConfiguration connectorConfiguration;
+    @Captor
+    ArgumentCaptor<String> payloadArgumentCaptor;
+
     private PayoutReconcileQueue payoutReconcileQueue;
 
     @BeforeEach
@@ -72,10 +82,20 @@ class PayoutReconcileQueueTest {
 
     @Test
     void shouldParseAdyenPayoutFromQueueGivenWellFormattedJSON() throws QueueException {
-        String validJsonMessage = "{ \"payment_provider\":\"adyen\"}";
+        String validJsonMessage = """
+                {
+                  "payment_provider": "adyen",
+                  "report_type": "balanceplatform_payout_report",
+                  "balance_platform": "pay_test",
+                  "creation_date": "2026-09-24T00:04:12+02:00",
+                  "download_url": "some-url",
+                  "file_name": "balanceplatform_payout_report_2026_09_24.csv",
+                  "environment": "live"
+                }
+                """;
         SendMessageResponse messageResult = mock(SendMessageResponse.class);
 
-        List<QueueMessage> messages = Arrays.asList(
+        List<QueueMessage> messages = List.of(
                 QueueMessage.of(messageResult, validJsonMessage)
         );
         when(sqsQueueService.receiveMessages(anyString(), anyString())).thenReturn(messages);
@@ -84,7 +104,14 @@ class PayoutReconcileQueueTest {
 
         assertNotNull(payoutReconcileMessages);
         assertInstanceOf(AdyenPayoutReconciliationPayload.class, payoutReconcileMessages.getFirst().getPayout());
-        assertEquals("adyen", payoutReconcileMessages.getFirst().getPaymentProvider());
+        AdyenPayoutReconciliationPayload payout = (AdyenPayoutReconciliationPayload) payoutReconcileMessages.getFirst().getPayout();
+        assertEquals("adyen", payout.getPaymentProvider());
+        assertEquals("balanceplatform_payout_report", payout.getReportType());
+        assertEquals("pay_test", payout.getBalancePlatform());
+        assertEquals("2026-09-24T00:04:12+02:00", payout.getCreationDate());
+        assertEquals("some-url", payout.getDownloadUrl());
+        assertEquals("balanceplatform_payout_report_2026_09_24.csv", payout.getFileName());
+        assertEquals("live", payout.getEnvironment());
     }
 
     @Test
@@ -100,12 +127,21 @@ class PayoutReconcileQueueTest {
 
     @Test
     void shouldSendValidSerialisedAdyenPayoutToQueue() throws QueueException, JsonProcessingException {
-        AdyenPayoutReconciliationPayload payout = new AdyenPayoutReconciliationPayload();
+        AdyenPayoutReconciliationPayload payout = anAdyenPayoutReconciliationPayloadFixture().build();
         when(sqsQueueService.sendMessage(anyString(), anyString())).thenReturn(mock(QueueMessage.class));
 
         payoutReconcileQueue.sendPayout(payout);
 
-        verify(sqsQueueService).sendMessage(connectorConfiguration.getSqsConfig().getPayoutReconcileQueueUrl(),
-                "{\"payment_provider\":\"adyen\"}");
+        verify(sqsQueueService).sendMessage(any(), payloadArgumentCaptor.capture());
+
+        String payload = payloadArgumentCaptor.getValue();
+
+        assertThat(payload, hasJsonPath("$.payment_provider", equalTo("adyen")));
+        assertThat(payload, hasJsonPath("$.report_type", equalTo("balanceplatform_payout_report")));
+        assertThat(payload, hasJsonPath("$.balance_platform", equalTo("pay_test")));
+        assertThat(payload, hasJsonPath("$.creation_date", equalTo("2026-09-24T00:04:12+02:00")));
+        assertThat(payload, hasJsonPath("$.download_url", equalTo("https://some-url")));
+        assertThat(payload, hasJsonPath("$.file_name", equalTo("balanceplatform_payout_report_2026_09_24.csv")));
+        assertThat(payload, hasJsonPath("$.environment", equalTo("test")));
     }
 }
