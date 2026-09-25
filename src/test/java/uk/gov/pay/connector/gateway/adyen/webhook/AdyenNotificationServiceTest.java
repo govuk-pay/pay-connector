@@ -22,6 +22,7 @@ import uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent;
 import uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookNotification;
 import uk.gov.pay.connector.gateway.exception.AdyenNotificationException;
 import uk.gov.pay.connector.queue.tasks.TaskQueueService;
+import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenBalanceReportNotificationHandler;
 import uk.gov.pay.connector.queue.tasks.model.Task;
 import uk.gov.pay.connector.util.TestTemplateResourceLoader;
 
@@ -43,10 +44,12 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenEnvironment.TEST;
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent.AUTHORISATION;
+import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent.BALANCE_PLATFORM_REPORT_CREATED;
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent.EXPIRE;
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent.RECURRING_TOKEN_CREATED;
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent.TRANSFER_CREATED;
 import static uk.gov.pay.connector.queue.tasks.TaskType.HANDLE_ADYEN_TOKEN_WEBHOOK_NOTIFICATION;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_BALANCE_PLATFORM_REPORT_NOTIFICATION;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_NOTIFICATION;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_TOKEN_NOTIFICATION;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_TRANSFER_NOTIFICATION;
@@ -73,6 +76,9 @@ class AdyenNotificationServiceTest {
     @Mock
     private AdyenWebhookNotificationParser mockAdyenWebhookNotificationParser;
 
+    @Mock
+    private AdyenBalanceReportNotificationHandler mockAdyenBalanceReportNotificationHandler;
+
     private static final String FORWARDED_IP = "5.6.7.8";
     private static final String HMAC_SIGNATURE = "sha256=test-signature";
 
@@ -81,7 +87,8 @@ class AdyenNotificationServiceTest {
         adyenNotificationService = new AdyenNotificationService(
                 mockTaskQueueService,
                 mockAdyenNotificationValidator,
-                mockAdyenWebhookNotificationParser);
+                mockAdyenWebhookNotificationParser,
+                mockAdyenBalanceReportNotificationHandler);
         Logger root = (Logger) LoggerFactory.getLogger(AdyenNotificationService.class);
         root.setLevel(Level.INFO);
         root.addAppender(mockAppender);
@@ -150,7 +157,6 @@ class AdyenNotificationServiceTest {
         verify(mockTaskQueueService, never()).add(any(Task.class));
     }
 
-
     @Test
     void shouldThrowWebApplicationExceptionWhenSendingPaymentNotificationToTaskQueueFails() {
         String payload = getNotificationWithValidHmacSignature("AUTHORISATION");
@@ -206,6 +212,21 @@ class AdyenNotificationServiceTest {
 
         assertThat(task.getTaskType(), is(HANDLE_ADYEN_TOKEN_WEBHOOK_NOTIFICATION));
         assertThat(task.getData(), is(payload));
+    }
+
+    @Test
+    void shouldAddBalanceReportWebhookToPayoutReconcileQueue() {
+        String payload = TestTemplateResourceLoader.load(ADYEN_BALANCE_PLATFORM_REPORT_NOTIFICATION);
+        when(mockAdyenNotificationValidator.isValidIpAddress("5.6.7.8")).thenReturn(true);
+        when(mockAdyenWebhookNotificationParser.parse(payload)).thenReturn(getAdyenWebhookNotification(BALANCE_PLATFORM_REPORT_CREATED, false));
+        when(mockAdyenNotificationValidator.validateHmacSignature(any(), any(), any())).thenReturn(true);
+
+        boolean result = adyenNotificationService.handleNotificationFor(payload, "5.6.7.8", null);
+
+        assertTrue(result);
+
+        verifyNoInteractions(mockTaskQueueService);
+        verify(mockAdyenBalanceReportNotificationHandler).process(payload);
     }
 
     private String getNotificationWithValidHmacSignature(String eventCode) {

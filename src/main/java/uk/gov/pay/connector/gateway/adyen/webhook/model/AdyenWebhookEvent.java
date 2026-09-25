@@ -3,6 +3,7 @@ package uk.gov.pay.connector.gateway.adyen.webhook.model;
 import java.util.Arrays;
 import java.util.Optional;
 
+import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookType.BALANCE_PLATFORM_REPORT;
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookType.PAYMENTS;
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookType.TOKENS;
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookType.TRANSFER;
@@ -24,7 +25,10 @@ public enum AdyenWebhookEvent {
 
     // transfer
     TRANSFER_CREATED("balancePlatform.transfer.created", TRANSFER, false),
-    TRANSFER_UPDATED("balancePlatform.transfer.updated", TRANSFER, false);
+    TRANSFER_UPDATED("balancePlatform.transfer.updated", TRANSFER, false),
+
+    // balance platform report
+    BALANCE_PLATFORM_REPORT_CREATED("balancePlatform.report.created", BALANCE_PLATFORM_REPORT, false);
 
     private final AdyenWebhookType webhookType;
     private final String eventCodeOrType;
