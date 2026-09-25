@@ -58,17 +58,17 @@ public class AdyenTransferNotificationHandler {
             switch (status) {
                 case RECEIVED: {
                     var payoutCreatedEvent = PayoutCreated.from(transferNotificationData, gatewayAccountId, timestamp);
-                    payoutEmitterService.emitPayoutEvent(payoutCreatedEvent, gatewayAccountId.toString());
+                    payoutEmitterService.emitPayoutEvent(payoutCreatedEvent, transferNotificationData.balanceAccount().id());
                     break;
                 }
                 case AUTHORISED, BOOKED: {
                     var payoutUpdatedEvent = PayoutUpdated.from(transferNotificationData, timestamp);
-                    payoutEmitterService.emitPayoutEvent(payoutUpdatedEvent, gatewayAccountId.toString());
+                    payoutEmitterService.emitPayoutEvent(payoutUpdatedEvent, transferNotificationData.balanceAccount().id());
                     break;
                 }
                 case REFUSED, FAILED, RETURNED: {
                     var payoutFailedEvent = PayoutFailed.from(transferNotificationData, timestamp);
-                    payoutEmitterService.emitPayoutEvent(payoutFailedEvent, gatewayAccountId.toString());
+                    payoutEmitterService.emitPayoutEvent(payoutFailedEvent, transferNotificationData.balanceAccount().id());
                     break;
                 }
                 case null, default:
