@@ -1,7 +1,7 @@
 package uk.gov.pay.connector.events.model.payout;
 
 import uk.gov.pay.connector.events.eventdetails.payout.PayoutCreatedEventDetails;
-import uk.gov.pay.connector.gateway.adyen.response.transfer.AdyenTransferData;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.AdyenTransferData;
 import uk.gov.pay.connector.gateway.stripe.json.StripePayout;
 
 import java.time.Instant;

@@ -1,10 +1,9 @@
-package uk.gov.pay.connector.gateway.adyen.response.transfer;
+package uk.gov.pay.connector.gateway.adyen.webhook.json.transfer;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import uk.gov.pay.connector.gateway.adyen.request.json.Amount;
 
 import java.util.List;
 import java.util.Optional;
@@ -69,7 +68,10 @@ public record AdyenTransferData(
         Tracking tracking,
 
         @JsonProperty("events")
-        List<TransferEvent> events
+        List<TransferEvent> events,
+
+        @JsonProperty("eventId")
+        String eventId
 ) {
 
     public String getReasonCode() {

@@ -4,8 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import uk.gov.pay.connector.gateway.adyen.response.transfer.AdyenTransferData;
-import uk.gov.pay.connector.gateway.adyen.response.transfer.TransferEvent;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.AdyenTransferData;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.TransferEvent;
 import uk.gov.pay.connector.gateway.stripe.json.StripePayout;
 
 import java.time.Instant;
