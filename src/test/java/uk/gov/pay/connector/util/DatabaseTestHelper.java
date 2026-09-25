@@ -562,6 +562,15 @@ public class DatabaseTestHelper {
         return result > 0;
     }
 
+    public boolean containsFeeWithGatewayTransactionId(String gatewayTransactionId) {
+        var result = jdbi.withHandle(h ->
+                h.createQuery("SELECT count(*) FROM fees WHERE gateway_transaction_id = :gateway_transaction_id")
+                        .bind("gateway_transaction_id", gatewayTransactionId)
+                        .mapTo(Integer.class)
+                        .first());
+        return result > 0;
+    }
+
     public boolean containsEmittedEventWithExternalId(String externalId) {
         var result = jdbi.withHandle(h ->
                 h.createQuery("SELECT count(*) FROM emitted_events WHERE resource_external_id = :external_id")

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import uk.gov.pay.connector.charge.model.ServicePaymentReference;
 import uk.gov.pay.connector.charge.model.domain.ChargeStatus;
+import uk.gov.pay.connector.charge.model.domain.FeeType;
 import uk.gov.pay.connector.events.dao.EmittedEventDao;
 import uk.gov.pay.connector.extension.AppWithPostgresAndSqsExtension;
 import uk.gov.pay.connector.it.dao.DatabaseFixtures;
@@ -379,6 +380,63 @@ public class ExpungeResourceIT {
 
         List<Map<String, Object>> refundsHistoryList = databaseTestHelper.getRefundsHistoryByChargeExternalId(chargeExternalId);
         assertThat(refundsHistoryList.size(), is(2));
+    }
+
+    @Test
+    void shouldDeleteRefundFeeBeforeRefundExpunge() throws JsonProcessingException {
+        String chargeExternalId = randomAlphanumeric(26);
+        RefundEntity refundToBeExpunged = createAndStubRefund(chargeExternalId, 91, REFUNDED, true);
+        var feeReferenceCharge = DatabaseFixtures.withDatabaseTestHelper(databaseTestHelper)
+                .aTestCharge()
+                .withChargeId(secureRandomLong())
+                .withTestAccount(defaultTestAccount)
+                .insert();
+
+        databaseTestHelper.addFee(
+                randomAlphanumeric(26),
+                feeReferenceCharge.getChargeId(),
+                10L,
+                10L,
+                now(UTC).minusDays(1),
+                refundToBeExpunged.getGatewayTransactionId(),
+                FeeType.TRANSACTION
+        );
+
+        boolean containsRefundFee = databaseTestHelper.containsFeeWithGatewayTransactionId(refundToBeExpunged.getGatewayTransactionId());
+        assertThat(containsRefundFee, is(true));
+
+        given().port(app.getLocalPort())
+                .contentType(JSON)
+                .post("/v1/tasks/expunge")
+                .then()
+                .statusCode(200);
+
+        containsRefundFee = databaseTestHelper.containsFeeWithGatewayTransactionId(refundToBeExpunged.getGatewayTransactionId());
+        boolean containsRefund = databaseTestHelper.containsRefundWithExternalId(refundToBeExpunged.getExternalId());
+        assertThat(containsRefundFee, is(false));
+        assertThat(containsRefund, is(false));
+    }
+
+    @Test
+    void shouldExpungeRefundWhenNoLinkedFeeExists() throws JsonProcessingException {
+        String chargeExternalId = randomAlphanumeric(26);
+        RefundEntity refundToBeExpunged = createAndStubRefund(chargeExternalId, 91, REFUNDED, true);
+
+        boolean containsRefundFee = databaseTestHelper.containsFeeWithGatewayTransactionId(refundToBeExpunged.getGatewayTransactionId());
+        boolean containsRefund = databaseTestHelper.containsRefundWithExternalId(refundToBeExpunged.getExternalId());
+        assertThat(containsRefundFee, is(false));
+        assertThat(containsRefund, is(true));
+
+        given().port(app.getLocalPort())
+                .contentType(JSON)
+                .post("/v1/tasks/expunge")
+                .then()
+                .statusCode(200);
+
+        containsRefundFee = databaseTestHelper.containsFeeWithGatewayTransactionId(refundToBeExpunged.getGatewayTransactionId());
+        containsRefund = databaseTestHelper.containsRefundWithExternalId(refundToBeExpunged.getExternalId());
+        assertThat(containsRefundFee, is(false));
+        assertThat(containsRefund, is(false));
     }
 
     private RefundEntity createAndStubRefund(String chargeExternalId, int createdBeforeDays, RefundStatus refundStatus,

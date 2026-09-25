@@ -158,6 +158,11 @@ public class RefundDao extends JpaDao<RefundEntity> {
 
     public void expungeRefund(String externalId) {
         entityManager.get()
+                .createNativeQuery("delete from fees where gateway_transaction_id = (select gateway_transaction_id from refunds where external_id = ?1)")
+                .setParameter(1, externalId)
+                .executeUpdate();
+
+        entityManager.get()
                 .createNativeQuery("delete from emitted_events where resource_type = ?1 AND resource_external_id = ?2")
                 .setParameter(1, ResourceType.REFUND.getLowercase())
                 .setParameter(2, externalId)
