@@ -12,10 +12,13 @@ import java.net.URI;
 import java.util.Map;
 
 import static java.lang.String.format;
+import static uk.gov.pay.connector.gateway.adyen.utils.AdyenConfigUtil.getBalancePlatformReportApiKey;
 import static uk.gov.pay.connector.gateway.adyen.utils.AdyenConfigUtil.getBaseCheckoutUrl;
 import static uk.gov.pay.connector.gateway.adyen.utils.AdyenConfigUtil.getCompanyApiKey;
 
 public class AdyenRequestUtil {
+
+    private static final String API_KEY_HEADER = "X-API-Key"; // pragma: allowlist secret
 
     private AdyenRequestUtil() {
     }
@@ -46,7 +49,7 @@ public class AdyenRequestUtil {
         var path = "/payments/%s/captures".formatted(request.getGatewayTransactionId());
         return getUrl(config, request.getGatewayAccount().isLive(), path);
     }
-    
+
     public static URI getDeleteStoredPaymentMethodUrl(AdyenGatewayConfig config, boolean isLive, String storedPaymentMethodId) {
         return URI.create(getBaseCheckoutUrl(config, isLive) + "/storedPaymentMethods/" + storedPaymentMethodId);
     }
@@ -56,11 +59,15 @@ public class AdyenRequestUtil {
     }
 
     public static Map<String, String> getHeaders(AdyenGatewayConfig config, boolean isLive, OrderRequestType requestType, String idempotencyKey) {
-        return Map.of("X-API-Key", getCompanyApiKey(config, isLive),
+        return Map.of(API_KEY_HEADER, getCompanyApiKey(config, isLive),
                 "Idempotency-Key", format("%s-%s", requestType.toString(), idempotencyKey));
     }
-    
+
     public static Map<String, String> getApiKeyHeader(AdyenGatewayConfig config, boolean isLive) {
-        return Map.of("X-API-Key", getCompanyApiKey(config, isLive));
+        return Map.of(API_KEY_HEADER, getCompanyApiKey(config, isLive));
+    }
+
+    public static Map<String, String> getBalancePlatformReportApiKeyHeader(AdyenGatewayConfig config, boolean isLive) {
+        return Map.of(API_KEY_HEADER, getBalancePlatformReportApiKey(config, isLive));
     }
 }

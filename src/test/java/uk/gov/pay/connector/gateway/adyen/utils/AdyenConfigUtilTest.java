@@ -70,6 +70,38 @@ class AdyenConfigUtilTest {
     }
 
     @Nested
+    class TestGetBalancePlatformReportApiKey {
+
+        @Mock
+        private ApiKeys.BalancePlatformReportApiKeys mockBalancePlatformReportApiKeys;
+
+        @BeforeEach
+        void setUp() {
+            when(mockAdyenGatewayConfig.getApiKeys()).thenReturn(mockApiKeys);
+            when(mockApiKeys.balancePlatformReport()).thenReturn(mockBalancePlatformReportApiKeys);
+        }
+
+        @Test
+        void shouldReturnLiveApiKeyWhenLiveIsTrue() {
+            when(mockBalancePlatformReportApiKeys.live()).thenReturn("live-api-key");
+
+            String result =
+                    AdyenConfigUtil.getBalancePlatformReportApiKey(mockAdyenGatewayConfig, true);
+
+            assertThat(result, is("live-api-key"));
+        }
+
+        @Test
+        void shouldReturnTestApiKeyWhenLiveIsFalse() {
+            when(mockBalancePlatformReportApiKeys.test()).thenReturn("test-api-key");
+
+            String result = AdyenConfigUtil.getBalancePlatformReportApiKey(mockAdyenGatewayConfig, false);
+
+            assertThat(result, is("test-api-key"));
+        }
+    }
+    
+    @Nested
     class TestGetBaseCheckoutUrl {
         @Test
         void shouldReturnLiveCheckoutUrlWhenLiveIsTrue() {
