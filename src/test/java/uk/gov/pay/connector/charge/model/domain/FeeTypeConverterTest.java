@@ -37,7 +37,7 @@ class FeeTypeConverterTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"radar", "three_ds", "transaction" })
+    @ValueSource(strings = {"radar", "three_ds", "transaction", "fraud_protection", "gateway"})
     void shouldReturnCorrectFeeTypeForCorrespondingFeeType(String feeTypeValue) {
         FeeType feeType = feeTypeConverter.convertToEntityAttribute(feeTypeValue);
         assertThat(feeType.getName(), is(feeTypeValue));

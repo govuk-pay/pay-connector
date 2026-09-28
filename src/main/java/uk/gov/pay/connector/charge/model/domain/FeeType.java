@@ -9,13 +9,15 @@ import static org.apache.commons.lang3.Strings.CS;
 public enum FeeType {
     RADAR("radar"),
     THREE_D_S("three_ds"),
-    TRANSACTION("transaction");
+    TRANSACTION("transaction"),
+    FRAUD_PROTECTION("fraud_protection"),
+    GATEWAY("gateway");
 
     FeeType(String name) {
         this.name = name;
     }
 
-    private String name;
+    private final String name;
 
     @JsonValue
     public String getName() {
