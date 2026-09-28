@@ -58,20 +58,20 @@ public class PayoutEmitterService {
         sendToEventQueue(event, balanceAccount);
     }
 
-    private void sendToEventQueue(Event event, String connectAccount) {
+    private void sendToEventQueue(Event event, String pspAccountId) {
         try {
             if (shouldEmitPayoutEvents) {
                 eventService.emitEvent(event, false);
                 logger.info("Payout event sent to event queue",
                         kv(LEDGER_EVENT_TYPE, event.getEventType()),
                         kv(GATEWAY_PAYOUT_ID, event.getResourceExternalId()),
-                        kv(PSP_ACCOUNT_ID, connectAccount));
+                        kv(PSP_ACCOUNT_ID, pspAccountId));
             }
         } catch (QueueException e) {
             logger.error(format("Error sending payout event to event queue: exception [%s]", e.getMessage()),
                     kv(LEDGER_EVENT_TYPE, event.getEventType()),
                     kv(GATEWAY_PAYOUT_ID, event.getResourceExternalId()),
-                    kv(CONNECT_ACCOUNT_ID, connectAccount));
+                    kv(PSP_ACCOUNT_ID, pspAccountId));
         }
     }
 
