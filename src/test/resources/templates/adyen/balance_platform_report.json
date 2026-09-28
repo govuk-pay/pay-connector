@@ -1,0 +1,13 @@
+{
+  "type": "balancePlatform.report.created",
+  "environment": "test",
+  "data": {
+    "balancePlatform": "Pay_UK",
+    "id": "balanceplatform_payout_report_2026_09_24.csv",
+    "creationDate": "2026-09-25T00:04:12+02:00",
+    "fileName": "balanceplatform_payout_report_2026_09_24.csv",
+    "reportType": "balanceplatform_payout_report",
+    "downloadUrl": "https://some-url/filename.csv"
+  },
+  "timestamp": "2026-09-24T23:40:48.616Z"
+}

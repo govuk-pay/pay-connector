@@ -2,7 +2,9 @@ package uk.gov.pay.connector.gateway.adyen.webhook;
 
 import com.adyen.model.notification.NotificationRequest;
 import com.adyen.model.notification.NotificationRequestItem;
+import com.adyen.model.reportwebhooks.ReportNotificationRequest;
 import com.adyen.notification.WebhookHandler;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
 import org.slf4j.Logger;
@@ -21,6 +23,9 @@ public class AdyenWebhookDeserialiser {
         this.jsonObjectMapper = jsonObjectMapper;
     }
 
+    /**
+     * Deserialises Adyen webhook using standard webhook structure which contains notificationItems
+     */
     public NotificationRequestItem deserialiseAndGetNotificationItem(String payload) {
         try {
             WebhookHandler webhookHandler = new WebhookHandler();
@@ -32,12 +37,27 @@ public class AdyenWebhookDeserialiser {
         }
     }
 
+    /**
+     * Deserialises Adyen's webhook to own classes defined. Ex: AdyenTokenNotification as Adyen uses 
+     * multiple classes for each token event instead of one class
+     */
     public <T> T deserialisePayload(String payload, Class<T> targetClass) throws AdyenNotificationException {
         try {
             return jsonObjectMapper.getObject(payload, targetClass);
         } catch (Exception e) {
             LOGGER.info("Error deserialising notification payload to class {}", targetClass.getSimpleName(), e);
             throw new WebApplicationException("Error deserialising notification payload", e);
+        }
+    }
+
+    public ReportNotificationRequest deserialiseBalanceReportPayload(String payload) {
+        try {
+            return ReportNotificationRequest.fromJson(payload);
+        } catch (JsonProcessingException e) {
+            LOGGER.atError()
+                    .setMessage("Error deserialising balance report notification")
+                    .log();
+            throw new WebApplicationException("Error deserialising balance report notification", e);
         }
     }
 

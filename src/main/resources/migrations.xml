@@ -2161,6 +2161,20 @@
         <sql>CREATE INDEX CONCURRENTLY idx_payment_instruments_charge_external_id ON payment_instruments (charge_external_id);</sql>
     </changeSet>
 
+    <changeSet id="add payment_provider column to refunds and refunds_history tables" author="">
+        <addColumn tableName="refunds">
+            <column name="payment_provider" type="char(255)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="refunds_history">
+            <column name="payment_provider" type="char(255)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
     <changeSet id="add fee_sub_type column to fees table" author="">
         <addColumn tableName="fees">
             <column name="fee_sub_type" type="varchar(30)">
@@ -2173,8 +2187,11 @@
         <sql>ALTER TABLE fees ALTER COLUMN charge_id DROP IDENTITY IF EXISTS</sql>
     </changeSet>
 
+    <changeSet id="drop default from fees.charge_id" author="">
+        <dropDefaultValue tableName="fees" columnName="charge_id" columnDataType="bigint"/>
+    </changeSet>
+
     <changeSet id="change fees.charge_id column to nullable" author="">
-        <sql>ALTER TABLE fees ALTER COLUMN charge_id DROP DEFAULT</sql>
         <dropNotNullConstraint tableName="fees" columnName="charge_id" columnDataType="bigint"/>
     </changeSet>
 
@@ -2183,7 +2200,8 @@
             <column name="refund_id" type="bigint">
                 <constraints foreignKeyName="fk__refund_fees"
                              referencedTableName="refunds"
-                             referencedColumnNames="id"/>
+                             referencedColumnNames="id"
+                             nullable="true"/>
             </column>
         </addColumn>
     </changeSet>
