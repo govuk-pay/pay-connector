@@ -2163,13 +2163,13 @@
 
     <changeSet id="add payment_provider column to refunds and refunds_history tables" author="">
         <addColumn tableName="refunds">
-            <column name="payment_provider" type="char(255)">
+            <column name="payment_provider" type="varchar(255)">
                 <constraints nullable="true"/>
             </column>
         </addColumn>
 
         <addColumn tableName="refunds_history">
-            <column name="payment_provider" type="char(255)">
+            <column name="payment_provider" type="varchar(255)">
                 <constraints nullable="true"/>
             </column>
         </addColumn>
