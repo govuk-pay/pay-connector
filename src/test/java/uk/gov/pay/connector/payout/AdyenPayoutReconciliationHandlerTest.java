@@ -8,6 +8,7 @@ import uk.gov.service.payments.commons.queue.model.QueueMessage;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static uk.gov.pay.connector.queue.payout.AdyenPayoutReconciliationPayloadFixture.anAdyenPayoutReconciliationPayloadFixture;
 
 
 class AdyenPayoutReconciliationHandlerTest {
@@ -18,15 +19,14 @@ class AdyenPayoutReconciliationHandlerTest {
         PayoutReconcileMessage payoutReconcileMessage = mockPayoutReconcileMessage();
         UnsupportedOperationException exception = assertThrows(
                 UnsupportedOperationException.class, () -> handler.reconcile(payoutReconcileMessage));
-        
+
         assertEquals("Adyen payout reconciliation handler not implemented yet", exception.getMessage());
     }
 
     private PayoutReconcileMessage mockPayoutReconcileMessage() {
-        AdyenPayoutReconciliationPayload payload = new AdyenPayoutReconciliationPayload();
+        AdyenPayoutReconciliationPayload payload = anAdyenPayoutReconciliationPayloadFixture()
+                .build();
         QueueMessage queueMessage = mock(QueueMessage.class);
         return PayoutReconcileMessage.of(payload, queueMessage);
-
-
     }
 }
