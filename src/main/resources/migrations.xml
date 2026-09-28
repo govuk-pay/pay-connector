@@ -2175,4 +2175,35 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="add fee_sub_type column to fees table" author="">
+        <addColumn tableName="fees">
+            <column name="fee_sub_type" type="varchar(30)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="drop charge_id as identity column" author="">
+        <sql>ALTER TABLE fees ALTER COLUMN charge_id DROP IDENTITY IF EXISTS</sql>
+    </changeSet>
+
+    <changeSet id="drop default from fees.charge_id" author="">
+        <dropDefaultValue tableName="fees" columnName="charge_id" columnDataType="bigint"/>
+    </changeSet>
+
+    <changeSet id="change fees.charge_id column to nullable" author="">
+        <dropNotNullConstraint tableName="fees" columnName="charge_id" columnDataType="bigint"/>
+    </changeSet>
+
+    <changeSet id="add refund_id column to fee table" author="">
+        <addColumn tableName="fees">
+            <column name="refund_id" type="bigint">
+                <constraints foreignKeyName="fk__refund_fees"
+                             referencedTableName="refunds"
+                             referencedColumnNames="id"
+                             nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>
