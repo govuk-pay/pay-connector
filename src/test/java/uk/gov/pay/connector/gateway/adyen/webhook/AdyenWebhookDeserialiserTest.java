@@ -5,6 +5,8 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.qos.logback.core.Appender;
+import com.adyen.model.reportwebhooks.ReportNotificationData;
+import com.adyen.model.reportwebhooks.ReportNotificationRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.ws.rs.WebApplicationException;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +33,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent.AUTHORISATION;
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent.RECURRING_TOKEN_CREATED;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_BALANCE_PLATFORM_REPORT_NOTIFICATION;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_NOTIFICATION;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_TOKEN_NOTIFICATION;
 
@@ -110,6 +113,35 @@ class AdyenWebhookDeserialiserTest {
 
             verifyLogs("Error deserialising notification payload to class AdyenTokenNotification");
             assertThat(exception.getMessage(), is("Error deserialising notification payload"));
+        }
+    }
+
+    @Nested
+    class TestDeserialiseBalanceReportPayload {
+        @Test
+        void shouldDeserialiseBalanceReportPayload() {
+            String payload = TestTemplateResourceLoader.load(ADYEN_BALANCE_PLATFORM_REPORT_NOTIFICATION);
+
+            ReportNotificationRequest reportNotificationRequest = adyenWebhookDeserialiser.deserialiseBalanceReportPayload(payload);
+
+            assertThat(reportNotificationRequest.getEnvironment(), is("test"));
+            assertThat(reportNotificationRequest.getTimestamp().toString(), is("2026-09-24T23:40:48.616Z"));
+            assertThat(reportNotificationRequest.getType().getValue(), is("balancePlatform.report.created"));
+
+            ReportNotificationData data = reportNotificationRequest.getData();
+            assertThat(data.getBalancePlatform(), is("Pay_UK"));
+            assertThat(data.getFileName(), is("balanceplatform_payout_report_2026_09_24.csv"));
+            assertThat(data.getReportType(), is("balanceplatform_payout_report"));
+            assertThat(data.getDownloadUrl(), is("https://some-url/filename.csv"));
+            assertThat(data.getCreationDate().toString(), is("2026-09-25T00:04:12+02:00"));
+        }
+
+        @Test
+        void shouldThrowWebApplicationExceptionWhenDeserialisationFails() {
+            String payload = "invalid-json";
+            assertThrows(WebApplicationException.class,
+                    () -> adyenWebhookDeserialiser.deserialiseBalanceReportPayload(payload)
+            );
         }
     }
 
