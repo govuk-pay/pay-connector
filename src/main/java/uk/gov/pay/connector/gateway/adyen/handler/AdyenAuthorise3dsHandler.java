@@ -9,14 +9,17 @@ import uk.gov.pay.connector.gateway.GatewayException;
 import uk.gov.pay.connector.gateway.GatewayException.GatewayErrorException;
 import uk.gov.pay.connector.gateway.adyen.AdyenRequestFactory;
 import uk.gov.pay.connector.gateway.adyen.request.Adyen3dsAuthorisationRequest;
+import uk.gov.pay.connector.gateway.adyen.response.json.AdditionalData;
 import uk.gov.pay.connector.gateway.adyen.response.json.AdyenError;
 import uk.gov.pay.connector.gateway.adyen.response.json.Authorise3dsResponseBody;
 import uk.gov.pay.connector.gateway.model.request.Auth3dsResponseGatewayRequest;
 import uk.gov.pay.connector.gateway.model.response.BaseAuthoriseResponse.AuthoriseStatus;
 import uk.gov.pay.connector.gateway.model.response.Gateway3DSAuthorisationResponse;
 import uk.gov.pay.connector.util.JsonObjectMapper;
+import uk.gov.service.payments.commons.model.CardExpiryDate;
 
 import java.util.Map;
+import java.util.Optional;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static uk.gov.pay.connector.gateway.adyen.utils.AdyenRequestUtil.get3dsAuthUrl;
@@ -78,14 +81,22 @@ public class AdyenAuthorise3dsHandler {
             if (AUTHORISED.equals(mappedStatus) && recurringAuthToken == null) {
                 recurringAuthToken = Map.of();
             }
+            
+
+            CardExpiryDate expiryDate = Optional.ofNullable(responseBody.additionalData())
+                    .map(AdditionalData::expiryDate)
+                    .flatMap(CardExpiryDate::fromOneOrTwoDigitMonthSlashFourDigitYear)
+                    .orElse(null);
 
             return Gateway3DSAuthorisationResponse.of(
                     responseBody.toString(),
                     mappedStatus,
                     responseBody.pspReference(),
                     recurringAuthToken,
-                    getGatewayRejectionReason(responseBody)
+                    getGatewayRejectionReason(responseBody),
+                    expiryDate
             );
+
         } catch (GatewayErrorException e) {
             return handleGatewayErrorException(request, e);
         } catch (GatewayException.GatewayConnectionTimeoutException | GatewayException.GenericGatewayException e) {

@@ -1,5 +1,6 @@
 package uk.gov.pay.connector.paymentprocessor.service;
 
+import jakarta.inject.Inject;
 import net.logstash.logback.argument.StructuredArgument;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -17,7 +18,6 @@ import uk.gov.pay.connector.gateway.model.Gateway3dsRequiredParams;
 import uk.gov.pay.connector.gateway.model.request.Auth3dsResponseGatewayRequest;
 import uk.gov.pay.connector.gateway.model.response.Gateway3DSAuthorisationResponse;
 
-import jakarta.inject.Inject;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -28,7 +28,6 @@ import static uk.gov.pay.connector.paymentprocessor.model.OperationType.AUTHORIS
 import static uk.gov.pay.connector.paymentprocessor.service.Card3dsResponseAuthService.TypeOf3dsRequest.NONE_OF_THE_ABOVE;
 import static uk.gov.pay.connector.paymentprocessor.service.Card3dsResponseAuthService.TypeOf3dsRequest.WORLDPAY_3DS_CLASSIC;
 import static uk.gov.pay.connector.paymentprocessor.service.Card3dsResponseAuthService.TypeOf3dsRequest.WORLDPAY_3DS_FLEX;
-
 public class Card3dsResponseAuthService {
 
     enum TypeOf3dsRequest {
@@ -128,7 +127,8 @@ public class Card3dsResponseAuthService {
                 operationResponse.getGateway3dsRequiredParams().map(Gateway3dsRequiredParams::toAuth3dsRequiredEntity).orElse(null),
                 operationResponse.getProviderSessionIdentifier().orElse(null),
                 operationResponse.getGatewayRecurringAuthToken().orElse(null),
-                operationResponse.getGatewayRejectionReason().orElse(null)
+                operationResponse.getGatewayRejectionReason().orElse(null),
+                operationResponse.getCardExpiryDate().orElse(null)
         );
 
         var worldPay3dsOrFlexLogMessage = integration3dsType(auth3dsResult, updatedCharge);

@@ -21,6 +21,7 @@ import uk.gov.pay.connector.gateway.model.request.Auth3dsResponseGatewayRequest;
 import uk.gov.pay.connector.gateway.model.request.GatewayClientPostRequest;
 import uk.gov.pay.connector.gateway.model.response.BaseAuthoriseResponse;
 import uk.gov.pay.connector.util.JsonObjectMapper;
+import uk.gov.service.payments.commons.model.CardExpiryDate;
 
 import java.util.Map;
 import java.util.Optional;
@@ -75,12 +76,13 @@ class AdyenAuthorise3dsHandlerTest {
         when(mockGatewayClientResponse.getEntity()).thenReturn(successResponse("Authorised"));
         var request = buildRequestWith("eyJ0cmFuc1N0YXR1cyI6IlkifQ==");
 
-        adyenAuthorise3dsHandler.authorise3dsResponse(request);
+        var response = adyenAuthorise3dsHandler.authorise3dsResponse(request);
 
         then(mockClient).should().postRequestFor(captor.capture());
         var headers = captor.getValue().getHeaders();
         assertThat(headers, hasEntry("X-API-Key", "test-company-account-API-key"));
         assertThat(headers, hasEntry("Idempotency-Key", "authorise3DS-" + request.getChargeExternalId()));
+        assertThat(response.getCardExpiryDate(), is(Optional.of(CardExpiryDate.valueOf("03/30"))));
     }
 
     @Test
@@ -124,7 +126,8 @@ class AdyenAuthorise3dsHandlerTest {
                 """
                         {
                           "pspReference": "adyen-3ds-psp-reference",
-                          "resultCode": null
+                          "resultCode": null,
+                          "additionalData": {}
                         }
                         """
         );
@@ -200,7 +203,8 @@ class AdyenAuthorise3dsHandlerTest {
                           "pspReference": "adyen-3ds-psp-reference",
                           "resultCode": "Refused",
                           "refusalReason": "Expired Card",
-                          "refusalReasonCode": "6"
+                          "refusalReasonCode": "6",
+                          "additionalData": {}
                         }
                         """
         );
@@ -219,7 +223,8 @@ class AdyenAuthorise3dsHandlerTest {
                           "pspReference": "adyen-3ds-psp-reference",
                           "resultCode": "Authorised",
                           "refusalReasonCode": "0",
-                          "refusalReason": "Authorised"
+                          "refusalReason": "Authorised",
+                          "additionalData": {}
                         }
                         """
         );
@@ -275,7 +280,10 @@ class AdyenAuthorise3dsHandlerTest {
         return """
                 {
                   "pspReference": "adyen-3ds-psp-reference",
-                  "resultCode": "%s"
+                  "resultCode": "%s",
+                  "additionalData": {
+                    "expiryDate": "3/2030"
+                  }
                 }
                 """.formatted(resultCode);
     }
