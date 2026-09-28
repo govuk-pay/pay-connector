@@ -1,4 +1,4 @@
-package uk.gov.pay.connector.gateway.adyen.response.transfer;
+package uk.gov.pay.connector.gateway.adyen.webhook.json.transfer;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;

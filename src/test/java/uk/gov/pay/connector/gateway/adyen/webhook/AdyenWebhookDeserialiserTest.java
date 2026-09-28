@@ -18,7 +18,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
-import uk.gov.pay.connector.gateway.adyen.response.AdyenTokenNotification;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.token.AdyenTokenNotification;
 import uk.gov.pay.connector.util.JsonObjectMapper;
 import uk.gov.pay.connector.util.TestTemplateResourceLoader;
 

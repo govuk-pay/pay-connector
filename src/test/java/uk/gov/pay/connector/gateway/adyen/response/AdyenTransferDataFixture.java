@@ -1,13 +1,13 @@
 package uk.gov.pay.connector.gateway.adyen.response;
 
-import uk.gov.pay.connector.gateway.adyen.request.json.Amount;
-import uk.gov.pay.connector.gateway.adyen.response.transfer.AdyenAccountHolder;
-import uk.gov.pay.connector.gateway.adyen.response.transfer.AdyenBalance;
-import uk.gov.pay.connector.gateway.adyen.response.transfer.AdyenBalanceAccount;
-import uk.gov.pay.connector.gateway.adyen.response.transfer.AdyenPlatformPaymentCategory;
-import uk.gov.pay.connector.gateway.adyen.response.transfer.AdyenTransferData;
-import uk.gov.pay.connector.gateway.adyen.response.transfer.Tracking;
-import uk.gov.pay.connector.gateway.adyen.response.transfer.TransferEvent;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.AdyenAccountHolder;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.AdyenBalance;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.AdyenBalanceAccount;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.AdyenPlatformPaymentCategory;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.AdyenTransferData;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.Amount;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.Tracking;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.TransferEvent;
 
 import java.util.List;
 
@@ -48,6 +48,7 @@ public class AdyenTransferDataFixture {
                     "transaction_id",
                     "failure_reason_code",
                     "returned"));
+    private String eventId = "event-id-123";
 
 
     public static AdyenTransferDataFixture anAdyenTransferDataFixture() {
@@ -74,7 +75,8 @@ public class AdyenTransferDataFixture {
                 sequenceNumber,
                 status,
                 tracking,
-                events);
+                events,
+                eventId);
     }
 
     public AdyenTransferDataFixture withId(String id) {

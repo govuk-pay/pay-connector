@@ -3,6 +3,7 @@ package uk.gov.pay.connector.gateway.adyen.response.transfer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.TransferEvent;
 
 import java.util.List;
 
