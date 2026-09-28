@@ -9,14 +9,11 @@ import uk.gov.pay.connector.gateway.model.MappedAuthorisationRejectedReason;
 import uk.gov.pay.connector.gateway.model.response.BaseAuthoriseResponse;
 import uk.gov.service.payments.commons.model.CardExpiryDate;
 
-import java.time.YearMonth;
 import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
-import java.util.regex.Pattern;
 
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
-import static org.apache.commons.lang3.StringUtils.join;
 import static uk.gov.pay.connector.gateway.model.response.BaseAuthoriseResponse.AuthoriseStatus.AUTHORISED;
 import static uk.gov.pay.connector.gateway.model.response.BaseAuthoriseResponse.AuthoriseStatus.ERROR;
 import static uk.gov.pay.connector.gateway.model.response.BaseAuthoriseResponse.AuthoriseStatus.REJECTED;
@@ -35,7 +32,6 @@ public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
     private final String storedPaymentMethodId;
     private final String expiryDate;
     private final String resultCode;
-    private static final Pattern CARD_EXPIRY_DATE_PATTERN = Pattern.compile("([0-9]{1,2})/(20[0-9][0-9])");
 
     public static AdyenAuthoriseResponse of(AuthoriseResponseBody authoriseResponseBody) {
         Action action = authoriseResponseBody.action();
@@ -184,18 +180,7 @@ public class AdyenAuthoriseResponse implements BaseAuthoriseResponse {
     
     @Override
     public Optional<CardExpiryDate> getCardExpiryDate() {
-        if (expiryDate != null) {
-            var matcher = CARD_EXPIRY_DATE_PATTERN.matcher(expiryDate);
-
-            if (matcher.matches()) {
-                int year = Integer.parseInt(matcher.group(2));
-                int month = Integer.parseInt(matcher.group(1));
-
-                return Optional.of(CardExpiryDate.valueOf(YearMonth.of(year, month)));
-            }
-        }
-        
-        return Optional.empty();
+        return CardExpiryDate.fromOneOrTwoDigitMonthSlashFourDigitYear(expiryDate);
     }
     
     @Override
