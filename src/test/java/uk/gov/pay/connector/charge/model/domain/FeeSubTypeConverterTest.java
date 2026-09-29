@@ -46,6 +46,6 @@ class FeeSubTypeConverterTest {
     void shouldThrowIllegalArgumentExceptionForUnrecognizedFeeSubType() {
         var thrown = assertThrows(IllegalArgumentException.class,
                 () -> feeSubTypeConverter.convertToEntityAttribute("unknown"));
-        assertThat(thrown.getMessage(), Matchers.is("fee sub-type not recognized: unknown"));
+        assertThat(thrown.getMessage(), Matchers.is("Fee sub-type not recognized: unknown"));
     }
 }

@@ -28,6 +28,6 @@ public enum FeeSubType {
         return Arrays.stream(FeeSubType.values())
                 .filter(feeSubTypeEnum -> CS.equals(feeSubTypeEnum.getName(), feeSubTypeValue))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("fee sub-type not recognized: " + feeSubTypeValue));
+                .orElseThrow(() -> new IllegalArgumentException("Fee sub-type not recognized: " + feeSubTypeValue));
     }
 }

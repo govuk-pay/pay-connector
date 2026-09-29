@@ -103,6 +103,7 @@ import uk.gov.pay.connector.usernotification.model.domain.EmailNotificationEntit
 import uk.gov.pay.connector.wallets.WalletType;
 import uk.gov.service.payments.commons.model.AgreementPaymentType;
 import uk.gov.service.payments.commons.model.AuthorisationMode;
+import uk.gov.service.payments.commons.model.CardExpiryDate;
 import uk.gov.service.payments.commons.model.Source;
 import uk.gov.service.payments.commons.model.charge.ExternalMetadata;
 
@@ -144,7 +145,6 @@ import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.ENTERING_CAR
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.PAYMENT_NOTIFICATION_CREATED;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.fromString;
 import static uk.gov.pay.connector.charge.model.domain.Exemption3dsType.CORPORATE;
-import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
 import static uk.gov.pay.connector.gateway.PaymentGatewayName.STRIPE;
 import static uk.gov.pay.connector.gateway.PaymentGatewayName.WORLDPAY;
 import static uk.gov.pay.connector.paymentprocessor.model.Exemption3ds.EXEMPTION_NOT_REQUESTED;
@@ -908,19 +908,25 @@ public class ChargeService {
     }
 
     @Transactional
-    public ChargeEntity updateChargePost3dsAuthorisation(String chargeExternalId, ChargeStatus newStatus,
+    public ChargeEntity updateChargePost3dsAuthorisation(String chargeExternalId, 
+                                                         ChargeStatus newStatus,
                                                          OperationType operationType,
                                                          String transactionId,
                                                          Auth3dsRequiredEntity auth3dsRequiredDetails,
                                                          ProviderSessionIdentifier sessionIdentifier,
                                                          Map<String, String> recurringAuthToken,
-                                                         String gatewayRejectionReason) {
+                                                         String gatewayRejectionReason,
+                                                         CardExpiryDate cardExpiryDate) {
         return chargeDao.findByExternalId(chargeExternalId).map(charge -> {
             try {
                 setTransactionId(charge, transactionId);
                 transitionChargeState(charge, newStatus);
                 Optional.ofNullable(auth3dsRequiredDetails).ifPresent(charge::set3dsRequiredDetails);
                 Optional.ofNullable(sessionIdentifier).map(ProviderSessionIdentifier::toString).ifPresent(charge::setProviderSessionId);
+
+                Optional.ofNullable(charge.getCardDetails())
+                        .filter(details -> details.getExpiryDate() == null)
+                        .ifPresent(details -> details.setExpiryDate(cardExpiryDate));
 
                 if (charge.isSavePaymentInstrumentToAgreement()) {
                     Optional.ofNullable(recurringAuthToken).ifPresent(token -> setPaymentInstrument(token, charge));

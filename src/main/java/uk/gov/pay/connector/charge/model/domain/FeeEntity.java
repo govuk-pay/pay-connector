@@ -51,6 +51,10 @@ public class FeeEntity {
         this(chargeEntity, null, createdDate, fee.amount(), fee.feeType(), fee.feeSubType());
     }
 
+    public FeeEntity(RefundEntity refundEntity, Instant createdDate, Fee fee) {
+        this(null, refundEntity, createdDate, fee.amount(), fee.feeType(), fee.feeSubType());
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "charges_charge_id_seq")
     @JsonIgnore
@@ -112,14 +116,6 @@ public class FeeEntity {
 
     public FeeSubType getFeeSubType() {
         return feeSubType;
-    }
-
-    public void setFeeSubType(FeeSubType feeSubType) {
-        this.feeSubType = feeSubType;
-    }
-
-    public void setRefundEntity(RefundEntity refundEntity) {
-        this.refundEntity = refundEntity;
     }
 
     public RefundEntity getRefundEntity() {

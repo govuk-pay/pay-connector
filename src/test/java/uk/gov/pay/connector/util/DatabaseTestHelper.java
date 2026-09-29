@@ -587,6 +587,14 @@ public class DatabaseTestHelper {
                         .list());
     }
 
+    public List<Map<String, Object>> getFeesByRefundId(long refundId) {
+        return jdbi.withHandle(h ->
+                h.createQuery("SELECT * FROM fees WHERE refund_id = :refundId")
+                        .bind("refundId", refundId)
+                        .mapToMap()
+                        .list());
+    }
+
     public Map<String, Object> getEmailForAccountAndType(Long accountId, EmailNotificationType type) {
 
         return jdbi.withHandle(h ->
