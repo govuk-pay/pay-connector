@@ -11,6 +11,7 @@ import uk.gov.pay.connector.charge.exception.ChargeNotFoundRuntimeException;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntity;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntityFixture;
 import uk.gov.pay.connector.charge.service.ChargeService;
+import uk.gov.pay.connector.fee.dao.FeeDao;
 import uk.gov.pay.connector.model.domain.RefundEntityFixture;
 import uk.gov.pay.connector.refund.dao.RefundDao;
 import uk.gov.pay.connector.refund.model.domain.RefundEntity;
@@ -22,6 +23,7 @@ import java.util.Optional;
 
 import static java.time.ZoneOffset.UTC;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -51,13 +53,15 @@ class RefundExpungeServiceTest {
     private ConnectorConfiguration mockConnectorConfiguration;
     @Mock
     private ParityCheckService mockParityCheckService;
+    @Mock
+    private FeeDao mockFeeDao;
 
     @BeforeEach
     public void setUp() {
         when(mockConnectorConfiguration.getExpungeConfig()).thenReturn(mockExpungeConfig);
 
         refundExpungeService = new RefundExpungeService(mockConnectorConfiguration, mockParityCheckService,
-                mockRefundService, mockChargeService, mockRefundDao);
+                mockRefundService, mockChargeService, mockRefundDao, mockFeeDao);
     }
 
     @Test
@@ -160,5 +164,28 @@ class RefundExpungeServiceTest {
         refundExpungeService.expunge(1);
 
         verify(mockRefundDao, never()).expungeRefund(any());
+    }
+    
+    
+    @Test
+    void expunge_shouldDeleteRefundFeesBeforeExpungingRefund() {
+        when(mockExpungeConfig.isExpungeRefundsEnabled()).thenReturn(true);
+        when(mockExpungeConfig.getMinimumAgeOfRefundInDays()).thenReturn(minimumAgeOfRefundInDays);
+        when(mockExpungeConfig.getExcludeChargesOrRefundsParityCheckedWithInDays()).thenReturn(defaultExcludeRefundsParityCheckedWithInDays);
+        
+        RefundEntity refundEntity = RefundEntityFixture.aValidRefundEntity()
+                .withId(1L)
+                .withStatus(REFUNDED).build();
+        
+        when(mockRefundDao.findRefundToExpunge(minimumAgeOfRefundInDays, defaultExcludeRefundsParityCheckedWithInDays))
+        .thenReturn(Optional.of(refundEntity));
+        when(mockChargeService.findChargeByExternalId(refundEntity.getChargeExternalId())).thenThrow(ChargeNotFoundRuntimeException.class);
+        when(mockParityCheckService.parityCheckRefundForExpunger(refundEntity)).thenReturn(true);
+        
+        refundExpungeService.expunge(1);
+        
+        var order = inOrder(mockFeeDao, mockRefundDao);
+        order.verify(mockFeeDao).deleteFeesByRefundId(refundEntity.getId());
+        order.verify(mockRefundDao).expungeRefund(refundEntity.getExternalId());
     }
 }

@@ -14,4 +14,11 @@ public class FeeDao extends JpaDao<FeeEntity> {
     public FeeDao(final Provider<EntityManager> entityManager) {
         super(entityManager);
     }
+    
+    public void deleteFeesByRefundId(Long refundId) {
+        entityManager.get()
+                .createNativeQuery("delete from fees where refund_id = ?1")
+                .setParameter(1, refundId)  
+                .executeUpdate();
+    }
 }
