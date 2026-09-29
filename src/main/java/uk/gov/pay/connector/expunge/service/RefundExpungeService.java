@@ -8,6 +8,7 @@ import uk.gov.pay.connector.app.ConnectorConfiguration;
 import uk.gov.pay.connector.app.config.ExpungeConfig;
 import uk.gov.pay.connector.charge.exception.ChargeNotFoundRuntimeException;
 import uk.gov.pay.connector.charge.service.ChargeService;
+import uk.gov.pay.connector.fee.dao.FeeDao;
 import uk.gov.pay.connector.refund.dao.RefundDao;
 import uk.gov.pay.connector.refund.model.domain.RefundEntity;
 import uk.gov.pay.connector.refund.model.domain.RefundStatus;
@@ -38,16 +39,19 @@ public class RefundExpungeService {
     private final RefundService refundService;
     private final ChargeService chargeService;
     private final RefundDao refundDao;
+    private final FeeDao feeDao;
 
     @Inject
     public RefundExpungeService(ConnectorConfiguration connectorConfiguration,
                                 ParityCheckService parityCheckService,
-                                RefundService refundService, ChargeService chargeService, RefundDao refundDao) {
+                                RefundService refundService, ChargeService chargeService, RefundDao refundDao,
+                                FeeDao feeDao) {
         expungeConfig = connectorConfiguration.getExpungeConfig();
         this.parityCheckService = parityCheckService;
         this.refundService = refundService;
         this.chargeService = chargeService;
         this.refundDao = refundDao;
+        this.feeDao = feeDao;
     }
 
     public void expunge(Integer noOfRefundsToExpunge) {
@@ -132,6 +136,7 @@ public class RefundExpungeService {
 
     @Transactional
     public void expungeRefund(RefundEntity refundEntity) {
+        feeDao.deleteFeesByRefundId(refundEntity.getId());
         refundDao.expungeRefund(refundEntity.getExternalId());
     }
 }

@@ -2,6 +2,7 @@ package uk.gov.pay.connector.it.dao;
 
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntity;
@@ -41,7 +42,7 @@ public class FeeDaoIT {
                 .withTestAccount(defaultTestAccount)
                 .insert();
     }
-    
+
     @Test
     void persist_shouldCreateAFeeWithNullableType() {
         ChargeEntityFixture chargeEntityFixture = new ChargeEntityFixture();
@@ -108,5 +109,45 @@ public class FeeDaoIT {
         assertThat(feesForRefund.size(), is(1));
         assertThat(feesForRefund.getFirst().get("charge_id"), is(nullValue()));
         assertThat(feesForRefund.getFirst().get("refund_id"), is(testRefund.getId()));
+    }
+
+    @Nested
+    class DeleteFeesByRefundID {
+        
+        @Test
+        void shouldDeleteFeesForRefund() {
+            DatabaseFixtures.TestRefund testRefund = app.getDatabaseFixtures()
+                    .aTestRefund()
+                    .withTestCharge(defaultTestCharge)
+                    .insert();
+
+            RefundEntity refundEntity = RefundEntityFixture.aValidRefundEntity()
+                    .withId(testRefund.getId())
+                    .build();
+
+            feeDao.persist(new FeeEntity(refundEntity, Instant.now(), Fee.of(FeeType.TRANSACTION, 100L)));
+            assertThat(app.getDatabaseTestHelper().getFeesByRefundId(refundEntity.getId()).size(), is(1));
+
+            feeDao.deleteFeesByRefundId(testRefund.getId());
+
+            assertThat(app.getDatabaseTestHelper().getFeesByRefundId(refundEntity.getId()).size(), is(0));
+
+        }
+
+        @Test
+        void shouldNotFailIfNoFeeExists() {
+            DatabaseFixtures.TestRefund testRefund = app.getDatabaseFixtures()
+                    .aTestRefund()
+                    .withTestCharge(defaultTestCharge)
+                    .insert();
+
+            RefundEntity refundEntity = RefundEntityFixture.aValidRefundEntity()
+                    .withId(testRefund.getId())
+                    .build();
+
+            feeDao.deleteFeesByRefundId(testRefund.getId());
+
+            assertThat(app.getDatabaseTestHelper().getFeesByRefundId(refundEntity.getId()).size(), is(0));
+        }
     }
 }
