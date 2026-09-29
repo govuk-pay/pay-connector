@@ -25,6 +25,7 @@ import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.CREATED;
 import static uk.gov.pay.connector.client.cardid.model.CardInformationFixture.aCardInformation;
 import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
 import static uk.gov.pay.connector.gatewayaccount.model.GatewayAccount.CREDENTIALS_ADYEN_LEGAL_ENTITY_ID;
+import static uk.gov.pay.connector.gatewayaccount.model.GatewayAccount.CREDENTIALS_ADYEN_STORE_ID;
 import static uk.gov.pay.connector.gatewayaccountcredentials.model.GatewayAccountCredentialState.ACTIVE;
 import static uk.gov.pay.connector.it.JsonRequestHelper.buildJsonForMotoApiPaymentAuthorisation;
 import static uk.gov.pay.connector.util.AddGatewayAccountCredentialsParams.AddGatewayAccountCredentialsParamsBuilder.anAddGatewayAccountCredentialsParams;
@@ -67,7 +68,7 @@ public class AdyenCardResourceAuthoriseMotoApiPaymentIT {
                 .withPaymentProvider(ADYEN.getName())
                 .withGatewayAccountId(gatewayAccountId)
                 .withState(ACTIVE)
-                .withCredentials(ImmutableMap.of(CREDENTIALS_ADYEN_LEGAL_ENTITY_ID, "legal_entity_id"))
+                .withCredentials(ImmutableMap.of(CREDENTIALS_ADYEN_LEGAL_ENTITY_ID, "legal_entity_id", CREDENTIALS_ADYEN_STORE_ID, "store_id"))
                 .build();
 
         var adyenAccount = DatabaseFixtures

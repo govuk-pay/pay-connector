@@ -22,6 +22,7 @@
   "reference": "%s",
   "returnUrl": "%s",
   "shopperInteraction": "%s",
+  "store" : "store_id",
   "channel": "Web",
   "additionalData" : {
     "manualCapture" : "true"
