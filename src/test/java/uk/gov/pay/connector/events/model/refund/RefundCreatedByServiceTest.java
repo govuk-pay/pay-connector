@@ -27,7 +27,7 @@ class RefundCreatedByServiceTest {
             timeConverter.convertToDatabaseColumn(createdDate.plusSeconds(1L)),
             timeConverter.convertToDatabaseColumn(createdDate.plusSeconds(2L)),
             null, "gateway_transaction_id", chargeEntity.getExternalId(),
-            null);
+            null, chargeEntity.getPaymentProvider());
 
     @Test
     void serializesEventDetailsGivenRefund() {

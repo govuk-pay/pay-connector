@@ -264,6 +264,7 @@ public class RefundServiceTest {
         assertThat(refundEntity.getAmount(), is(REFUND_AMOUNT));
         assertThat(refundEntity.getStatus(), is(CREATED));
         assertThat(refundEntity.getChargeExternalId(), is(externalChargeId));
+        assertThat(refundEntity.getPaymentProvider(), is(WORLDPAY.getName()));
     }
 
     @Test

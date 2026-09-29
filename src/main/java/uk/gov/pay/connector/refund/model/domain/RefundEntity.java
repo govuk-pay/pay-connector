@@ -47,7 +47,8 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
                         @ColumnResult(name = "user_external_id", type = String.class),
                         @ColumnResult(name = "gateway_transaction_id", type = String.class),
                         @ColumnResult(name = "charge_external_id", type = String.class),
-                        @ColumnResult(name = "user_email", type = String.class)
+                        @ColumnResult(name = "user_email", type = String.class),
+                        @ColumnResult(name = "payment_provider", type = String.class)
                 }))
 
 @Entity
@@ -84,6 +85,9 @@ public class RefundEntity extends AbstractVersionedEntity {
 
     @Column(name = "charge_external_id")
     private String chargeExternalId;
+
+    @Column(name = "payment_provider")
+    private String paymentProvider;
 
     @Column(name = "parity_check_status")
     @Enumerated(EnumType.STRING)
@@ -145,6 +149,10 @@ public class RefundEntity extends AbstractVersionedEntity {
     public void setGatewayTransactionId(String gatewayTransactionId) {
         this.gatewayTransactionId = gatewayTransactionId;
     }
+    
+    public String getPaymentProvider() {return paymentProvider;}
+    
+    public void setPaymentProvider(String paymentProvider) {this.paymentProvider = paymentProvider;}
 
     public void setCreatedDate(ZonedDateTime createdDate) {
         this.createdDate = createdDate;

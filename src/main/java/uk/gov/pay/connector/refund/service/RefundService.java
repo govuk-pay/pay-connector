@@ -189,6 +189,7 @@ public class RefundService {
     public RefundEntity createRefundEntity(RefundRequest refundRequest, GatewayAccountEntity gatewayAccountEntity, Charge charge, RefundEntityFactory refundEntityFactory) {
         var refundEntity = refundEntityFactory.create(refundRequest.getAmount(),
                 refundRequest.getUserExternalId(), refundRequest.getUserEmail(), charge.getExternalId());
+        refundEntity.setPaymentProvider(charge.getPaymentGatewayName());
         transitionRefundState(refundEntity, gatewayAccountEntity, RefundStatus.CREATED, charge);
         refundDao.persist(refundEntity);
 

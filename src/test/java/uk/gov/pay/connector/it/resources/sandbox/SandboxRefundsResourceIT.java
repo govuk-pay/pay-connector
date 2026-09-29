@@ -181,7 +181,7 @@ public class SandboxRefundsResourceIT {
                 assertThat(refundsFoundByChargeExternalId.getFirst(), hasEntry("user_external_id", userExternalId));
                 assertThat(refundsFoundByChargeExternalId.getFirst(), hasEntry("user_email", userEmail));
                 assertThat(refundsFoundByChargeExternalId.getFirst(), hasEntry("charge_external_id", defaultTestCharge.getExternalChargeId()));
-
+                assertThat(refundsFoundByChargeExternalId.getFirst(), hasEntry("payment_provider", PAYMENT_PROVIDER));
                 assertRefundsHistoryInOrderInDBForSuccessfulOrPartialRefund(defaultTestCharge);
             }
 

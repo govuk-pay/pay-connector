@@ -27,7 +27,7 @@ class RefundCreatedByUserTest {
             timeConverter.convertToDatabaseColumn(createdDate.plusSeconds(1L)),
             timeConverter.convertToDatabaseColumn(createdDate.plusSeconds(2L)),
             "user-external-id", "gateway_transaction_id", chargeEntity.getExternalId(),
-            "test@example.com"
+            "test@example.com", "Sandbox"
             );
 
     @Test
