@@ -8,12 +8,14 @@ import uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookNotification
 import uk.gov.pay.connector.gateway.exception.AdyenNotificationException;
 import uk.gov.pay.connector.queue.tasks.TaskQueueService;
 import uk.gov.pay.connector.queue.tasks.TaskType;
+import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenBalanceReportNotificationHandler;
 import uk.gov.pay.connector.queue.tasks.model.Task;
 
 import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
-import static uk.gov.pay.connector.queue.tasks.TaskType.HANDLE_ADYEN_TRANSFER_WEBHOOK_NOTIFICATION;
-import static uk.gov.pay.connector.queue.tasks.TaskType.HANDLE_ADYEN_TOKEN_WEBHOOK_NOTIFICATION;
+import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookType.BALANCE_PLATFORM_REPORT;
 import static uk.gov.pay.connector.queue.tasks.TaskType.HANDLE_ADYEN_PAYMENTS_WEBHOOK_NOTIFICATION;
+import static uk.gov.pay.connector.queue.tasks.TaskType.HANDLE_ADYEN_TOKEN_WEBHOOK_NOTIFICATION;
+import static uk.gov.pay.connector.queue.tasks.TaskType.HANDLE_ADYEN_TRANSFER_WEBHOOK_NOTIFICATION;
 import static uk.gov.service.payments.logging.LoggingKeys.PROVIDER;
 
 public class AdyenNotificationService {
@@ -22,12 +24,16 @@ public class AdyenNotificationService {
     private final TaskQueueService taskQueueService;
     private final AdyenNotificationValidator adyenNotificationValidator;
     private final AdyenWebhookNotificationParser adyenWebhookNotificationParser;
+    private final AdyenBalanceReportNotificationHandler adyenBalanceReportNotificationHandler;
 
     @Inject
-    public AdyenNotificationService(TaskQueueService taskQueueService, AdyenNotificationValidator adyenNotificationValidator, AdyenWebhookNotificationParser adyenWebhookNotificationParser) {
+    public AdyenNotificationService(TaskQueueService taskQueueService, AdyenNotificationValidator adyenNotificationValidator,
+                                    AdyenWebhookNotificationParser adyenWebhookNotificationParser,
+                                    AdyenBalanceReportNotificationHandler adyenBalanceReportNotificationHandler) {
         this.taskQueueService = taskQueueService;
         this.adyenNotificationValidator = adyenNotificationValidator;
         this.adyenWebhookNotificationParser = adyenWebhookNotificationParser;
+        this.adyenBalanceReportNotificationHandler = adyenBalanceReportNotificationHandler;
     }
 
     public boolean handleNotificationFor(String payload, String forwardedIpAddresses, String hmacSignature) {
@@ -52,7 +58,12 @@ public class AdyenNotificationService {
             if (!validHmacSignature) {
                 return false;
             }
-            addNotificationToTaskQueue(adyenWebhookNotification, payload);
+
+            if (BALANCE_PLATFORM_REPORT.equals(adyenWebhookNotification.event().getWebhookType())) {
+                adyenBalanceReportNotificationHandler.process(payload);
+            } else {
+                addNotificationToTaskQueue(adyenWebhookNotification, payload);
+            }
 
             LOGGER.atInfo()
                     .setMessage("Processed Adyen notification")
@@ -86,6 +97,10 @@ public class AdyenNotificationService {
             case PAYMENTS -> HANDLE_ADYEN_PAYMENTS_WEBHOOK_NOTIFICATION;
             case TOKENS -> HANDLE_ADYEN_TOKEN_WEBHOOK_NOTIFICATION;
             case TRANSFER -> HANDLE_ADYEN_TRANSFER_WEBHOOK_NOTIFICATION;
+            case BALANCE_PLATFORM_REPORT -> {
+                LOGGER.atError().setMessage("Balance platform reports are not expected to be processed by the task queue").log();
+                yield null;
+            }
         };
     }
 }

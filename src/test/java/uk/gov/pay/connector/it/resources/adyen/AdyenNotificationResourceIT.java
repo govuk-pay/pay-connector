@@ -18,6 +18,7 @@ import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 import static jakarta.ws.rs.core.MediaType.TEXT_XML;
 import static org.mockito.Mockito.when;
 import static uk.gov.pay.connector.util.ConnectorModuleWithOverrides.reverseDnsLookup;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_BALANCE_PLATFORM_REPORT_NOTIFICATION;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_NOTIFICATION;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_TOKEN_NOTIFICATION;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_TRANSFER_NOTIFICATION;
@@ -128,6 +129,42 @@ public class AdyenNotificationResourceIT {
         @Test
         void shouldRejectNotificationWithInvalidHmacSignatureForRecurringTokenNotification() {
             String payload = TestTemplateResourceLoader.load(ADYEN_TOKEN_NOTIFICATION).replace("{{environment}}", "test");
+
+            given()
+                    .port(app.getLocalPort())
+                    .body(payload)
+                    .header("X-Forwarded-For", ADYEN_IP_ADDRESS)
+                    .header("hmacSignature", "some invalid Hmac Signature")
+                    .contentType(APPLICATION_JSON)
+                    .post(NOTIFICATION_PATH)
+                    .then()
+                    .statusCode(403);
+        }
+    }
+
+    @Nested
+    class TestBalancePlatformReportNotification {
+
+        @Test
+        void shouldHandleBalancePlatformReportNotification() {
+            String payload = TestTemplateResourceLoader.load(ADYEN_BALANCE_PLATFORM_REPORT_NOTIFICATION);
+            String hmacSignatureForBalancePlatformReport = "XT2JWrKIAO4p8cXXyKXJlY5MIqvjHZax6SjmOb3bYYY="; // pragma: allowlist secret
+
+            given()
+                    .port(app.getLocalPort())
+                    .body(payload)
+                    .header("X-Forwarded-For", ADYEN_IP_ADDRESS)
+                    .header("hmacSignature", hmacSignatureForBalancePlatformReport)
+                    .contentType(APPLICATION_JSON)
+                    .post(NOTIFICATION_PATH)
+                    .then()
+                    .statusCode(200);
+        }
+
+        @Test
+        void shouldRejectNotificationWithInvalidHmacSignature() {
+            String payload = TestTemplateResourceLoader.load(ADYEN_BALANCE_PLATFORM_REPORT_NOTIFICATION)
+                    .replace("balanceplatform_payout_report", "some-report");
 
             given()
                     .port(app.getLocalPort())
