@@ -1,6 +1,5 @@
 package uk.gov.pay.connector.pact;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import uk.gov.pay.connector.refund.model.domain.RefundHistory;
 import uk.gov.pay.connector.refund.model.domain.RefundStatus;
 
@@ -25,6 +24,7 @@ public class RefundHistoryEntityFixture {
     private String gatewayTransactionId = null;
     private String chargeExternalId = randomAlphanumeric(10);
     private Long gatewayAccountId = 123456L;
+    private String paymentProvider;
 
     private RefundHistoryEntityFixture() {}
 
@@ -37,7 +37,7 @@ public class RefundHistoryEntityFixture {
                 version,
                 Timestamp.from(historyStartDate.toInstant()),
                 Timestamp.from(historyEndDate.toInstant()),
-                userExternalId, gatewayTransactionId, chargeExternalId, userEmail);
+                userExternalId, gatewayTransactionId, chargeExternalId, userEmail, paymentProvider);
     }
 
     public RefundHistoryEntityFixture withExternalId(String externalId) {

@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static uk.gov.pay.connector.charge.model.domain.ParityCheckStatus.EXISTS_IN_LEDGER;
 import static uk.gov.pay.connector.charge.model.domain.ParityCheckStatus.MISSING_IN_LEDGER;
 import static uk.gov.pay.connector.events.EmittedEventFixture.anEmittedEventEntity;
+import static uk.gov.pay.connector.gateway.PaymentGatewayName.SANDBOX;
 import static uk.gov.pay.connector.it.resources.ChargeEventsResourceIT.SUBMITTED_BY;
 import static uk.gov.pay.connector.matcher.RefundsMatcher.aRefundMatching;
 import static uk.gov.pay.connector.model.domain.RefundEntityFixture.userEmail;
@@ -137,6 +138,7 @@ public class RefundDaoJpaIT {
         refundEntity.setStatus(REFUND_SUBMITTED);
         refundEntity.setGatewayTransactionId(refundGatewayTransactionId);
         refundEntity.setChargeExternalId(chargeTestRecord.getExternalChargeId());
+        refundEntity.setPaymentProvider(SANDBOX.getName());
 
         refundDao.persist(refundEntity);
 
@@ -151,6 +153,7 @@ public class RefundDaoJpaIT {
         assertThat(refundByIdFound.getFirst(), hasEntry("user_external_id", userExternalId));
         assertThat(refundByIdFound.getFirst(), hasEntry("user_email", userEmail));
         assertThat(refundByIdFound.getFirst(), hasEntry("charge_external_id", chargeTestRecord.getExternalChargeId()));
+        assertThat(refundByIdFound.getFirst(), hasEntry("payment_provider", SANDBOX.getName()));
     }
 
     @Test
