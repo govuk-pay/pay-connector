@@ -28,7 +28,7 @@ class AdyenCredentialsHelperTest {
     );
 
     @Test
-    void getAdyenCredentials() {
+    void getsStoreId() {
         CardAuthorisationGatewayRequest gatewayRequest = CardAuthorisationGatewayRequestFixture
                 .aCardAuthorisationGatewayRequest()
                 .withCredentials(adyenCredentials)
@@ -37,6 +37,22 @@ class AdyenCredentialsHelperTest {
         var result = adyenCredentialsHelper.getStore(gatewayRequest);
         
         assertThat(result, is("storeId"));
+    }
+    
+    @Test
+    void getStoreIdThrowsExceptionIfNull() {
+        AdyenCredentials adyenCredentials = new AdyenCredentials(
+                "legalEntityId",
+                null,
+                "accountHolderId",
+                "balanceAccountId"
+        );
+        CardAuthorisationGatewayRequest gatewayRequest = CardAuthorisationGatewayRequestFixture
+                .aCardAuthorisationGatewayRequest()
+                .withCredentials(adyenCredentials)
+                .build();
+        
+        assertThrows(IllegalArgumentException.class, () -> adyenCredentialsHelper.getStore(gatewayRequest));
     }
 
     @Test
@@ -47,7 +63,6 @@ class AdyenCredentialsHelperTest {
                 .build();
         
         assertThrows(IllegalArgumentException.class, () -> adyenCredentialsHelper.getStore(gatewayRequest));
-        
     }
 
 }
