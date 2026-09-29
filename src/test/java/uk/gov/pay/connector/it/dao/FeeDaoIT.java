@@ -7,9 +7,13 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntity;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntityFixture;
 import uk.gov.pay.connector.charge.model.domain.FeeEntity;
+import uk.gov.pay.connector.charge.model.domain.FeeSubType;
 import uk.gov.pay.connector.charge.model.domain.FeeType;
 import uk.gov.pay.connector.extension.AppWithPostgresAndSqsExtension;
 import uk.gov.pay.connector.fee.dao.FeeDao;
+import uk.gov.pay.connector.fee.model.Fee;
+import uk.gov.pay.connector.model.domain.RefundEntityFixture;
+import uk.gov.pay.connector.refund.model.domain.RefundEntity;
 
 import java.time.Instant;
 import java.util.List;
@@ -66,5 +70,43 @@ public class FeeDaoIT {
         assertThat(feesForCharge.size(), is(1));
         assertThat(feesForCharge.getFirst().get("charge_id"), is(chargeId));
         assertThat(feesForCharge.getFirst().get("fee_type"), is(FeeType.TRANSACTION.getName()));
+    }
+
+    @Test
+    void persist_shouldCreateAFeeWithFeeSubType() {
+        ChargeEntityFixture chargeEntityFixture = new ChargeEntityFixture();
+        ChargeEntity defaultChargeTestEntity = chargeEntityFixture.build();
+        long chargeId = defaultTestCharge.getChargeId();
+        defaultChargeTestEntity.setId(chargeId);
+
+        FeeEntity feeEntity = new FeeEntity(defaultChargeTestEntity, Instant.now(), Fee.of(FeeType.TRANSACTION, 100L, FeeSubType.SCHEME_FEE));
+        feeDao.persist(feeEntity);
+
+        List<Map<String, Object>> feesForCharge = app.getDatabaseTestHelper().getFeesByChargeId(chargeId);
+
+        assertThat(feesForCharge.size(), is(1));
+        assertThat(feesForCharge.getFirst().get("charge_id"), is(chargeId));
+        assertThat(feesForCharge.getFirst().get("fee_sub_type"), is(FeeSubType.SCHEME_FEE.getName()));
+        assertThat(feesForCharge.getFirst().get("refund_id"), is(nullValue()));
+    }
+
+    @Test
+    void persist_shouldCreateAFeeWithRefundId() {
+        DatabaseFixtures.TestRefund testRefund = app.getDatabaseFixtures()
+                .aTestRefund()
+                .withTestCharge(defaultTestCharge)
+                .insert();
+        RefundEntity refundEntity = RefundEntityFixture.aValidRefundEntity()
+                .withId(testRefund.getId())
+                .build();
+
+        FeeEntity feeEntity = new FeeEntity(refundEntity, Instant.now(), Fee.of(FeeType.TRANSACTION, 100L));
+        feeDao.persist(feeEntity);
+
+        List<Map<String, Object>> feesForRefund = app.getDatabaseTestHelper().getFeesByRefundId(testRefund.getId());
+
+        assertThat(feesForRefund.size(), is(1));
+        assertThat(feesForRefund.getFirst().get("charge_id"), is(nullValue()));
+        assertThat(feesForRefund.getFirst().get("refund_id"), is(testRefund.getId()));
     }
 }
