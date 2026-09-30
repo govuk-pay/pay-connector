@@ -40,6 +40,10 @@ public class AdyenPayoutReconciliationPayload extends PayoutReconciliationPayloa
                 reportNotificationRequest.getEnvironment());
     }
 
+    public boolean isLive() {
+        return "live".equals(environment);
+    }
+
     public String getReportType() {
         return reportType;
     }
