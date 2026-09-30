@@ -32,6 +32,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static java.time.temporal.ChronoUnit.MICROS;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
@@ -237,5 +238,21 @@ public class RefundEntity extends AbstractVersionedEntity {
 
     public List<FeeEntity> getFees() {
         return fees;
+    }
+
+    public Optional<Long> getFeeAmount() {
+        return fees.isEmpty() ? Optional.empty() :
+                Optional.of(fees.stream()
+                        .map(FeeEntity::getAmountCollected)
+                        .reduce(0L, Long::sum));
+    }
+
+    public Optional<Long> getNetAmount() {
+        return getFeeAmount().map(fee -> {
+            if (getStatus() == RefundStatus.REFUNDED) {
+                return -(getAmount() + fee);
+            }
+            return -fee;
+        });
     }
 }
