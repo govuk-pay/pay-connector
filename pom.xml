@@ -342,6 +342,11 @@
             <artifactId>adyen-java-api-library</artifactId>
             <version>43.1.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.14.1</version>
+        </dependency>
 
         <!-- Test dependencies that are imported from one of the BOMs specified
              in <dependencyManagement> so no explicit versions needed -->
