@@ -20,6 +20,16 @@ public class AdyenConfigUtil {
         return apiKey;
     }
 
+    public static String getBalancePlatformReportApiKey(AdyenGatewayConfig adyenGatewayConfig, boolean live) {
+        String apiKey;
+        if (live) {
+            apiKey = adyenGatewayConfig.getApiKeys().balancePlatformReport().live();
+        } else {
+            apiKey = adyenGatewayConfig.getApiKeys().balancePlatformReport().test();
+        }
+        return apiKey;
+    }
+
     public static String getBaseCheckoutUrl(AdyenGatewayConfig adyenGatewayConfig, boolean live) {
         String baseCheckoutUrl;
         if (live) {

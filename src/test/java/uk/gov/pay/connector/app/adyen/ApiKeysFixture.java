@@ -17,6 +17,10 @@ public class ApiKeysFixture {
             "test-legal-entity-management-API-key",
             "live-legal-entity-management-API-key");
 
+    private ApiKeys.BalancePlatformReportApiKeys balancePlatformReport = new ApiKeys.BalancePlatformReportApiKeys(
+            "test-balance-platform-report-API-key",
+            "test-balance-platform-report-API-key");
+
     public static ApiKeysFixture someApiKeys() {
         return new ApiKeysFixture();
     }
@@ -36,7 +40,12 @@ public class ApiKeysFixture {
         return this;
     }
 
+    public ApiKeysFixture withBalancePlatformReportApiKeys(ApiKeys.BalancePlatformReportApiKeys balancePlatformReport) {
+        this.balancePlatformReport = balancePlatformReport;
+        return this;
+    }
+
     public ApiKeys build() {
-        return new ApiKeys(companyAccount, balancePlatform, legalEntityManagement);
+        return new ApiKeys(companyAccount, balancePlatform, legalEntityManagement, balancePlatformReport);
     }
 }

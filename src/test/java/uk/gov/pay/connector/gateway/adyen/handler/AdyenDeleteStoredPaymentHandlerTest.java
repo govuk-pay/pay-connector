@@ -126,7 +126,8 @@ class AdyenDeleteStoredPaymentHandlerTest {
         ApiKeys apiKeys = new ApiKeys(
                 new ApiKeys.CompanyAccountApiKeys("test-api-key", "live-api-key"),
                 new ApiKeys.BalancePlatformApiKeys("balance-test-api-key", "balance-live-api-key"),
-                new ApiKeys.LegalEntityManagementApiKeys("lem-test-api-key", "lem-live-api-key")
+                new ApiKeys.LegalEntityManagementApiKeys("lem-test-api-key", "lem-live-api-key"),
+                new ApiKeys.BalancePlatformReportApiKeys("bp-report-test-api-key", "bp-report-live-api-key")
         );
 
         when(adyenGatewayConfig.getBaseUrls()).thenReturn(baseUrls);

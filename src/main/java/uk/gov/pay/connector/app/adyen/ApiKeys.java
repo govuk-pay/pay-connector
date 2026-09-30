@@ -12,7 +12,9 @@ public record ApiKeys(
         BalancePlatformApiKeys balancePlatform,
         @Valid
         @NotNull
-        LegalEntityManagementApiKeys legalEntityManagement
+        LegalEntityManagementApiKeys legalEntityManagement,
+        @NotNull
+        BalancePlatformReportApiKeys balancePlatformReport
 ) {
 
     public record CompanyAccountApiKeys(@NotNull String test, @NotNull String live) {
@@ -22,5 +24,8 @@ public record ApiKeys(
     }
 
     public record LegalEntityManagementApiKeys(@NotNull String test, @NotNull String live) {
+    }
+
+    public record BalancePlatformReportApiKeys(@NotNull String test, @NotNull String live) {
     }
 }

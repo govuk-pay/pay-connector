@@ -66,6 +66,9 @@ adyen:
     legalEntityManagement:
       test: adyen-test-legal-entity-management-api-key
       live: adyen-live-legal-entity-management-api-key
+    balancePlatformReport:
+      test: adyen-test-balance-platform-report-api-key
+      live: adyen-live-balance-platform-report-api-key
   notificationDomain: .adyen.com
   hmacKeys:
     payments:
