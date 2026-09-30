@@ -7,6 +7,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.pay.connector.app.ConnectorConfiguration;
+import uk.gov.pay.connector.events.EventService;
 import uk.gov.pay.connector.gateway.PaymentProviders;
 import uk.gov.pay.connector.gateway.adyen.AdyenPaymentProvider;
 import uk.gov.pay.connector.gateway.adyen.report.AdyenPayoutReportParser;
@@ -34,6 +36,12 @@ class AdyenPayoutReconciliationHandlerTest {
     AdyenPayoutReportParser mockAdyenPayoutReportParser;
     @Mock
     AdyenPaymentProvider adyenPaymentProvider;
+    @Mock
+    private ConnectorConfiguration mockConnectorConfiguration;
+    @Mock
+    private EventService mockEventService;
+    @Mock
+    private PayoutEmitterService mockPayoutEmitterService;
 
     @RegisterExtension
     LogCapturer logs = LogCapturer.create().captureForType(AdyenPayoutReconciliationHandler.class);
@@ -45,7 +53,7 @@ class AdyenPayoutReconciliationHandlerTest {
     void setUp() {
         when(mockPaymentProviders.byName(ADYEN)).thenReturn(adyenPaymentProvider);
         handler = new AdyenPayoutReconciliationHandler(mockPaymentProviders,
-                mockAdyenPayoutReportParser);
+                mockAdyenPayoutReportParser, mockConnectorConfiguration, mockEventService, mockPayoutEmitterService);
         payoutReconcileMessage = mockPayoutReconcileMessage();
     }
 

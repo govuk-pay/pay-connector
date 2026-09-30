@@ -15,4 +15,10 @@ public class PayoutPaid extends PayoutEvent {
                 new PayoutPaidEventDetails(payout.getArrivalDate(), payout.getStatus()),
                 eventTimestamp);
     }
+
+    public static PayoutPaid from(String payoutId, Instant eventTimestamp, String gatewayStatus) {
+        return new PayoutPaid(payoutId,
+                new PayoutPaidEventDetails(null, gatewayStatus),
+                eventTimestamp);
+    }
 }
