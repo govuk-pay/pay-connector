@@ -1,7 +1,9 @@
 package uk.gov.pay.connector.gateway;
 
-import java.util.EnumSet;
+import java.util.Arrays;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public enum PaymentGatewayName {
@@ -11,10 +13,8 @@ public enum PaymentGatewayName {
 
     private static final Set<String> UNSUPPORTED = Set.of(SMARTPAY.gatewayName, EPDQ.gatewayName);
 
-    private static final Set<String> PAYMENT_GATEWAY_NAMES = EnumSet.allOf(PaymentGatewayName.class)
-            .stream()
-            .map(x -> x.gatewayName)
-            .collect(Collectors.toSet());
+    private static final Map<String, PaymentGatewayName> PAYMENT_GATEWAY_NAMES = Arrays.stream(values())
+            .collect(Collectors.toUnmodifiableMap(PaymentGatewayName::getName, Function.identity()));
 
     PaymentGatewayName(String gatewayName) {
         this.gatewayName = gatewayName;
@@ -39,18 +39,15 @@ public enum PaymentGatewayName {
     }
 
     public static boolean isValidPaymentGateway(String name) {
-        try {
-            valueFrom(name);
-            return true;
-        } catch (Unsupported _) {
-            return false;
-        }
+        return PAYMENT_GATEWAY_NAMES.containsKey(name);
     }
 
     public static PaymentGatewayName valueFrom(String gatewayName) {
-        if (PAYMENT_GATEWAY_NAMES.contains(gatewayName)) {
-            return PaymentGatewayName.valueOf(gatewayName.toUpperCase());
+        PaymentGatewayName paymentGatewayName = PAYMENT_GATEWAY_NAMES.get(gatewayName);
+        if (paymentGatewayName == null) {
+            throw new Unsupported("Unsupported Payment Gateway " + gatewayName);
         }
-        throw new Unsupported("Unsupported Payment Gateway " + gatewayName);
+        return paymentGatewayName;
     }
+
 }

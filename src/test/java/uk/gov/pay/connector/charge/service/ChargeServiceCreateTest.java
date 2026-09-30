@@ -99,6 +99,7 @@ import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.params.provider.EnumSource.Mode.EXCLUDE;
 import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -723,8 +724,8 @@ class ChargeServiceCreateTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = Source.class, names = {"CARD_API", "CARD_PAYMENT_LINK", "CARD_AGENT_INITIATED_MOTO"})
-    void shouldThrowException_whenPaymentProviderIsStripeAndAmountUnder30Pence(Source source) {
+    @EnumSource(value = Source.class, mode = EXCLUDE, names = {"CARD_EXTERNAL_TELEPHONE"})
+    void shouldThrowException_whenPaymentProviderIsStripeAndAmountUnder30PenceMinimumAmount(Source source) {
         GatewayAccountCredentialsEntity stripeGatewayAccountCredentialsEntity = GatewayAccountCredentialsEntityFixture
                 .aGatewayAccountCredentialsEntity()
                 .withGatewayAccountEntity(gatewayAccount)
@@ -734,6 +735,26 @@ class ChargeServiceCreateTest {
                 .build();
         ChargeCreateRequest request = requestBuilder
                 .withAmount(29)
+                .withSource(source)
+                .build();
+        when(mockedGatewayAccountDao.findById(GATEWAY_ACCOUNT_ID)).thenReturn(Optional.of(gatewayAccount));
+        when(mockGatewayAccountCredentialsService.getCurrentOrActiveCredential(gatewayAccount)).thenReturn(stripeGatewayAccountCredentialsEntity);
+        assertThrows(ChargeException.class, () -> chargeService.create(request, GATEWAY_ACCOUNT_ID, mockedUriInfo, null));
+        verify(mockedChargeDao, never()).persist(any(ChargeEntity.class));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = Source.class, mode = EXCLUDE, names = {"CARD_EXTERNAL_TELEPHONE"})
+    void shouldThrowException_whenPaymentProviderIsAdyenAndAmountUnder21PenceMinimumAmount(Source source) {
+        GatewayAccountCredentialsEntity stripeGatewayAccountCredentialsEntity = GatewayAccountCredentialsEntityFixture
+                .aGatewayAccountCredentialsEntity()
+                .withGatewayAccountEntity(gatewayAccount)
+                .withPaymentProvider("adyen")
+                .withCredentials(Map.of())
+                .withState(GatewayAccountCredentialState.ACTIVE)
+                .build();
+        ChargeCreateRequest request = requestBuilder
+                .withAmount(20)
                 .withSource(source)
                 .build();
         when(mockedGatewayAccountDao.findById(GATEWAY_ACCOUNT_ID)).thenReturn(Optional.of(gatewayAccount));
