@@ -2214,20 +2214,4 @@
         <sql>CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS idx_fees_unique_refund_fields ON fees (refund_id, fee_type, fee_sub_type) NULLS NOT DISTINCT;</sql>
     </changeSet>
 
-    <changeSet id="add unique fee constraint for refund using existing index" author="">
-        <sql>
-            ALTER TABLE fees
-                ADD CONSTRAINT unique_fees_refund_fields
-                    UNIQUE USING INDEX idx_fees_unique_refund_fields;
-        </sql>
-    </changeSet>
-
-    <changeSet id="add unique fee constraint for charges using existing index" author="">
-        <sql>
-            ALTER TABLE fees
-                ADD CONSTRAINT unique_fees_charge_fields
-                    UNIQUE USING INDEX idx_fees_unique_charge_fields;
-        </sql>
-    </changeSet>
-
 </databaseChangeLog>
