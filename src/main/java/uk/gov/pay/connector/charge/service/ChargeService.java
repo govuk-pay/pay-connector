@@ -152,7 +152,8 @@ import static uk.gov.service.payments.commons.model.AuthorisationMode.AGREEMENT;
 import static uk.gov.service.payments.commons.model.AuthorisationMode.MOTO_API;
 import static uk.gov.service.payments.commons.model.ErrorIdentifier.AGREEMENT_NOT_ACTIVE;
 import static uk.gov.service.payments.commons.model.ErrorIdentifier.AGREEMENT_NOT_FOUND;
-import static uk.gov.service.payments.commons.model.ErrorIdentifier.AMOUNT_BELOW_MINIMUM;
+import static uk.gov.service.payments.commons.model.ErrorIdentifier.AMOUNT_BELOW_MINIMUM_FOR_ADYEN;
+import static uk.gov.service.payments.commons.model.ErrorIdentifier.AMOUNT_BELOW_MINIMUM_FOR_STRIPE;
 import static uk.gov.service.payments.commons.model.ErrorIdentifier.CARD_NUMBER_IN_PAYMENT_LINK_REFERENCE_REJECTED;
 import static uk.gov.service.payments.commons.model.ErrorIdentifier.GENERIC;
 import static uk.gov.service.payments.commons.model.ErrorIdentifier.MOTO_NOT_ALLOWED;
@@ -1229,13 +1230,13 @@ public class ChargeService {
                 case STRIPE -> {
                     if (amount < MINIMUM_STRIPE_PAYMENT_AMOUNT_IN_PENCE) {
                         throw new ChargeException("Payments under " + MINIMUM_STRIPE_PAYMENT_AMOUNT_IN_PENCE
-                                + " pence are not allowed for Stripe accounts", AMOUNT_BELOW_MINIMUM, SC_UNPROCESSABLE_CONTENT);
+                                + " pence are not allowed for Stripe accounts", AMOUNT_BELOW_MINIMUM_FOR_STRIPE, SC_UNPROCESSABLE_CONTENT);
                     }
                 }
                 case ADYEN -> {
                     if (amount < MINIMUM_ADYEN_PAYMENT_AMOUNT_IN_PENCE) {
                         throw new ChargeException("Payments under " + MINIMUM_ADYEN_PAYMENT_AMOUNT_IN_PENCE
-                                + " pence are not allowed for Adyen accounts", AMOUNT_BELOW_MINIMUM, SC_UNPROCESSABLE_CONTENT);
+                                + " pence are not allowed for Adyen accounts", AMOUNT_BELOW_MINIMUM_FOR_ADYEN, SC_UNPROCESSABLE_CONTENT);
                     }
                 }
             }

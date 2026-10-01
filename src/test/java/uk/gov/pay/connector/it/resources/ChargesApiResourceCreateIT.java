@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
@@ -30,6 +30,7 @@ import uk.gov.pay.connector.util.AddAgreementParams;
 import uk.gov.pay.connector.util.AddPaymentInstrumentParams;
 import uk.gov.service.payments.commons.model.AgreementPaymentType;
 import uk.gov.service.payments.commons.model.ErrorIdentifier;
+import uk.gov.service.payments.commons.model.Source;
 
 import java.sql.Timestamp;
 import java.time.ZoneOffset;
@@ -62,6 +63,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.text.MatchesPattern.matchesPattern;
+import static org.junit.jupiter.params.provider.EnumSource.Mode.EXCLUDE;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.CREATED;
 import static uk.gov.pay.connector.client.cardid.model.CardInformationFixture.aCardInformation;
 import static uk.gov.pay.connector.common.model.api.ExternalChargeState.EXTERNAL_STARTED;
@@ -465,8 +467,8 @@ public class ChargesApiResourceCreateIT {
             }
 
             @ParameterizedTest
-            @ValueSource(strings = {"CARD_API", "CARD_PAYMENT_LINK", "CARD_AGENT_INITIATED_MOTO"})
-            void when_amount_is_under_30p_for_api_payment_for_Stripe_account(String source) {
+            @EnumSource(value = Source.class, mode = EXCLUDE, names = {"CARD_EXTERNAL_TELEPHONE"})
+            void when_amount_is_under_30p_for_api_payment_for_Stripe_account(Source source) {
                 DatabaseFixtures.TestAccount stripeTestAccount = app.getDatabaseFixtures()
                         .aTestAccount()
                         .withPaymentProvider("stripe")
@@ -479,14 +481,38 @@ public class ChargesApiResourceCreateIT {
                                 "reference", "Test reference",
                                 "description", "Test description",
                                 "return_url", "http://service.local/success-page/",
-                                "source", source
+                                "source", source.name()
                         )))
                         .post(format("/v1/api/accounts/%s/charges", stripeTestAccount.getAccountId()))
                         .then()
                         .statusCode(422)
                         .contentType(JSON)
                         .body("message", contains("Payments under 30 pence are not allowed for Stripe accounts"))
-                        .body("error_identifier", is(ErrorIdentifier.AMOUNT_BELOW_MINIMUM.toString()));
+                        .body("error_identifier", is(ErrorIdentifier.AMOUNT_BELOW_MINIMUM_FOR_STRIPE.toString()));
+            }
+
+            @ParameterizedTest
+            @EnumSource(value = Source.class, mode = EXCLUDE, names = {"CARD_EXTERNAL_TELEPHONE"})
+            void when_amount_is_under_21p_for_api_payment_for_Adyen_account(Source source) {
+                DatabaseFixtures.TestAccount stripeTestAccount = app.getDatabaseFixtures()
+                        .aTestAccount()
+                        .withPaymentProvider("adyen")
+                        .insert();
+
+                app.givenSetup()
+                        .body(toJson(Map.of(
+                                "amount", 20,
+                                "reference", "Test reference",
+                                "description", "Test description",
+                                "return_url", "http://service.local/success-page/",
+                                "source", source.name()
+                        )))
+                        .post(format("/v1/api/accounts/%s/charges", stripeTestAccount.getAccountId()))
+                        .then()
+                        .statusCode(422)
+                        .contentType(JSON)
+                        .body("message", contains("Payments under 21 pence are not allowed for Adyen accounts"))
+                        .body("error_identifier", is(ErrorIdentifier.AMOUNT_BELOW_MINIMUM_FOR_ADYEN.toString()));
             }
         }
 
@@ -989,8 +1015,8 @@ public class ChargesApiResourceCreateIT {
             }
 
             @ParameterizedTest
-            @ValueSource(strings = {"CARD_API", "CARD_PAYMENT_LINK", "CARD_AGENT_INITIATED_MOTO"})
-            void when_amount_is_under_30p_for_api_payment_for_Stripe_account(String source) {
+            @EnumSource(value = Source.class, mode = EXCLUDE, names = {"CARD_EXTERNAL_TELEPHONE"})
+            void when_amount_is_under_30p_for_api_payment_for_Stripe_account(Source source) {
                 DatabaseFixtures.TestAccount stripeTestAccount = app.getDatabaseFixtures()
                         .aTestAccount()
                         .withPaymentProvider("stripe")
@@ -1004,14 +1030,39 @@ public class ChargesApiResourceCreateIT {
                                 "reference", "Test reference",
                                 "description", "Test description",
                                 "return_url", "http://service.local/success-page/",
-                                "source", source
+                                "source", source.name()
                         )))
                         .post(format("/v1/api/service/%s/account/%s/charges", VALID_SERVICE_ID, GatewayAccountType.TEST))
                         .then()
                         .statusCode(422)
                         .contentType(JSON)
                         .body("message", contains("Payments under 30 pence are not allowed for Stripe accounts"))
-                        .body("error_identifier", is(ErrorIdentifier.AMOUNT_BELOW_MINIMUM.toString()));
+                        .body("error_identifier", is(ErrorIdentifier.AMOUNT_BELOW_MINIMUM_FOR_STRIPE.toString()));
+            }
+
+            @ParameterizedTest
+            @EnumSource(value = Source.class, mode = EXCLUDE, names = {"CARD_EXTERNAL_TELEPHONE"})
+            void when_amount_is_under_21p_for_api_payment_for_Adyen_account(Source source) {
+                DatabaseFixtures.TestAccount stripeTestAccount = app.getDatabaseFixtures()
+                        .aTestAccount()
+                        .withPaymentProvider("adyen")
+                        .withServiceId(VALID_SERVICE_ID)
+                        .insert();
+
+                app.givenSetup()
+                        .body(toJson(Map.of(
+                                "amount", 20,
+                                "reference", "Test reference",
+                                "description", "Test description",
+                                "return_url", "http://service.local/success-page/",
+                                "source", source.name()
+                        )))
+                        .post(format("/v1/api/service/%s/account/%s/charges", VALID_SERVICE_ID, GatewayAccountType.TEST))
+                        .then()
+                        .statusCode(422)
+                        .contentType(JSON)
+                        .body("message", contains("Payments under 21 pence are not allowed for Adyen accounts"))
+                        .body("error_identifier", is(ErrorIdentifier.AMOUNT_BELOW_MINIMUM_FOR_ADYEN.toString()));
             }
         }
 
