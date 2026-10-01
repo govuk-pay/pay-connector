@@ -2230,4 +2230,25 @@
         </sql>
     </changeSet>
 
+    <changeSet id="fix fees unique charge index" runInTransaction="false" author="">
+
+        <sql>DROP INDEX CONCURRENTLY IF EXISTS idx_fees_unique_charge_fields;</sql>
+
+        <sql>
+            CREATE UNIQUE INDEX CONCURRENTLY idx_fees_unique_charge_fields
+                ON fees (charge_id,fee_type,fee_sub_type) NULLS NOT DISTINCT WHERE charge_id IS NOT NULL;
+        </sql>
+    </changeSet>
+
+    <changeSet id="fix fees unique charge index" runInTransaction="false" author="">
+
+        <sql> DROP INDEX CONCURRENTLY IF EXISTS idx_fees_unique_refund_fields;</sql>
+
+        <sql>
+            CREATE UNIQUE INDEX CONCURRENTLY idx_fees_unique_refund_fields
+                ON fees (refund_id,fee_type,fee_sub_type) NULLS NOT DISTINCT WHERE refund_id IS NOT NULL;
+        </sql>
+    </changeSet>
+
+
 </databaseChangeLog>
