@@ -18,6 +18,7 @@ import uk.gov.pay.connector.refund.model.domain.RefundEntity;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
@@ -165,7 +166,7 @@ public class FeeDaoIT {
         void shouldInsertChargeFeeIfAbsent(String feeType, String feeSubType, Long duplicateAmount) {
             long chargeId = defaultTestCharge.getChargeId();
 
-            var timestamp = Timestamp.from(Instant.now());
+            var timestamp = Timestamp.from(Instant.now().truncatedTo(ChronoUnit.MICROS));
 
             boolean firstInsert = feeDao.insertChargeFeeIfAbsent("1", chargeId, feeType, feeSubType, 11L, timestamp);
             boolean duplicateInsert = feeDao.insertChargeFeeIfAbsent("1", chargeId, feeType, feeType, duplicateAmount, timestamp);
@@ -198,7 +199,7 @@ public class FeeDaoIT {
                     .withId(testRefund.getId())
                     .build().getId();
 
-            var timestamp = Timestamp.from(Instant.now());
+            var timestamp = Timestamp.from(Instant.now().truncatedTo(ChronoUnit.MICROS));
 
             boolean firstInsert = feeDao.insertRefundFeeIfAbsent("1", refundId, feeType, feeSubType, 11L, timestamp);
             boolean duplicateInsert = feeDao.insertRefundFeeIfAbsent("1", refundId, feeType, feeType, duplicateAmount, timestamp);
