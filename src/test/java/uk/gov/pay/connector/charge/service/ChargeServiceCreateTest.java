@@ -72,6 +72,7 @@ import uk.gov.pay.connector.token.model.domain.TokenEntity;
 import uk.gov.service.payments.commons.model.AgreementPaymentType;
 import uk.gov.service.payments.commons.model.AuthorisationMode;
 import uk.gov.service.payments.commons.model.CardExpiryDate;
+import uk.gov.service.payments.commons.model.ErrorIdentifier;
 import uk.gov.service.payments.commons.model.Source;
 import uk.gov.service.payments.commons.model.SupportedLanguage;
 import uk.gov.service.payments.commons.model.charge.ExternalMetadata;
@@ -739,7 +740,8 @@ class ChargeServiceCreateTest {
                 .build();
         when(mockedGatewayAccountDao.findById(GATEWAY_ACCOUNT_ID)).thenReturn(Optional.of(gatewayAccount));
         when(mockGatewayAccountCredentialsService.getCurrentOrActiveCredential(gatewayAccount)).thenReturn(stripeGatewayAccountCredentialsEntity);
-        assertThrows(ChargeException.class, () -> chargeService.create(request, GATEWAY_ACCOUNT_ID, mockedUriInfo, null));
+        var chargeException = assertThrows(ChargeException.class, () -> chargeService.create(request, GATEWAY_ACCOUNT_ID, mockedUriInfo, null));
+        assertThat(chargeException.getErrorIdentifier(), is(ErrorIdentifier.AMOUNT_BELOW_MINIMUM_FOR_STRIPE));
         verify(mockedChargeDao, never()).persist(any(ChargeEntity.class));
     }
 
@@ -759,7 +761,8 @@ class ChargeServiceCreateTest {
                 .build();
         when(mockedGatewayAccountDao.findById(GATEWAY_ACCOUNT_ID)).thenReturn(Optional.of(gatewayAccount));
         when(mockGatewayAccountCredentialsService.getCurrentOrActiveCredential(gatewayAccount)).thenReturn(stripeGatewayAccountCredentialsEntity);
-        assertThrows(ChargeException.class, () -> chargeService.create(request, GATEWAY_ACCOUNT_ID, mockedUriInfo, null));
+        var chargeException = assertThrows(ChargeException.class, () -> chargeService.create(request, GATEWAY_ACCOUNT_ID, mockedUriInfo, null));
+        assertThat(chargeException.getErrorIdentifier(), is(ErrorIdentifier.AMOUNT_BELOW_MINIMUM_FOR_ADYEN));
         verify(mockedChargeDao, never()).persist(any(ChargeEntity.class));
     }
 
