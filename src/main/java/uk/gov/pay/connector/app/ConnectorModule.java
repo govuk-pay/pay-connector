@@ -40,7 +40,6 @@ import uk.gov.pay.connector.refund.service.RefundEntityFactory;
 import uk.gov.pay.connector.refund.service.WorldpayRefundEntityFactory;
 import uk.gov.pay.connector.usernotification.govuknotify.NotifyClientFactory;
 import uk.gov.pay.connector.util.CidrUtils;
-import uk.gov.pay.connector.util.HashUtil;
 import uk.gov.pay.connector.util.IpAddressMatcher;
 import uk.gov.pay.connector.util.JsonObjectMapper;
 import uk.gov.pay.connector.util.RandomIdGenerator;
@@ -81,7 +80,6 @@ public class ConnectorModule extends AbstractModule {
         bind(CardExecutorService.class).in(Singleton.class);
         bind(ApplePayDecrypter.class).in(Singleton.class);
         bind(PaymentProviders.class).in(Singleton.class);
-        bind(HashUtil.class);
         bind(RequestValidator.class);
         bind(GatewayAccountRequestValidator.class).in(Singleton.class);
         bind(InetAddressValidator.class).in(Singleton.class);
