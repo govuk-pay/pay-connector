@@ -13,6 +13,7 @@ import uk.gov.pay.connector.queue.tasks.model.Task;
 
 import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookType.BALANCE_PLATFORM_REPORT;
+import static uk.gov.pay.connector.queue.tasks.TaskType.HANDLE_ADYEN_CONFIGURATION_WEBHOOK_NOTIFICATION;
 import static uk.gov.pay.connector.queue.tasks.TaskType.HANDLE_ADYEN_PAYMENTS_WEBHOOK_NOTIFICATION;
 import static uk.gov.pay.connector.queue.tasks.TaskType.HANDLE_ADYEN_TOKEN_WEBHOOK_NOTIFICATION;
 import static uk.gov.pay.connector.queue.tasks.TaskType.HANDLE_ADYEN_TRANSFER_WEBHOOK_NOTIFICATION;
@@ -97,6 +98,7 @@ public class AdyenNotificationService {
             case PAYMENTS -> HANDLE_ADYEN_PAYMENTS_WEBHOOK_NOTIFICATION;
             case TOKENS -> HANDLE_ADYEN_TOKEN_WEBHOOK_NOTIFICATION;
             case TRANSFER -> HANDLE_ADYEN_TRANSFER_WEBHOOK_NOTIFICATION;
+            case CONFIGURATION -> HANDLE_ADYEN_CONFIGURATION_WEBHOOK_NOTIFICATION;
             case BALANCE_PLATFORM_REPORT -> {
                 LOGGER.atError().setMessage("Balance platform reports are not expected to be processed by the task queue").log();
                 yield null;

@@ -4,5 +4,6 @@ public enum AdyenWebhookType {
     PAYMENTS,
     TOKENS,
     TRANSFER,
-    BALANCE_PLATFORM_REPORT
+    BALANCE_PLATFORM_REPORT,
+    CONFIGURATION
 }
