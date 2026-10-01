@@ -145,7 +145,6 @@ import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.ENTERING_CAR
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.PAYMENT_NOTIFICATION_CREATED;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.fromString;
 import static uk.gov.pay.connector.charge.model.domain.Exemption3dsType.CORPORATE;
-import static uk.gov.pay.connector.gateway.PaymentGatewayName.STRIPE;
 import static uk.gov.pay.connector.gateway.PaymentGatewayName.WORLDPAY;
 import static uk.gov.pay.connector.paymentprocessor.model.Exemption3ds.EXEMPTION_NOT_REQUESTED;
 import static uk.gov.pay.connector.usernotification.model.domain.EmailNotificationType.PAYMENT_CONFIRMED;
@@ -166,7 +165,8 @@ public class ChargeService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ChargeService.class);
     private static final List<ChargeStatus> CURRENT_STATUSES_ALLOWING_UPDATE_TO_NEW_STATUS = newArrayList(CREATED, ENTERING_CARD_DETAILS);
-    public static final int MINIMUM_STRIPE_PAYMENT_AMOUNT = 30;
+    public static final int MINIMUM_STRIPE_PAYMENT_AMOUNT_IN_PENCE = 30;
+    public static final int MINIMUM_ADYEN_PAYMENT_AMOUNT_IN_PENCE = 21;
 
     private final ChargeDao chargeDao;
     private final ChargeEventDao chargeEventDao;
@@ -384,7 +384,7 @@ public class ChargeService {
         checkGatewayAccount(chargeRequest, gatewayAccount);
         checkCardNumberInReferenceForPaymentLinkPayments(chargeRequest.getSource(), chargeRequest.getReference());
         checkAgreementOptions(chargeRequest, gatewayAccount);
-        checkIfAmountBelowMinimum(chargeRequest.getSource(), chargeRequest.getAmount(), gatewayAccount, gatewayAccountCredential.getPaymentProvider());
+        checkIfAmountBelowMinimum(chargeRequest.getSource(), chargeRequest.getAmount(), gatewayAccount, PaymentGatewayName.valueFrom(gatewayAccountCredential.getPaymentProvider()));
     }
 
     private void checkGatewayAccount(ChargeCreateRequest chargeRequest, GatewayAccountEntity gatewayAccount) {
@@ -1222,13 +1222,27 @@ public class ChargeService {
         }
     }
 
-    private void checkIfAmountBelowMinimum(Source source, Long amount, GatewayAccountEntity gatewayAccount, String paymentProvider) {
-        if (source != CARD_EXTERNAL_TELEPHONE && amount < MINIMUM_STRIPE_PAYMENT_AMOUNT && PaymentGatewayName.valueFrom(paymentProvider) == STRIPE) {
-            throw new ChargeException("Payments under 30 pence are not allowed for Stripe accounts", AMOUNT_BELOW_MINIMUM, SC_UNPROCESSABLE_CONTENT);
+    private void checkIfAmountBelowMinimum(Source source, Long amount, GatewayAccountEntity gatewayAccount,
+                                           PaymentGatewayName paymentGatewayName) {
+        if (source != CARD_EXTERNAL_TELEPHONE) {
+            switch (paymentGatewayName) {
+                case STRIPE -> {
+                    if (amount < MINIMUM_STRIPE_PAYMENT_AMOUNT_IN_PENCE) {
+                        throw new ChargeException("Payments under " + MINIMUM_STRIPE_PAYMENT_AMOUNT_IN_PENCE
+                                + " pence are not allowed for Stripe accounts", AMOUNT_BELOW_MINIMUM, SC_UNPROCESSABLE_CONTENT);
+                    }
+                }
+                case ADYEN -> {
+                    if (amount < MINIMUM_ADYEN_PAYMENT_AMOUNT_IN_PENCE) {
+                        throw new ChargeException("Payments under " + MINIMUM_ADYEN_PAYMENT_AMOUNT_IN_PENCE
+                                + " pence are not allowed for Adyen accounts", AMOUNT_BELOW_MINIMUM, SC_UNPROCESSABLE_CONTENT);
+                    }
+                }
+            }
         }
         checkIfZeroAmountAllowed(amount, gatewayAccount);
     }
-    
+
     private void checkIfZeroAmountAllowed(Long amount, GatewayAccountEntity gatewayAccount) {
         if (amount == 0L && !gatewayAccount.isAllowZeroAmount()) {
             throw new ZeroAmountNotAllowedForGatewayAccountException(gatewayAccount.getId());
