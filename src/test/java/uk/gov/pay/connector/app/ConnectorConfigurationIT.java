@@ -99,6 +99,14 @@ public class ConnectorConfigurationIT {
         assertThat(balancePlatformLiveKeys.getPrimary().get(), is("adyen-live-balance-platform-report-hmac-primary"));
         assertThat(balancePlatformLiveKeys.getSecondary().isPresent(), is(true));
         assertThat(balancePlatformLiveKeys.getSecondary().get(), is("adyen-live-balance-platform-report-hmac-secondary"));
+        
+        var configurationTestKeys = adyenGatewayConfig.getHmacKeys().configuration().test();
+        assertThat(configurationTestKeys.getPrimary().isPresent(), is(true));
+        assertThat(configurationTestKeys.getPrimary().get(), is("adyen-test-configuration-hmac-primary"));
+
+        var configurationLiveKeys = adyenGatewayConfig.getHmacKeys().configuration().live();
+        assertThat(configurationLiveKeys.getPrimary().isPresent(), is(true));
+        assertThat(configurationLiveKeys.getPrimary().get(), is("adyen-live-configuration-hmac-primary"));
     }
 
 }

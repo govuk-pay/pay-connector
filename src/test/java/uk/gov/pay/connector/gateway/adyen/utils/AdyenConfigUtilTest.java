@@ -210,6 +210,9 @@ class AdyenConfigUtilTest {
                 case BALANCE_PLATFORM_REPORT -> {
                     return mockHmacKeys.balancePlatformReport();
                 }
+                case CONFIGURATION -> {
+                    return mockHmacKeys.configuration();
+                }
                 default -> throw new RuntimeException("AdyenWebhookType not supported");
             }
         }
