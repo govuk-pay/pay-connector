@@ -29,8 +29,11 @@ public class RefundResponse extends HalResourceResponse {
                 .build(gatewayAccountId, externalChargeId);
 
         return new RefundResponse(HalRepresentation.builder()
+                .ignoreNullProperties(true)
                 .addProperty("refund_id", refundEntity.getExternalId())
                 .addProperty("amount", refundEntity.getAmount())
+                .addProperty("fee",refundEntity.getFeeAmount().orElse(null))
+                .addProperty("net_amount",refundEntity.getNetAmount().orElse(null))
                 .addProperty("status", refundEntity.getStatus().toExternal().getStatus())
                 .addProperty("created_date", ISO_INSTANT_MILLISECOND_PRECISION.format(refundEntity.getCreatedDate()))
                 .addProperty("user_external_id", refundEntity.getUserExternalId())
@@ -52,8 +55,11 @@ public class RefundResponse extends HalResourceResponse {
                 .build(serviceId, accountType, externalChargeId, externalRefundId);
 
         return new RefundResponse(HalRepresentation.builder()
+                .ignoreNullProperties(true)
                 .addProperty("refund_id", refundEntity.getExternalId())
                 .addProperty("amount", refundEntity.getAmount())
+                .addProperty("fee",refundEntity.getFeeAmount().orElse(null))
+                .addProperty("net_amount",refundEntity.getNetAmount().orElse(null))
                 .addProperty("status", refundEntity.getStatus().toExternal().getStatus())
                 .addProperty("created_date", ISO_INSTANT_MILLISECOND_PRECISION.format(refundEntity.getCreatedDate()))
                 .addProperty("user_external_id", refundEntity.getUserExternalId())
