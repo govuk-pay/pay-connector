@@ -28,34 +28,107 @@ public class RefundNotificationProcessor {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final RefundService refundService;
+    private final WorldpayGatewayRefundNotificationProcessor worldpayGatewayRefundNotificationProcessor;
+    private final AdyenGatewayRefundNotificationProcessor adyenGatewayRefundNotificationProcessor;
     private final UserNotificationService userNotificationService;
 
     @Inject
     public RefundNotificationProcessor(RefundService refundService,
+                                       WorldpayGatewayRefundNotificationProcessor worldpayGatewayRefundNotificationProcessor,
+                                       AdyenGatewayRefundNotificationProcessor adyenGatewayRefundNotificationProcessor,
                                        UserNotificationService userNotificationService) {
         this.refundService = refundService;
+        this.worldpayGatewayRefundNotificationProcessor = worldpayGatewayRefundNotificationProcessor;
+        this.adyenGatewayRefundNotificationProcessor = adyenGatewayRefundNotificationProcessor;
         this.userNotificationService = userNotificationService;
     }
+    
+    public void invoke(PaymentGatewayName gatewayName, 
+                       RefundStatus newStatus, 
+                       GatewayAccountEntity gatewayAccountEntity, 
+                       RefundIdentifier refundIdentifier, 
+                       Charge charge
+    ) {
+//        if (isBlank(gatewayTransactionId)) {
+//            logMissingRefundReference(gatewayName, gatewayAccountEntity, charge);
+//            return;
+//        }
+        
+        GatewayRefundNotificationProcessor<?> processor = switch (gatewayName) {
+            case WORLDPAY -> worldpayGatewayRefundNotificationProcessor;
+            case ADYEN -> adyenGatewayRefundNotificationProcessor;
+            default -> throw new IllegalArgumentException("Unsupported Gateway: " + gatewayName);
+        };
 
-    public void invoke(PaymentGatewayName gatewayName, RefundStatus newStatus,
-                       GatewayAccountEntity gatewayAccountEntity, String gatewayTransactionId,
-                       String transactionId, Charge charge) {
-        if (isBlank(gatewayTransactionId)) {
-            logMissingRefundReference(gatewayName, gatewayAccountEntity, charge);
+        Optional<RefundEntity> optionalRefundEntity = switch (processor) {
+            case WorldpayGatewayRefundNotificationProcessor wp -> wp.findRefund(
+                    (ChargeExternalIdAndGatewayTransactionIdRefundIdentifier) refundIdentifier);
+            case AdyenGatewayRefundNotificationProcessor ap -> ap.findRefund(
+                    (RefundExternalIdRefundIdentifier) refundIdentifier);
+            default -> throw new IllegalArgumentException("Unsupported processor: " + processor.getClass().getSimpleName());
+        };
+
+//        if (optionalRefundEntity.isEmpty()) {
+//            handleMissingRefundByGatewayTransactionId(gatewayName, gatewayTransactionId, transactionId, charge);
+//            return;
+//        }
+        
+        var refundEntity = optionalRefundEntity.get();
+        
+        RefundStatus currentStatus = refundEntity.getStatus();
+
+        if (isRefundTransitionRedundant(currentStatus, newStatus)) {
+            logger.info("Notification received for refund [{}] is redundant and therefore ignored because refund is already in state [{}]",
+                    refundEntity.getExternalId(), currentStatus);
             return;
         }
 
-        Optional<RefundEntity> optionalRefundEntity =
-                refundService.findByChargeExternalIdAndGatewayTransactionId(charge.getExternalId(), gatewayTransactionId);
-
-        if (optionalRefundEntity.isEmpty()) {
-            handleMissingRefundByGatewayTransactionId(gatewayName, gatewayTransactionId, transactionId, charge);
+        if (processor.isRefundTransitionIllegal(currentStatus, newStatus)) {
+            logIllegalRefundTransition(refundEntity, newStatus, currentStatus);
             return;
         }
 
-        processRefundNotification(gatewayName, newStatus, gatewayAccountEntity, gatewayTransactionId, transactionId, charge, optionalRefundEntity.get());
+        refundService.transitionRefundState(refundEntity, gatewayAccountEntity, newStatus, charge);
+
+        if (newStatus == REFUNDED) {
+            userNotificationService.sendRefundIssuedEmail(refundEntity, charge, gatewayAccountEntity);
+        }
+
+        String stateTransitionMessage = newStatus == REFUND_ERROR ? "Refund request record set as failed (REFUND_ERROR)" : "Refund request record set as successful (REFUNDED)";
+
+        logger.atInfo()
+                .addKeyValue(PAYMENT_EXTERNAL_ID, refundEntity.getChargeExternalId())
+                .addKeyValue(REFUND_EXTERNAL_ID, refundEntity.getExternalId())
+                .addKeyValue(GATEWAY_ACCOUNT_ID, gatewayAccountEntity.getId())
+                .addKeyValue(PROVIDER, charge.getPaymentGatewayName())
+                .addKeyValue(GATEWAY_ACCOUNT_TYPE, gatewayAccountEntity.getType())
+                .addKeyValue("payment_gateway_transaction_id", transactionId)
+                .addKeyValue("gateway_transaction_id", gatewayTransactionId)
+                .addKeyValue("from_status", currentStatus)
+                .addKeyValue("to_status", newStatus)
+                .log("Notification received for refund. Updating refund: {}", stateTransitionMessage);
+
     }
 
+//    public void invoke(PaymentGatewayName gatewayName, RefundStatus newStatus,
+//                       GatewayAccountEntity gatewayAccountEntity, String gatewayTransactionId,
+//                       String transactionId, Charge charge) {
+//        if (isBlank(gatewayTransactionId)) {
+//            logMissingRefundReference(gatewayName, gatewayAccountEntity, charge);
+//            return;
+//        }
+//
+//        Optional<RefundEntity> optionalRefundEntity =
+//                refundService.findByChargeExternalIdAndGatewayTransactionId(charge.getExternalId(), gatewayTransactionId);
+//
+//        if (optionalRefundEntity.isEmpty()) {
+//            handleMissingRefundByGatewayTransactionId(gatewayName, gatewayTransactionId, transactionId, charge);
+//            return;
+//        }
+//
+//        processRefundNotification(gatewayName, newStatus, gatewayAccountEntity, gatewayTransactionId, transactionId, charge, optionalRefundEntity.get());
+//    }
+//
     public void processRefundByExternalId(PaymentGatewayName gatewayName, RefundStatus newStatus,
                                           GatewayAccountEntity gatewayAccountEntity, String refundExternalId, Charge charge) {
         if (isBlank(refundExternalId)) {
@@ -150,14 +223,6 @@ public class RefundNotificationProcessor {
 
     private boolean isRefundTransitionRedundant(RefundStatus currentStatus, RefundStatus newStatus) {
         return newStatus == currentStatus;
-    }
-
-    private boolean isRefundTransitionIllegal(RefundStatus currentStatus, RefundStatus newStatus) {
-        return (currentStatus == REFUNDED && newStatus == REFUND_ERROR) || (currentStatus == REFUND_ERROR && newStatus == REFUNDED);
-    }
-
-    private boolean isAdyenRefundTransitionIllegal(PaymentGatewayName gatewayName, RefundStatus currentStatus, RefundStatus newStatus) {
-        return gatewayName == ADYEN && currentStatus == REFUNDED && newStatus == REFUND_ERROR;
     }
 
     private void logIllegalRefundTransition(RefundEntity refundEntity, RefundStatus newStatus, RefundStatus currentStatus) {
