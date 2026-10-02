@@ -4,6 +4,9 @@ import com.google.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.pay.connector.charge.model.domain.Charge;
+import uk.gov.pay.connector.charge.service.ChargeService;
+import uk.gov.pay.connector.events.EventService;
+import uk.gov.pay.connector.events.model.charge.RefundAvailabilityUpdated;
 import uk.gov.pay.connector.gateway.PaymentGatewayName;
 import uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntity;
 import uk.gov.pay.connector.refund.model.domain.Refund;
@@ -12,6 +15,8 @@ import uk.gov.pay.connector.refund.model.domain.RefundStatus;
 import uk.gov.pay.connector.refund.service.RefundService;
 import uk.gov.pay.connector.usernotification.service.UserNotificationService;
 
+import java.time.Instant;
+import java.time.InstantSource;
 import java.util.Optional;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -28,13 +33,22 @@ public class RefundNotificationProcessor {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final RefundService refundService;
+    private final ChargeService chargeService;
     private final UserNotificationService userNotificationService;
+    private final EventService eventService;
+    private final InstantSource instantSource;
 
     @Inject
     public RefundNotificationProcessor(RefundService refundService,
-                                       UserNotificationService userNotificationService) {
+                                       ChargeService chargeService,
+                                       UserNotificationService userNotificationService,
+                                       EventService eventService,
+                                       InstantSource instantSource) {
         this.refundService = refundService;
+        this.chargeService = chargeService;
         this.userNotificationService = userNotificationService;
+        this.eventService = eventService;
+        this.instantSource = instantSource;
     }
 
     public void invoke(PaymentGatewayName gatewayName, RefundStatus newStatus,
@@ -45,8 +59,7 @@ public class RefundNotificationProcessor {
             return;
         }
 
-        Optional<RefundEntity> optionalRefundEntity =
-                refundService.findByChargeExternalIdAndGatewayTransactionId(charge.getExternalId(), gatewayTransactionId);
+        Optional<RefundEntity> optionalRefundEntity = refundService.findByChargeExternalIdAndGatewayTransactionId(charge.getExternalId(), gatewayTransactionId);
 
         if (optionalRefundEntity.isEmpty()) {
             handleMissingRefundByGatewayTransactionId(gatewayName, gatewayTransactionId, transactionId, charge);
@@ -64,6 +77,7 @@ public class RefundNotificationProcessor {
         }
 
         Optional<RefundEntity> optionalRefundEntity = refundService.findRefundByExternalId(refundExternalId);
+
         if (optionalRefundEntity.isEmpty()) {
             logMissingRefund(gatewayName, refundExternalId, null, null, charge);
             return;
@@ -91,7 +105,9 @@ public class RefundNotificationProcessor {
             return;
         }
 
-        refundService.transitionRefundState(refundEntity, gatewayAccountEntity, newStatus, charge);
+        Instant now = instantSource.instant();
+        refundService.transitionRefundState(refundEntity, gatewayAccountEntity, newStatus, charge, now);
+        eventService.emitAndRecordEvent(chargeService.createRefundAvailabilityUpdatedEvent(charge, now));
 
         if (newStatus == REFUNDED) {
             userNotificationService.sendRefundIssuedEmail(refundEntity, charge, gatewayAccountEntity);

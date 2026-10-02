@@ -16,6 +16,8 @@ import org.slf4j.event.Level;
 import uk.gov.pay.connector.charge.model.ServicePaymentReference;
 import uk.gov.pay.connector.charge.model.domain.Charge;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntity;
+import uk.gov.pay.connector.charge.service.ChargeService;
+import uk.gov.pay.connector.events.EventService;
 import uk.gov.pay.connector.gateway.PaymentGatewayName;
 import uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntity;
 import uk.gov.pay.connector.refund.model.domain.Refund;
@@ -24,6 +26,11 @@ import uk.gov.pay.connector.refund.model.domain.RefundStatus;
 import uk.gov.pay.connector.refund.service.RefundService;
 import uk.gov.pay.connector.usernotification.service.UserNotificationService;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.InstantSource;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -32,6 +39,7 @@ import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -52,7 +60,11 @@ class RefundNotificationProcessorTest {
     @Mock
     private RefundService refundService;
     @Mock
+    private ChargeService chargeService;
+    @Mock
     private UserNotificationService userNotificationService;
+    @Mock
+    private EventService eventService;
 
     RefundNotificationProcessor refundNotificationProcessor;
     RefundEntity refundEntity;
@@ -68,6 +80,7 @@ class RefundNotificationProcessorTest {
             .withReference(ServicePaymentReference.of(PAYMENT_REFERENCE))
             .withTransactionId(TRANSACTION_ID)
             .build();
+    private final InstantSource instantSource = InstantSource.fixed(Instant.parse("2026-10-02T10:24:16Z"));
     private Charge charge;
 
     @BeforeEach
@@ -75,7 +88,7 @@ class RefundNotificationProcessorTest {
         charge = Charge.from(chargeEntity);
         refundEntity = aValidRefundEntity().build();
 
-        refundNotificationProcessor = new RefundNotificationProcessor(refundService, userNotificationService);
+        refundNotificationProcessor = new RefundNotificationProcessor(refundService, chargeService, userNotificationService, eventService, instantSource);
     }
 
     @Test
@@ -88,8 +101,7 @@ class RefundNotificationProcessorTest {
 
         invokeRefundNotificationProcessorWithNewStatus(targetRefundStatus);
 
-        verify(refundService)
-                .transitionRefundState(refundEntity, gatewayAccountEntity, targetRefundStatus, charge);
+        verify(refundService).transitionRefundState(refundEntity, gatewayAccountEntity, targetRefundStatus, charge, instantSource.instant());
     }
 
     @Test
@@ -142,7 +154,7 @@ class RefundNotificationProcessorTest {
         logs.assertContains("Notification received for refund would cause an illegal state transition");
         then(refundService)
                 .should(never())
-                .transitionRefundState(any(), any(), any(), any());
+                .transitionRefundState(any(), any(), any(), any(), any());
         then(userNotificationService)
                 .should(never())
                 .sendRefundIssuedEmail(any(), any(), any());
@@ -208,7 +220,7 @@ class RefundNotificationProcessorTest {
 
             then(refundService)
                     .should(never())
-                    .transitionRefundState(any(), any(), any(), any());
+                    .transitionRefundState(any(), any(), any(), any(), eq(instantSource.instant()));
         }
 
         @Test
@@ -253,7 +265,7 @@ class RefundNotificationProcessorTest {
 
             then(refundService)
                     .should(never())
-                    .transitionRefundState(any(), any(), any(), any());
+                    .transitionRefundState(any(), any(), any(), any(), any());
 
         }
 
@@ -289,18 +301,16 @@ class RefundNotificationProcessorTest {
     @Test
     void shouldTransitionRefund_WhenRefundStatusWasSetAsRefundError_ForAdyen() {
         refundEntity.setStatus(REFUND_ERROR);
-
-        when(refundService.findRefundByExternalId(REFUND_EXTERNAL_ID))
-                .thenReturn(Optional.of(refundEntity));
+        
+//        when(chargeService.createRefundAvailabilityUpdatedEvent(charge, ))
+        when(refundService.findRefundByExternalId(REFUND_EXTERNAL_ID)).thenReturn(Optional.of(refundEntity));
 
         invokeRefundNotificationProcessorByExternalId(ADYEN, RefundStatus.REFUNDED, REFUND_EXTERNAL_ID);
 
-        verify(refundService)
-                .transitionRefundState(refundEntity, gatewayAccountEntity, RefundStatus.REFUNDED, charge);
+        verify(refundService).transitionRefundState(refundEntity, gatewayAccountEntity, RefundStatus.REFUNDED, charge, instantSource.instant());
         verify(userNotificationService).sendRefundIssuedEmail(refundEntity, charge, gatewayAccountEntity);
+//        verify(eventService).emitAndRecordEvent();
     }
-
-    
 
     @Test
     void shouldLogIllegalStateTransitionAtErrorLevel_IfRefundFailedWhenRefundStatusWasSetAsRefundedForAdyen() {
@@ -314,7 +324,7 @@ class RefundNotificationProcessorTest {
         logs.assertContains("Adyen Notification received for refund would cause an illegal state transition");
         then(refundService)
                 .should(never())
-                .transitionRefundState(any(), any(), any(), any());
+                .transitionRefundState(any(), any(), any(), any(), any());
         then(userNotificationService)
                 .should(never())
                 .sendRefundIssuedEmail(any(), any(), any());
@@ -334,7 +344,7 @@ class RefundNotificationProcessorTest {
                 .findHistoricRefundByChargeExternalIdAndGatewayTransactionId(any(Charge.class), anyString());
         then(refundService)
                 .should(never())
-                .transitionRefundState(any(), any(), any(), any());
+                .transitionRefundState(any(), any(), any(), any(), any());
         then(userNotificationService)
                 .should(never())
                 .sendRefundIssuedEmail(any(), any(), any());
@@ -351,7 +361,7 @@ class RefundNotificationProcessorTest {
                 .findRefundByExternalId(anyString());
         then(refundService)
                 .should(never())
-                .transitionRefundState(any(), any(), any(), any());
+                .transitionRefundState(any(), any(), any(), any(), any());
         then(userNotificationService)
                 .should(never())
                 .sendRefundIssuedEmail(any(), any(), any());
@@ -369,12 +379,11 @@ class RefundNotificationProcessorTest {
         logs.assertContains("Notification received for refund [someExternalId] is redundant and therefore ignored because refund is already in state [REFUNDED]");
         then(refundService)
                 .should(never())
-                .transitionRefundState(any(), any(), any(), any());
+                .transitionRefundState(any(), any(), any(), any(), any());
         then(userNotificationService)
                 .should(never())
                 .sendRefundIssuedEmail(any(), any(), any());
     }
-
   
     private void invokeRefundNotificationProcessorByExternalId(PaymentGatewayName gatewayName, RefundStatus newStatus, String refundExternalId) {
         refundNotificationProcessor.processRefundByExternalId(

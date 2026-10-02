@@ -48,7 +48,7 @@ public class StateTransitionService {
     }
 
     @Transactional
-    public void offerRefundStateTransition(RefundEntity refundEntity, RefundStatus refundStatus) {
+    public void offerRefundStateTransition(RefundEntity refundEntity, RefundStatus refundStatus, Instant eventTimestamp) {
         Class refundEventClass = RefundStateEventMap.calculateRefundEventClass(refundEntity.getUserExternalId(), refundStatus);
         RefundStateTransition refundStateTransition = new RefundStateTransition(refundEntity.getExternalId(), refundStatus, refundEventClass);
         stateTransitionQueue.offer(refundStateTransition);
@@ -56,7 +56,7 @@ public class StateTransitionService {
         eventService.recordOfferedEvent(ResourceType.REFUND,
                 refundEntity.getExternalId(),
                 Event.eventTypeForClass(refundEventClass),
-                Instant.now());
+                eventTimestamp);
     }
 
     @Transactional

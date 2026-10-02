@@ -115,6 +115,24 @@ class AdyenWebhookTaskHandlerForPaymentWebhooksIT {
         assertRefundStatus(testRefund.getId(), REFUNDED.getValue());
     }
 
+    @Test
+    void should_update_refund_in_SUBMITTED_to_REFUND_ERROR_state_to_REFUNDED_for_successful_refund_notification() {
+        var testRefund = createRefundInSubmittedState();
+        String refundFailurePayload = load(ADYEN_REFUND_FAILURE_NOTIFICATION)
+                .replace("{{pspReference}}", testRefund.getGatewayTransactionId())
+                .replace("{{merchantReference}}", testRefund.getExternalRefundId());
+
+        adyenWebhookTaskHandler.processAdyenWebhookNotification(refundFailurePayload);
+        assertRefundStatus(testRefund.getId(), REFUND_ERROR.getValue());
+
+        String refundSuccessPayload = load(ADYEN_REFUND_SUCCESS_NOTIFICATION)
+                .replace("{{pspReference}}", testRefund.getGatewayTransactionId())
+                .replace("{{merchantReference}}", testRefund.getExternalRefundId());
+
+        adyenWebhookTaskHandler.processAdyenWebhookNotification(refundSuccessPayload);
+        assertRefundStatus(testRefund.getId(), REFUNDED.getValue());
+    }
+
     private static DatabaseFixtures.TestCharge createTestChargeWithStatus(ChargeStatus chargeStatus) {
         DatabaseFixtures.TestAccount testAccount = app.getDatabaseFixtures()
                 .aTestAccount()

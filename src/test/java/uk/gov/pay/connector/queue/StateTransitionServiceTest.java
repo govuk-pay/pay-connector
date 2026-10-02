@@ -54,7 +54,8 @@ import static uk.gov.pay.connector.refund.model.domain.RefundStatus.CREATED;
 @ExtendWith(MockitoExtension.class)
 class StateTransitionServiceTest {
     private final CollectorRegistry collectorRegistry = CollectorRegistry.defaultRegistry;
-    private static final String[] labelNames = new String[]{"gatewayName", "gatewayAccountType", "toState"};
+    private static final String[] LABEL_NAMES = new String[]{"gatewayName", "gatewayAccountType", "toState"};
+    private static final Instant INSTANT = Instant.parse("2026-10-02T10:24:16Z");
 
     StateTransitionService stateTransitionService;
 
@@ -116,7 +117,7 @@ class StateTransitionServiceTest {
                 .withStatus(CREATED)
                 .build();
 
-        stateTransitionService.offerRefundStateTransition(refundEntity, CREATED);
+        stateTransitionService.offerRefundStateTransition(refundEntity, CREATED, INSTANT);
 
         ArgumentCaptor<RefundStateTransition> refundStateTransitionArgumentCaptor = ArgumentCaptor.forClass(RefundStateTransition.class);
         verify(mockStateTransitionQueue).offer(refundStateTransitionArgumentCaptor.capture());
@@ -162,6 +163,6 @@ class StateTransitionServiceTest {
     }
 
     private double getMetricSample(String name, String[] labelValues) {
-        return Optional.ofNullable(collectorRegistry.getSampleValue(name, labelNames, labelValues)).orElse(0.0);
+        return Optional.ofNullable(collectorRegistry.getSampleValue(name, LABEL_NAMES, labelValues)).orElse(0.0);
     }
 }

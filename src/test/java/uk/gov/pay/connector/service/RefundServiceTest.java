@@ -42,7 +42,10 @@ import uk.gov.pay.connector.refund.service.RefundService;
 import uk.gov.pay.connector.usernotification.service.UserNotificationService;
 import uk.gov.service.payments.commons.model.ErrorIdentifier;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.InstantSource;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -50,6 +53,7 @@ import java.util.Optional;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.in;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -127,6 +131,8 @@ public class RefundServiceTest {
             .withGatewayAccountEntity(account)
             .withState(GatewayAccountCredentialState.ACTIVE)
             .build();
+    private static final Instant INSTANT = Instant.parse("2026-10-02T10:24:16Z");
+    private final InstantSource instantSource = InstantSource.fixed(INSTANT);
 
     @BeforeEach
     void setUp() {
@@ -137,7 +143,7 @@ public class RefundServiceTest {
         lenient().when(mockRefundEntityFactory.create(eq(REFUND_AMOUNT), eq(userExternalId), isNull(), eq(externalChargeId))).thenReturn(refundEntity);
         lenient().when(mockProvider.getExternalChargeRefundAvailability(any(Charge.class), anyList())).thenReturn(EXTERNAL_AVAILABLE);
         refundService = new RefundService(
-                mockRefundDao, mockProviders, mockUserNotificationService, mockStateTransitionService, mockLedgerService, mockGatewayAccountCredentialsService
+                mockRefundDao, mockProviders, mockUserNotificationService, instantSource, mockStateTransitionService, mockLedgerService, mockGatewayAccountCredentialsService
         );
     }
 
@@ -439,10 +445,10 @@ public class RefundServiceTest {
                 .withStatus(REFUND_ERROR)
                 .build();
 
-        refundService.transitionRefundState(refundEntity, account, REFUNDED, Charge.from(chargeEntity));
+        refundService.transitionRefundState(refundEntity, account, REFUNDED, Charge.from(chargeEntity), INSTANT);
 
         assertThat(refundEntity.getStatus(), is(REFUND_ERROR));
-        verify(mockStateTransitionService, never()).offerRefundStateTransition(any(), any());
+        verify(mockStateTransitionService, never()).offerRefundStateTransition(any(), any(), eq(INSTANT));
     }
 
     @Test
@@ -460,10 +466,10 @@ public class RefundServiceTest {
                 .withStatus(REFUND_ERROR)
                 .build();
 
-        refundService.transitionRefundState(refundEntity, account, REFUNDED, Charge.from(chargeEntity));
+        refundService.transitionRefundState(refundEntity, account, REFUNDED, Charge.from(chargeEntity), INSTANT);
 
         assertThat(refundEntity.getStatus(), is(REFUNDED));
-        verify(mockStateTransitionService).offerRefundStateTransition(refundEntity, REFUNDED);
+        verify(mockStateTransitionService).offerRefundStateTransition(refundEntity, REFUNDED, INSTANT);
     }
 
     @Test
@@ -758,8 +764,8 @@ public class RefundServiceTest {
                 .build();
         RefundEntity refundEntity = aValidRefundEntity().withAmount(100L).build();
 
-        refundService.transitionRefundState(refundEntity, charge.getGatewayAccount(), CREATED, Charge.from(charge));
-        verify(mockStateTransitionService).offerRefundStateTransition(refundEntity, CREATED);
+        refundService.transitionRefundState(refundEntity, charge.getGatewayAccount(), CREATED, Charge.from(charge), INSTANT);
+        verify(mockStateTransitionService).offerRefundStateTransition(refundEntity, CREATED, INSTANT);
     }
 
     @Test
@@ -920,9 +926,9 @@ public class RefundServiceTest {
                 .withStatus(REFUNDED)
                 .build();
 
-        refundService.transitionRefundState(refundEntity, charge.getGatewayAccount(), REFUND_SUBMITTED, Charge.from(charge));
+        refundService.transitionRefundState(refundEntity, charge.getGatewayAccount(), REFUND_SUBMITTED, Charge.from(charge), INSTANT);
 
-        verify(mockStateTransitionService, never()).offerRefundStateTransition(any(), any());
+        verify(mockStateTransitionService, never()).offerRefundStateTransition(any(), any(), eq(INSTANT));
         assertThat(refundEntity.getStatus(), is(REFUNDED));
     }
 
@@ -934,9 +940,9 @@ public class RefundServiceTest {
                 .withStatus(REFUND_ERROR)
                 .build();
 
-        refundService.transitionRefundState(refundEntity, charge.getGatewayAccount(), REFUND_SUBMITTED, Charge.from(charge));
+        refundService.transitionRefundState(refundEntity, charge.getGatewayAccount(), REFUND_SUBMITTED, Charge.from(charge), INSTANT);
 
-        verify(mockStateTransitionService, never()).offerRefundStateTransition(any(), any());
+        verify(mockStateTransitionService, never()).offerRefundStateTransition(any(), any(), eq(INSTANT));
         assertThat(refundEntity.getStatus(), is(REFUND_ERROR));
     }
 
@@ -948,9 +954,9 @@ public class RefundServiceTest {
                 .withStatus(CREATED)
                 .build();
 
-        refundService.transitionRefundState(refundEntity, charge.getGatewayAccount(), REFUND_SUBMITTED, Charge.from(charge));
+        refundService.transitionRefundState(refundEntity, charge.getGatewayAccount(), REFUND_SUBMITTED, Charge.from(charge), INSTANT);
 
-        verify(mockStateTransitionService).offerRefundStateTransition(refundEntity, REFUND_SUBMITTED);
+        verify(mockStateTransitionService).offerRefundStateTransition(refundEntity, REFUND_SUBMITTED, INSTANT);
         assertThat(refundEntity.getStatus(), is(REFUND_SUBMITTED));
     }
 

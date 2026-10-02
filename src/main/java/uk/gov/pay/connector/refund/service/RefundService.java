@@ -27,6 +27,8 @@ import uk.gov.pay.connector.refund.model.domain.RefundEntity;
 import uk.gov.pay.connector.refund.model.domain.RefundStatus;
 import uk.gov.pay.connector.usernotification.service.UserNotificationService;
 
+import java.time.Instant;
+import java.time.InstantSource;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -59,6 +61,7 @@ public class RefundService {
     private final RefundDao refundDao;
     private final PaymentProviders providers;
     private final UserNotificationService userNotificationService;
+    private final InstantSource instantSource;
     private StateTransitionService stateTransitionService;
     private LedgerService ledgerService;
     private GatewayAccountCredentialsService gatewayAccountCredentialsService;
@@ -67,6 +70,7 @@ public class RefundService {
     public RefundService(RefundDao refundDao,
                          PaymentProviders providers,
                          UserNotificationService userNotificationService,
+                         InstantSource instantSource,
                          StateTransitionService stateTransitionService,
                          LedgerService ledgerService,
                          GatewayAccountCredentialsService gatewayAccountCredentialsService
@@ -74,6 +78,7 @@ public class RefundService {
         this.refundDao = refundDao;
         this.providers = providers;
         this.userNotificationService = userNotificationService;
+        this.instantSource = instantSource;
         this.stateTransitionService = stateTransitionService;
         this.ledgerService = ledgerService;
         this.gatewayAccountCredentialsService = gatewayAccountCredentialsService;
@@ -161,7 +166,7 @@ public class RefundService {
                 gatewayRefundResponse, refundEntity.getStatus(), refundStatus);
 
         getTransactionId(refundEntity, gatewayRefundResponse).ifPresent(refundEntity::setGatewayTransactionId);
-        transitionRefundState(refundEntity, gatewayAccountEntity, refundStatus, charge);
+        transitionRefundState(refundEntity, gatewayAccountEntity, refundStatus, charge, instantSource.instant());
         return refundEntity;
     }
 
@@ -169,7 +174,7 @@ public class RefundService {
     @SuppressWarnings("WeakerAccess")
     public RefundEntity setRefundStatus(Long refundEntityId, GatewayAccountEntity gatewayAccountEntity, RefundStatus refundStatus, Charge charge) {
         RefundEntity refundEntity = reloadRefundFromDatabase(refundEntityId);
-        transitionRefundState(refundEntity, gatewayAccountEntity, refundStatus, charge);
+        transitionRefundState(refundEntity, gatewayAccountEntity, refundStatus, charge, instantSource.instant());
         return refundEntity;
     }
 
@@ -190,14 +195,14 @@ public class RefundService {
         var refundEntity = refundEntityFactory.create(refundRequest.getAmount(),
                 refundRequest.getUserExternalId(), refundRequest.getUserEmail(), charge.getExternalId());
         refundEntity.setPaymentProvider(charge.getPaymentGatewayName());
-        transitionRefundState(refundEntity, gatewayAccountEntity, RefundStatus.CREATED, charge);
+        transitionRefundState(refundEntity, gatewayAccountEntity, RefundStatus.CREATED, charge, instantSource.instant());
         refundDao.persist(refundEntity);
 
         return refundEntity;
     }
 
     public void transitionRefundState(RefundEntity refundEntity, GatewayAccountEntity gatewayAccountEntity,
-                                      RefundStatus refundStatus, Charge charge) {
+                                      RefundStatus refundStatus, Charge charge, Instant eventTimestamp) {
         RefundStatus currentStatus = refundEntity.hasStatus() ? refundEntity.getStatus() : null;
         String fromState = currentStatus != null ? currentStatus.getValue() : "UNDEFINED";
 
@@ -216,7 +221,7 @@ public class RefundService {
                     kv("to_state", refundStatus.getValue()));
 
             refundEntity.setStatus(refundStatus);
-            stateTransitionService.offerRefundStateTransition(refundEntity, refundStatus);
+            stateTransitionService.offerRefundStateTransition(refundEntity, refundStatus, eventTimestamp);
         }
     }
 
