@@ -19,6 +19,7 @@ import static jakarta.ws.rs.core.MediaType.TEXT_XML;
 import static org.mockito.Mockito.when;
 import static uk.gov.pay.connector.util.ConnectorModuleWithOverrides.reverseDnsLookup;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_BALANCE_PLATFORM_REPORT_NOTIFICATION;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_CONFIGURATION_NOTIFICATION;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_NOTIFICATION;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_TOKEN_NOTIFICATION;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_TRANSFER_NOTIFICATION;
@@ -37,7 +38,8 @@ public class AdyenNotificationResourceIT {
     private static final String HMAC_SIGNATURE = "hLz2zuhuylC8q36sCWWH7PpvbVpyaWDpoBqoEeTjj7w="; // pragma: allowlist secret
     private static final String HMAC_SIGNATURE_FOR_PAYLOAD_WITH_UPDATED_TOKEN = "+309uQLT5A/L658R+4GlsOVwQ0rDTDcm2e5yln6+KGM="; // pragma: allowlist secret
     private static final String HMAC_SIGNATURE_FOR_TRANSFER = "iOOCtWjby4qpG453Yoozj1VWZp3q1Lfa5vt94eIHiBU="; // pragma: allowlist secret
-
+    private static final String HMAC_SIGNATURE_FOR_CONFIGURATION = "8sf7NAECyLqsqns96Q2vor/ixZ6aForT+qrNyp6HLsg="; // pragma: allowlist secret
+    
     @BeforeAll
     static void before() {
         when(reverseDnsLookup.lookup(new DnsPointerResourceRecord(ADYEN_IP_ADDRESS))).thenReturn(Optional.of(".adyen.com."));
@@ -213,5 +215,39 @@ public class AdyenNotificationResourceIT {
                 .statusCode(200);
 
         logs.assertContains("Unknown Adyen webhook event");
+    }
+
+    @Nested
+    class ConfigurationNotifications {
+
+        @Test
+        void shouldHandleConfigurationNotification() {
+            String payload = TestTemplateResourceLoader.load(ADYEN_CONFIGURATION_NOTIFICATION).replace("{{environment}}", "test");
+            
+            given()
+                    .port(app.getLocalPort())
+                    .body(payload)
+                    .header("X-Forwarded-For", ADYEN_IP_ADDRESS)
+                    .header("hmacSignature", HMAC_SIGNATURE_FOR_CONFIGURATION)
+                    .contentType(APPLICATION_JSON)
+                    .post(NOTIFICATION_PATH)
+                    .then()
+                    .statusCode(200);
+        }
+
+        @Test
+        void shouldRejectNotificationWithInvalidHmacSignatureForConfigurationNotification() {
+            String payload = TestTemplateResourceLoader.load(ADYEN_CONFIGURATION_NOTIFICATION).replace("{{environment}}", "test");
+
+            given()
+                    .port(app.getLocalPort())
+                    .body(payload)
+                    .header("X-Forwarded-For", ADYEN_IP_ADDRESS)
+                    .header("hmacSignature", "some invalid Hmac Signature")
+                    .contentType(APPLICATION_JSON)
+                    .post(NOTIFICATION_PATH)
+                    .then()
+                    .statusCode(403);
+        }
     }
 }
