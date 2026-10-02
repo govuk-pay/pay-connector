@@ -2222,4 +2222,18 @@
         <sql>DROP INDEX CONCURRENTLY IF EXISTS idx_fees_unique_refund_fields;</sql>
     </changeSet>
 
+    <changeSet id="create unique partial index on fees charge fields" runInTransaction="false" author="">
+        <sql>
+            CREATE UNIQUE INDEX CONCURRENTLY idx_fees_unique_charge_fields
+                ON fees (charge_id,fee_type,fee_sub_type) NULLS NOT DISTINCT WHERE charge_id IS NOT NULL;
+        </sql>
+    </changeSet>
+
+    <changeSet id="create unique partial index on fees refund fields" runInTransaction="false" author="">
+        <sql>
+            CREATE UNIQUE INDEX CONCURRENTLY idx_fees_unique_refund_fields
+                ON fees (refund_id,fee_type,fee_sub_type) NULLS NOT DISTINCT WHERE refund_id IS NOT NULL;
+        </sql>
+    </changeSet>
+
 </databaseChangeLog>
