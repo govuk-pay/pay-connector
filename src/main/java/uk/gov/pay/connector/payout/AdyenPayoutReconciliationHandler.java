@@ -28,11 +28,24 @@ public class AdyenPayoutReconciliationHandler implements PayoutReconcileHandler 
     public boolean reconcile(PayoutReconcileMessage payoutReconcileMessage) {
 
         AdyenPayoutReconciliationPayload payout = (AdyenPayoutReconciliationPayload) payoutReconcileMessage.getPayout();
+
         try {
+            LOGGER.atInfo()
+                    .setMessage("Started reconciling Adyen balance platform payout report")
+                    .addKeyValue("file_name", payout.getFileName())
+                    .addKeyValue("report_type", payout.getReportType())
+                    .addKeyValue("report_date", payout.getCreationDate())
+                    .addKeyValue("environment", payout.getEnvironment())
+                    .log();
+
             String csv = adyenPaymentProvider.downloadReport(payout);
             adyenPayoutReportParser.parse(csv);
+
+            LOGGER.atInfo()
+                    .setMessage("Finished reconciling Adyen balance platform payout report")
+                    .log();
         } catch (Exception e) {
-            LOGGER.error("Failed to reconcile Adyen Payout report", e);
+            LOGGER.error("Failed to reconcile Adyen balance platform payout report", e);
             return false;
         }
         return true;

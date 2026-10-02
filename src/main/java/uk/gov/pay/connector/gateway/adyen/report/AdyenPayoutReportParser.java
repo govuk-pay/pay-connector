@@ -64,6 +64,9 @@ public class AdyenPayoutReportParser {
             throw new UncheckedIOException("Failed to parse Adyen payout report CSV", e);
         }
 
+        LOGGER.atInfo()
+                .setMessage("Completed parsing Adyen balance platform payout report")
+                .log();
         return records;
     }
 

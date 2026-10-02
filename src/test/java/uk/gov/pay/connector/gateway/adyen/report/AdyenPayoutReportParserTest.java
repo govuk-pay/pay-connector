@@ -50,6 +50,8 @@ class AdyenPayoutReportParserTest {
                 null, "-2.46",
                 "3CY1XOPVXWKYA3O9",
                 "bank", null);
+
+        logs.assertContains("Completed parsing Adyen balance platform payout report");
     }
 
     private static void assertPayoutReportRecord(AdyenBalancePayoutReportRecord payoutReportRecord,
