@@ -117,4 +117,21 @@ class AdyenPayoutReportParserTest {
         assertThat(records, hasSize(3));
         assertThat(records.getFirst().pspPaymentMerchantReference(), is(nullValue()));
     }
+    
+    @Test
+    void shouldRemoveDuplicatedRecordsByCheckingForRecurringTransactionIds(){
+        String csv = load(ADYEN_BALANCE_PLAYFORM_REPORT)
+                .replace("3JERI65VXWKY5PG2", "3JERI65VXYY7FZXJ");
+
+        List<AdyenBalancePayoutReportRecord> records = parser.parse(csv);
+        List<AdyenBalancePayoutReportRecord> deduplicateRecords = parser.deduplicateRecords(records);
+        
+        var uniqueIdCount = deduplicateRecords.stream().
+                map(AdyenBalancePayoutReportRecord::transactionId)
+                .distinct().count();
+
+        assertThat(records, hasSize(3));
+        assertThat(deduplicateRecords, hasSize(2));
+        assertThat(uniqueIdCount, is(2L));
+    }
 }

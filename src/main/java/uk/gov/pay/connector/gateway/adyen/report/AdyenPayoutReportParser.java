@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static uk.gov.pay.connector.gateway.adyen.report.AdyenReportDateConverter.convertToInstant;
@@ -116,5 +117,17 @@ public class AdyenPayoutReportParser {
             return null;
         }
         return new BigDecimal(value);
+    }
+    
+    public List<AdyenBalancePayoutReportRecord> deduplicateRecords(List<AdyenBalancePayoutReportRecord> records){
+        return records.stream()
+                .collect(Collectors.toMap(
+                        AdyenBalancePayoutReportRecord::transactionId,                        
+                        record -> record,                    
+                        (existing, _) -> existing
+                ))
+                .values()
+                .stream()
+                .toList();
     }
 }
