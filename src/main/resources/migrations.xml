@@ -2214,4 +2214,12 @@
         <sql>CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS idx_fees_unique_refund_fields ON fees (refund_id, fee_type, fee_sub_type) NULLS NOT DISTINCT;</sql>
     </changeSet>
 
+    <changeSet id="drop idx_fees_unique_charge_fields unique index" runInTransaction="false" author="">
+        <sql>DROP INDEX CONCURRENTLY IF EXISTS idx_fees_unique_charge_fields;</sql>
+    </changeSet>
+
+    <changeSet id="drop idx_fees_unique_refund_fields unique index" runInTransaction="false" author="">
+        <sql>DROP INDEX CONCURRENTLY IF EXISTS idx_fees_unique_refund_fields;</sql>
+    </changeSet>
+
 </databaseChangeLog>
