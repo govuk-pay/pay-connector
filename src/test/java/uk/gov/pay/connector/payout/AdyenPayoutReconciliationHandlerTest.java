@@ -1,8 +1,10 @@
 package uk.gov.pay.connector.payout;
 
+import io.github.netmikey.logunit.api.LogCapturer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.pay.connector.gateway.PaymentProviders;
@@ -33,6 +35,9 @@ class AdyenPayoutReconciliationHandlerTest {
     @Mock
     AdyenPaymentProvider adyenPaymentProvider;
 
+    @RegisterExtension
+    LogCapturer logs = LogCapturer.create().captureForType(AdyenPayoutReconciliationHandler.class);
+
     AdyenPayoutReconciliationHandler handler;
     PayoutReconcileMessage payoutReconcileMessage;
 
@@ -45,7 +50,7 @@ class AdyenPayoutReconciliationHandlerTest {
     }
 
     @Test
-    void shouldDownloadAndParseCSVdataForReconciliation() {
+    void shouldDownloadAndParseCSVDataForReconciliation() {
         when(adyenPaymentProvider.downloadReport(any(AdyenPayoutReconciliationPayload.class))).thenReturn("csv-data");
 
         boolean result = handler.reconcile(payoutReconcileMessage);
@@ -54,6 +59,8 @@ class AdyenPayoutReconciliationHandlerTest {
 
         verify(adyenPaymentProvider).downloadReport(any(AdyenPayoutReconciliationPayload.class));
         verify(mockAdyenPayoutReportParser).parse("csv-data");
+
+        logs.assertContains("Finished reconciling Adyen balance platform payout report");
     }
 
     @Test
@@ -66,6 +73,8 @@ class AdyenPayoutReconciliationHandlerTest {
 
         verify(adyenPaymentProvider).downloadReport(any(AdyenPayoutReconciliationPayload.class));
         verifyNoInteractions(mockAdyenPayoutReportParser);
+
+        logs.assertContains("Failed to reconcile Adyen balance platform payout report");
     }
 
     @Test
@@ -79,6 +88,8 @@ class AdyenPayoutReconciliationHandlerTest {
 
         verify(adyenPaymentProvider).downloadReport(any(AdyenPayoutReconciliationPayload.class));
         verify(mockAdyenPayoutReportParser).parse("csv-data");
+
+        logs.assertContains("Failed to reconcile Adyen balance platform payout report");
     }
 
 
