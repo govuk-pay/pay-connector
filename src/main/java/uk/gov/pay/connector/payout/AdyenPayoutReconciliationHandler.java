@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import uk.gov.pay.connector.events.EventService;
 import uk.gov.pay.connector.events.model.Event;
 import uk.gov.pay.connector.events.model.charge.PaymentIncludedInPayout;
+import uk.gov.pay.connector.events.model.refund.RefundIncludedInPayout;
 import uk.gov.pay.connector.gateway.PaymentGatewayName;
 import uk.gov.pay.connector.gateway.PaymentProviders;
 import uk.gov.pay.connector.gateway.adyen.AdyenPaymentProvider;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static uk.gov.service.payments.logging.LoggingKeys.PAYMENT_EXTERNAL_ID;
+import static uk.gov.service.payments.logging.LoggingKeys.REFUND_EXTERNAL_ID;
 
 public class AdyenPayoutReconciliationHandler implements PayoutReconcileHandler {
 
@@ -97,6 +99,12 @@ public class AdyenPayoutReconciliationHandler implements PayoutReconcileHandler 
                         emitPaymentEvent(transferRecord, bankTransferRecord);
                     }
                     break;
+                case "refund":
+                    var pspModificationMerchantReference = transferRecord.pspModificationMerchantReference();
+                    if (emittedEventsForIDs.add(pspModificationMerchantReference)) {
+                        emitRefundEvent(pspModificationMerchantReference, bankTransferRecord);
+                    }
+                    break;
                 case null:
                     LOGGER.atError()
                             .setMessage("Payout contains balance transfer of type null, which is unexpected.")
@@ -135,6 +143,20 @@ public class AdyenPayoutReconciliationHandler implements PayoutReconcileHandler 
                 .log();
     }
 
+    private void emitRefundEvent(String pspModificationReference, AdyenBalancePayoutReportRecord bankTransfer){
+        var transferId = bankTransfer.transferId();
+        var refundEvent = new RefundIncludedInPayout(pspModificationReference,
+                transferId,
+                bankTransfer.payoutDate());
+        emitEvent(refundEvent, pspModificationReference, transferId);
+
+        LOGGER.atInfo()
+                .setMessage(format("Emitted event for refund [%s] included in payout [%s]",
+                        pspModificationReference,
+                        transferId))
+                .addKeyValue(REFUND_EXTERNAL_ID, pspModificationReference).log();
+    }
+
     private void emitEvent(Event event, String transactionExternalId, String payoutTransferId) {
         try {
             eventService.emitEvent(event, false);
@@ -143,4 +165,5 @@ public class AdyenPayoutReconciliationHandler implements PayoutReconcileHandler 
                     event.getEventType(), transactionExternalId, payoutTransferId, e.getMessage()), e);
         }
     }
+
 }
