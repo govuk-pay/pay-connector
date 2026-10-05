@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.pay.connector.events.EventService;
 import uk.gov.pay.connector.events.model.charge.PaymentIncludedInPayout;
+import uk.gov.pay.connector.events.model.payout.PayoutPaid;
 import uk.gov.pay.connector.events.model.refund.RefundIncludedInPayout;
 import uk.gov.pay.connector.gateway.PaymentProviders;
 import uk.gov.pay.connector.gateway.adyen.AdyenPaymentProvider;
@@ -47,9 +48,12 @@ class AdyenPayoutReconciliationHandlerTest {
     AdyenPaymentProvider adyenPaymentProvider;
     @Mock
     EventService eventService;
+    @Mock
+    PayoutEmitterService payoutEmitterService;
 
     ArgumentCaptor<PaymentIncludedInPayout> paymentCaptor = ArgumentCaptor.forClass(PaymentIncludedInPayout.class);
     ArgumentCaptor<RefundIncludedInPayout> refundCaptor = ArgumentCaptor.forClass(RefundIncludedInPayout.class);
+    ArgumentCaptor<PayoutPaid> payoutCaptor = ArgumentCaptor.forClass(PayoutPaid.class);
 
     @RegisterExtension
     LogCapturer logs = LogCapturer.create().captureForType(AdyenPayoutReconciliationHandler.class);
@@ -61,7 +65,7 @@ class AdyenPayoutReconciliationHandlerTest {
     void setUp() {
         when(mockPaymentProviders.byName(ADYEN)).thenReturn(adyenPaymentProvider);
         handler = new AdyenPayoutReconciliationHandler(mockPaymentProviders,
-                mockAdyenPayoutReportParser, eventService);
+                mockAdyenPayoutReportParser, eventService, payoutEmitterService);
         payoutReconcileMessage = mockPayoutReconcileMessage();
     }
 
@@ -143,6 +147,23 @@ class AdyenPayoutReconciliationHandlerTest {
     }
 
     @Test
+    void shouldEmitPayoutEvents() {
+        mockValidParsingOfPayoutReport(load(ADYEN_BALANCE_PLATFORM_REPORT));
+
+        boolean result = handler.reconcile(payoutReconcileMessage);
+
+        assertTrue(result);
+
+        verify(payoutEmitterService, times(1)).emitPayoutEvent(payoutCaptor.capture(), eq("BA00000000000000000000001"));
+
+        var payoutEventEmitted = payoutCaptor.getValue();
+
+        assertEquals("PAYOUT_PAID", payoutEventEmitted.getEventType());
+        assertEquals("3CY1XOPVXWKYA3O9", payoutEventEmitted.getResourceExternalId());
+        assertEquals("2026-09-23T22:04:12Z", payoutEventEmitted.getTimestamp().toString());
+    }
+
+    @Test
     void shouldLogErrorWhenEmittingEventFails() throws QueueException {
         mockValidParsingOfPayoutReport(load(ADYEN_BALANCE_PLATFORM_REPORT));
         doThrow(new QueueException("some exception")).when(eventService).emitEvent(any(), eq(false));
@@ -184,7 +205,7 @@ class AdyenPayoutReconciliationHandlerTest {
 
     private void mockValidParsingOfPayoutReport(String balancePlatformReport) {
         handler = new AdyenPayoutReconciliationHandler(mockPaymentProviders,
-                new AdyenPayoutReportParser(), eventService);
+                new AdyenPayoutReportParser(), eventService, payoutEmitterService);
         when(adyenPaymentProvider.downloadReport(any(AdyenPayoutReconciliationPayload.class))).thenReturn(balancePlatformReport);
     }
 }
