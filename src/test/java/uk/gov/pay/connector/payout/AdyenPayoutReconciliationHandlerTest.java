@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.pay.connector.events.EventService;
 import uk.gov.pay.connector.events.model.charge.PaymentIncludedInPayout;
+import uk.gov.pay.connector.events.model.refund.RefundIncludedInPayout;
 import uk.gov.pay.connector.gateway.PaymentProviders;
 import uk.gov.pay.connector.gateway.adyen.AdyenPaymentProvider;
 import uk.gov.pay.connector.gateway.adyen.report.AdyenPayoutReportParser;
@@ -32,7 +33,7 @@ import static org.mockito.Mockito.when;
 import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
 import static uk.gov.pay.connector.gateway.adyen.report.AdyenReportDateConverter.convertToInstant;
 import static uk.gov.pay.connector.queue.payout.AdyenPayoutReconciliationPayloadFixture.anAdyenPayoutReconciliationPayloadFixture;
-import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_BALANCE_PLAYFORM_REPORT;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_BALANCE_PLATFORM_REPORT;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.load;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,7 +48,8 @@ class AdyenPayoutReconciliationHandlerTest {
     @Mock
     EventService eventService;
 
-    ArgumentCaptor<PaymentIncludedInPayout> captor = ArgumentCaptor.forClass(PaymentIncludedInPayout.class);
+    ArgumentCaptor<PaymentIncludedInPayout> paymentCaptor = ArgumentCaptor.forClass(PaymentIncludedInPayout.class);
+    ArgumentCaptor<RefundIncludedInPayout> refundCaptor = ArgumentCaptor.forClass(RefundIncludedInPayout.class);
 
     @RegisterExtension
     LogCapturer logs = LogCapturer.create().captureForType(AdyenPayoutReconciliationHandler.class);
@@ -108,15 +110,15 @@ class AdyenPayoutReconciliationHandlerTest {
 
     @Test
     void shouldEmitPaymentEvents() throws QueueException {
-        mockValidParsingOfPayoutReport(load(ADYEN_BALANCE_PLAYFORM_REPORT));
+        mockValidParsingOfPayoutReport(load(ADYEN_BALANCE_PLATFORM_REPORT));
 
         boolean result = handler.reconcile(payoutReconcileMessage);
 
         assertTrue(result);
 
-        verify(eventService).emitEvent(captor.capture(), eq(false));
+        verify(eventService).emitEvent(paymentCaptor.capture(), eq(false));
 
-        var eventEmitted = captor.getValue();
+        var eventEmitted = paymentCaptor.getValue();
 
         assertEquals("PAYMENT_INCLUDED_IN_PAYOUT", eventEmitted.getEventType());
         assertEquals("charge-external-id-123", eventEmitted.getResourceExternalId());
@@ -124,8 +126,25 @@ class AdyenPayoutReconciliationHandlerTest {
     }
 
     @Test
+    void shouldEmitRefundEvents() throws QueueException {
+        mockValidParsingOfPayoutReport(load(ADYEN_BALANCE_PLATFORM_REPORT));
+
+        boolean result = handler.reconcile(payoutReconcileMessage);
+
+        assertTrue(result);
+
+        verify(eventService, times(1)).emitEvent(refundCaptor.capture(), eq(false));
+
+        var refundEventEmitted = refundCaptor.getValue();
+
+        assertEquals("REFUND_INCLUDED_IN_PAYOUT", refundEventEmitted.getEventType());
+        assertEquals("refund-external-id-123", refundEventEmitted.getResourceExternalId());
+        assertEquals(refundEventEmitted.getTimestamp(), convertToInstant("2023-12-15 07:00:12"));
+    }
+
+    @Test
     void shouldLogErrorWhenEmittingEventFails() throws QueueException {
-        mockValidParsingOfPayoutReport(load(ADYEN_BALANCE_PLAYFORM_REPORT));
+        mockValidParsingOfPayoutReport(load(ADYEN_BALANCE_PLATFORM_REPORT));
         doThrow(new QueueException("some exception")).when(eventService).emitEvent(any(), eq(false));
 
         boolean result = handler.reconcile(payoutReconcileMessage);
@@ -137,7 +156,7 @@ class AdyenPayoutReconciliationHandlerTest {
 
     @Test
     void shouldLogErrorWhenTransferRecordTypeIsNull() {
-        mockValidParsingOfPayoutReport(load(ADYEN_BALANCE_PLAYFORM_REPORT).replace("capture", ""));
+        mockValidParsingOfPayoutReport(load(ADYEN_BALANCE_PLATFORM_REPORT).replace("capture", ""));
         
         handler.reconcile(payoutReconcileMessage);
 
@@ -146,7 +165,7 @@ class AdyenPayoutReconciliationHandlerTest {
     
     @Test
     void shouldNotEmitEventIfBankTransferRecordIsNotFoundForTheBalanceAccount() throws QueueException {
-        var csv = load(ADYEN_BALANCE_PLAYFORM_REPORT).replaceFirst("BA00000000000000000000001", "lost_balance_account_id")
+        var csv = load(ADYEN_BALANCE_PLATFORM_REPORT).replaceFirst("BA00000000000000000000001", "lost_balance_account_id")
                 .replace("refund", "capture");
         mockValidParsingOfPayoutReport(csv);
         

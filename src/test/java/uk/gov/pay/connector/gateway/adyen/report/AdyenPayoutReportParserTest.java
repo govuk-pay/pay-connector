@@ -13,8 +13,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_BALANCE_PLATFORM_REPORT;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_BALANCE_PLAYFORM_REPORT;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.load;
 
 class AdyenPayoutReportParserTest {
@@ -31,11 +31,11 @@ class AdyenPayoutReportParserTest {
 
     @Test
     void shouldParseCsvRowsWithDifferentRecordsCorrectly() {
-        String payoutReportCsv = load(ADYEN_BALANCE_PLAYFORM_REPORT);
+        String payoutReportCsv = load(ADYEN_BALANCE_PLATFORM_REPORT);
 
         List<AdyenBalancePayoutReportRecord> records = parser.parse(payoutReportCsv);
 
-        assertThat(records, hasSize(3));
+        assertThat(records, hasSize(4));
         AdyenBalancePayoutReportRecord captureReportRecord = records.get(0);
         assertPayoutReportRecord(captureReportRecord, "capture", "captured",
                 "charge-external-id-123", "2.58",
@@ -46,7 +46,7 @@ class AdyenPayoutReportParserTest {
                 null, "-0.12",
                 "3JY1Y65VXWKY63O8",
                 "platformPayment", "refund-external-id-123");
-        AdyenBalancePayoutReportRecord payoutReportRecord = records.get(2);
+        AdyenBalancePayoutReportRecord payoutReportRecord = records.get(3);
         assertPayoutReportRecord(payoutReportRecord, "bankTransfer", "booked",
                 null, "-2.46",
                 "3CY1XOPVXWKYA3O9",
@@ -77,29 +77,29 @@ class AdyenPayoutReportParserTest {
 
     @Test
     void parsesFieldsWithQuotedCommasCorrectly() {
-        String csv = load(ADYEN_BALANCE_PLAYFORM_REPORT)
+        String csv = load(ADYEN_BALANCE_PLATFORM_REPORT)
                 .replace("YOUR_DESCRIPTION_FOR_THE_TRANSFER", "\"Refund, requested by customer\"");
 
         List<AdyenBalancePayoutReportRecord> records = parser.parse(csv);
 
-        assertThat(records, hasSize(3));
+        assertThat(records, hasSize(4));
         assertThat(records.getFirst().description(), is("Refund, requested by customer"));
     }
 
     @Test
     void shouldIgnoreUnknownColumns() {
-        String csv = load(ADYEN_BALANCE_PLAYFORM_REPORT)
+        String csv = load(ADYEN_BALANCE_PLATFORM_REPORT)
                 .replace("Psp Modification Merchant Reference", "Psp Modification Merchant Reference,Store");
 
         List<AdyenBalancePayoutReportRecord> records = parser.parse(csv);
 
-        assertThat(records, hasSize(3));
+        assertThat(records, hasSize(4));
         assertThat(records.getFirst().pspPaymentMerchantReference(), is("charge-external-id-123"));
     }
 
     @Test
     void missingKnownColumnResultsInNullFieldRatherThanThrowing() {
-        String csv = load(ADYEN_BALANCE_PLAYFORM_REPORT)
+        String csv = load(ADYEN_BALANCE_PLATFORM_REPORT)
                 .replace("Psp Payment Merchant Reference", "some-other-header");
 
         var exception = assertThrows(RuntimeException.class,
@@ -111,12 +111,12 @@ class AdyenPayoutReportParserTest {
 
     @Test
     void blankCellsAreParsedAsNullNotEmptyString() {
-        String csv = load(ADYEN_BALANCE_PLAYFORM_REPORT)
+        String csv = load(ADYEN_BALANCE_PLATFORM_REPORT)
                 .replace("charge-external-id-123", "     ");
 
         List<AdyenBalancePayoutReportRecord> records = parser.parse(csv);
 
-        assertThat(records, hasSize(3));
+        assertThat(records, hasSize(4));
         assertThat(records.getFirst().pspPaymentMerchantReference(), is(nullValue()));
     }
 }

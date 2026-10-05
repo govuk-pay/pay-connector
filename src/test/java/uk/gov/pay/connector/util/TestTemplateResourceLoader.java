@@ -168,7 +168,7 @@ public class TestTemplateResourceLoader {
     public static final String ADYEN_BALANCE_ACCOUNT_SWEEP_REQUEST = TEMPLATE_BASE_NAME + "/adyen/balance_account_sweep_config_request.json";
     public static final String ADYEN_APPLY_SPLIT_CONFIG_TO_STORE_REQUEST = TEMPLATE_BASE_NAME + "/adyen/store_apply_split_config_request.json";
 
-    public static final String ADYEN_BALANCE_PLAYFORM_REPORT = TEMPLATE_BASE_NAME + "/adyen/balanceplatform_payout_report.csv";
+    public static final String ADYEN_BALANCE_PLATFORM_REPORT = TEMPLATE_BASE_NAME + "/adyen/balanceplatform_payout_report.csv";
     
     public static final String SQS_SEND_MESSAGE_RESPONSE = TEMPLATE_BASE_NAME + "/sqs/send-message-response.json";
 
