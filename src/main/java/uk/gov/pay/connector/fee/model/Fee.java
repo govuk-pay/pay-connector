@@ -1,10 +1,12 @@
 package uk.gov.pay.connector.fee.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import uk.gov.pay.connector.charge.model.domain.FeeEntity;
 import uk.gov.pay.connector.charge.model.domain.FeeSubType;
 import uk.gov.pay.connector.charge.model.domain.FeeType;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record Fee(
         @JsonProperty("fee_type")
         FeeType feeType,
