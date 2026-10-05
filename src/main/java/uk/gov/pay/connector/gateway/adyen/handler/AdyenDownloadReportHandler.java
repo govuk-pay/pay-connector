@@ -12,6 +12,7 @@ import uk.gov.pay.connector.queue.payout.AdyenPayoutReconciliationPayload;
 
 import java.net.URI;
 
+import static java.lang.String.format;
 import static uk.gov.pay.connector.gateway.adyen.utils.AdyenRequestUtil.getBalancePlatformReportApiKeyHeader;
 
 public class AdyenDownloadReportHandler {
@@ -35,14 +36,19 @@ public class AdyenDownloadReportHandler {
                 payoutReconciliationPayload.getEnvironment());
 
         try {
-            return gatewayClient.getRequestFor(downloadBalanceReportRequest).getEntity();
+            String csv = gatewayClient.getRequestFor(downloadBalanceReportRequest).getEntity();
+
+            LOGGER.atInfo()
+                    .setMessage("Successfully downloaded Adyen report")
+                    .log();
+
+            return csv;
         } catch (GatewayException e) {
             LOGGER.atError()
                     .setMessage("Error downloading Adyen report")
-                    .addKeyValue("report_type", payoutReconciliationPayload.getReportType())
-                    .addKeyValue("file_name", payoutReconciliationPayload.getFileName())
                     .log();
-            throw new RuntimeException("Error downloading Adyen report", e);
+            throw new RuntimeException(format("Error downloading Adyen report - %s",
+                    payoutReconciliationPayload.getFileName()), e);
         }
     }
 }

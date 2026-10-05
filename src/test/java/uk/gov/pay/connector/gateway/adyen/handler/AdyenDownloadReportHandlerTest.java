@@ -106,7 +106,7 @@ class AdyenDownloadReportHandlerTest {
         var exception = assertThrows(RuntimeException.class,
                 () -> handler.downloadReport(payload));
 
-        assertThat(exception.getMessage(), is("Error downloading Adyen report"));
+        assertThat(exception.getMessage(), is("Error downloading Adyen report - report.csv"));
         assertThat(exception.getCause(), is(gatewayException));
 
         verify(gatewayClient).getRequestFor(any(AdyenDownloadBalancePlatformReportRequest.class));
