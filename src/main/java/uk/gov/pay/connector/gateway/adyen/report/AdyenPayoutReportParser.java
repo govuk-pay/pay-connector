@@ -74,7 +74,11 @@ public class AdyenPayoutReportParser {
         Set<String> requiredColumns = new HashSet<>(REQUIRED_COLUMNS);
         requiredColumns.removeAll(headersInCsv);
         if (!requiredColumns.isEmpty()) {
-            LOGGER.warn("Adyen payout report is missing expected columns, values will be null: {}", requiredColumns);
+            LOGGER.atError()
+                    .setMessage("Adyen payout report is missing expected columns, values will be null:")
+                    .addKeyValue("columns_missing", requiredColumns)
+                    .log();
+            throw new RuntimeException("Adyen payout report is missing expected columns");
         }
     }
 
