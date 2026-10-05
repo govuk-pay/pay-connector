@@ -13,6 +13,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_BALANCE_PLAYFORM_REPORT;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.load;
 
@@ -101,11 +102,10 @@ class AdyenPayoutReportParserTest {
         String csv = load(ADYEN_BALANCE_PLAYFORM_REPORT)
                 .replace("Psp Payment Merchant Reference", "some-other-header");
 
-        List<AdyenBalancePayoutReportRecord> records = parser.parse(csv);
+        var exception = assertThrows(RuntimeException.class,
+                () -> parser.parse(csv));
 
-        assertThat(records, hasSize(3));
-        assertThat(records.getFirst().pspPaymentMerchantReference(), is(nullValue()));
-
+        assertThat(exception.getMessage(), is("Adyen payout report is missing expected columns"));
         logs.assertContains("Adyen payout report is missing expected columns, values will be null");
     }
 
