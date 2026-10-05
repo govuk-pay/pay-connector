@@ -24,6 +24,7 @@ public class AdyenWebhookTaskHandler {
     private final AdyenRefundNotificationHandler adyenRefundNotificationHandler;
     private final AdyenTokenWebhookNotificationHandler adyenTokenWebhookNotificationHandler;
     private final AdyenTransferNotificationHandler adyenTransferNotificationHandler;
+    private final AdyenAccountHolderNotificationHandler adyenAccountHolderNotificationHandler;
     private final AdyenWebhookDeserialiser adyenWebhookDeserialiser;
 
     @Inject
@@ -33,7 +34,8 @@ public class AdyenWebhookTaskHandler {
                                    AdyenRefundNotificationHandler adyenRefundNotificationHandler,
                                    AdyenCaptureNotificationHandler adyenCaptureNotificationHandler,
                                    AdyenTokenWebhookNotificationHandler adyenTokenWebhookNotificationHandler,
-                                   AdyenTransferNotificationHandler adyenTransferNotificationHandler) {
+                                   AdyenTransferNotificationHandler adyenTransferNotificationHandler, 
+                                   AdyenAccountHolderNotificationHandler adyenAccountHolderNotificationHandler) {
         this.chargeService = chargeService;
         this.adyenWebhookDeserialiser = adyenWebhookDeserialiser;
         this.adyenCancellationNotificationHandler = adyenCancellationNotificationHandler;
@@ -41,6 +43,7 @@ public class AdyenWebhookTaskHandler {
         this.adyenCaptureNotificationHandler = adyenCaptureNotificationHandler;
         this.adyenTokenWebhookNotificationHandler = adyenTokenWebhookNotificationHandler;
         this.adyenTransferNotificationHandler = adyenTransferNotificationHandler;
+        this.adyenAccountHolderNotificationHandler = adyenAccountHolderNotificationHandler;
     }
 
     public void processAdyenTokenWebhookNotification(String payload) {
@@ -49,6 +52,10 @@ public class AdyenWebhookTaskHandler {
     
     public void processAdyenTransferWebhookNotification(String payload) {
         adyenTransferNotificationHandler.process(payload);
+    }
+    
+    public void processAdyenConfigurationWebhookNotification(String payload) {
+        adyenAccountHolderNotificationHandler.process(payload);
     }
 
     @Transactional

@@ -218,6 +218,15 @@ class TaskQueueMessageHandlerTest {
         logs.assertContains("Processing [handle_adyen_transfer_webhook_notification] task.");
     }
 
+    @Test
+    void shouldProcessAdyenConfigurationWebhookNotificationTask() throws QueueException {
+        TaskMessage taskMessage = setupQueueMessage("{}", TaskType.HANDLE_ADYEN_CONFIGURATION_WEBHOOK_NOTIFICATION);
+        taskQueueMessageHandler.processMessages();
+        verify(mockAdyenWebhookTaskHandler).processAdyenConfigurationWebhookNotification("{}");
+        verify(taskQueue).markMessageAsProcessed(taskMessage.getQueueMessage());
+        logs.assertContains("Processing [handle_adyen_configuration_webhook_notification] task.");
+    }
+
     private TaskMessage setupQueueMessage(String data, TaskType taskType) throws QueueException {
         Task paymentTask = new Task(data, taskType);
         QueueMessage mockQueueMessage = mock(QueueMessage.class);

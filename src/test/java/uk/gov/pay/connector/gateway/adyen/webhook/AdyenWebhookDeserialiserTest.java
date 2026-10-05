@@ -5,6 +5,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.qos.logback.core.Appender;
+import com.adyen.model.configurationwebhooks.AccountHolderNotificationRequest;
 import com.adyen.model.reportwebhooks.ReportNotificationData;
 import com.adyen.model.reportwebhooks.ReportNotificationRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,12 +29,14 @@ import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent.AUTHORISATION;
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent.RECURRING_TOKEN_CREATED;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_BALANCE_PLATFORM_REPORT_NOTIFICATION;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_CONFIGURATION_NOTIFICATION;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_NOTIFICATION;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_TOKEN_NOTIFICATION;
 
@@ -113,6 +116,26 @@ class AdyenWebhookDeserialiserTest {
 
             verifyLogs("Error deserialising notification payload to class AdyenTokenNotification");
             assertThat(exception.getMessage(), is("Error deserialising notification payload"));
+        }
+    }
+    @Nested
+    class DeserialiseAccountHolder {
+        @Test
+        void shouldDeserialiseAccountHolder() {
+            String payload = TestTemplateResourceLoader.load(ADYEN_CONFIGURATION_NOTIFICATION).replace("{{environment}}", "test");
+
+            AccountHolderNotificationRequest accountHolderNotificationRequest = adyenWebhookDeserialiser.deserialiseAccountHolderPayload(payload);
+            
+            assertThat(accountHolderNotificationRequest.getType().getValue(), is("balancePlatform.accountHolder.updated"));
+            assertThat(accountHolderNotificationRequest.getData(), is(notNullValue()));
+        }
+
+        @Test
+        void shouldThrowWebApplicationExceptionWhenDeserialisationFails() {
+            String payload = "invalid-json";
+            assertThrows(WebApplicationException.class,
+                    () -> adyenWebhookDeserialiser.deserialiseAccountHolderPayload(payload)
+            );
         }
     }
 
