@@ -184,6 +184,8 @@ public class RefundsResource {
                                     "            }" +
                                     "        }," +
                                     "    \"amount\": 3444," +
+                                    "    \"fee\": 2," +
+                                    "    \"net_amount\": -3446," +
                                     "    \"created_date\": \"2016-10-05T14:15:34.096Z\"," +
                                     "    \"refund_id\": \"vijjk08adovg10gfqc46joem2l\"," +
                                     "    \"user_external_id\": \"AA213FD51B3801043FBC\"," +
@@ -221,6 +223,8 @@ public class RefundsResource {
                                     "            }" +
                                     "        }," +
                                     "    \"amount\": 3444," +
+                                    "    \"fee\": 2," +
+                                    "    \"net_amount\": -3446," +
                                     "    \"created_date\": \"2016-10-05T14:15:34.096Z\"," +
                                     "    \"refund_id\": \"vijjk08adovg10gfqc46joem2l\"," +
                                     "    \"user_external_id\": \"AA213FD51B3801043FBC\"," +
