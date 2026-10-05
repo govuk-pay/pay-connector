@@ -1,28 +1,34 @@
 package uk.gov.pay.connector.it.dao;
 
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntity;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntityFixture;
 import uk.gov.pay.connector.charge.model.domain.FeeEntity;
-import uk.gov.pay.connector.charge.model.domain.FeeSubType;
-import uk.gov.pay.connector.charge.model.domain.FeeType;
 import uk.gov.pay.connector.extension.AppWithPostgresAndSqsExtension;
 import uk.gov.pay.connector.fee.dao.FeeDao;
 import uk.gov.pay.connector.fee.model.Fee;
+import uk.gov.pay.connector.it.dao.DatabaseFixtures.TestRefund;
 import uk.gov.pay.connector.model.domain.RefundEntityFixture;
 import uk.gov.pay.connector.refund.model.domain.RefundEntity;
 
+import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
+import static uk.gov.pay.connector.charge.model.domain.FeeSubType.SCHEME_FEE;
+import static uk.gov.pay.connector.charge.model.domain.FeeType.TRANSACTION;
 
 public class FeeDaoIT {
     @RegisterExtension
@@ -64,13 +70,13 @@ public class FeeDaoIT {
         ChargeEntity defaultChargeTestEntity = chargeEntityFixture.build();
         long chargeId = defaultTestCharge.getChargeId();
         defaultChargeTestEntity.setId(chargeId);
-        FeeEntity feeEntity = new FeeEntity(defaultChargeTestEntity, Instant.now(), 100L, FeeType.TRANSACTION);
+        FeeEntity feeEntity = new FeeEntity(defaultChargeTestEntity, Instant.now(), 100L, TRANSACTION);
         feeDao.persist(feeEntity);
         List<Map<String, Object>> feesForCharge = app.getDatabaseTestHelper().getFeesByChargeId(chargeId);
 
         assertThat(feesForCharge.size(), is(1));
         assertThat(feesForCharge.getFirst().get("charge_id"), is(chargeId));
-        assertThat(feesForCharge.getFirst().get("fee_type"), is(FeeType.TRANSACTION.getName()));
+        assertThat(feesForCharge.getFirst().get("fee_type"), is(TRANSACTION.getName()));
     }
 
     @Test
@@ -80,20 +86,20 @@ public class FeeDaoIT {
         long chargeId = defaultTestCharge.getChargeId();
         defaultChargeTestEntity.setId(chargeId);
 
-        FeeEntity feeEntity = new FeeEntity(defaultChargeTestEntity, Instant.now(), Fee.of(FeeType.TRANSACTION, 100L, FeeSubType.SCHEME_FEE));
+        FeeEntity feeEntity = new FeeEntity(defaultChargeTestEntity, Instant.now(), Fee.of(TRANSACTION, 100L, SCHEME_FEE));
         feeDao.persist(feeEntity);
 
         List<Map<String, Object>> feesForCharge = app.getDatabaseTestHelper().getFeesByChargeId(chargeId);
 
         assertThat(feesForCharge.size(), is(1));
         assertThat(feesForCharge.getFirst().get("charge_id"), is(chargeId));
-        assertThat(feesForCharge.getFirst().get("fee_sub_type"), is(FeeSubType.SCHEME_FEE.getName()));
+        assertThat(feesForCharge.getFirst().get("fee_sub_type"), is(SCHEME_FEE.getName()));
         assertThat(feesForCharge.getFirst().get("refund_id"), is(nullValue()));
     }
 
     @Test
     void persist_shouldCreateAFeeWithRefundId() {
-        DatabaseFixtures.TestRefund testRefund = app.getDatabaseFixtures()
+        TestRefund testRefund = app.getDatabaseFixtures()
                 .aTestRefund()
                 .withTestCharge(defaultTestCharge)
                 .insert();
@@ -101,7 +107,7 @@ public class FeeDaoIT {
                 .withId(testRefund.getId())
                 .build();
 
-        FeeEntity feeEntity = new FeeEntity(refundEntity, Instant.now(), Fee.of(FeeType.TRANSACTION, 100L));
+        FeeEntity feeEntity = new FeeEntity(refundEntity, Instant.now(), Fee.of(TRANSACTION, 100L));
         feeDao.persist(feeEntity);
 
         List<Map<String, Object>> feesForRefund = app.getDatabaseTestHelper().getFeesByRefundId(testRefund.getId());
@@ -113,10 +119,10 @@ public class FeeDaoIT {
 
     @Nested
     class DeleteFeesByRefundID {
-        
+
         @Test
         void shouldDeleteFeesForRefund() {
-            DatabaseFixtures.TestRefund testRefund = app.getDatabaseFixtures()
+            TestRefund testRefund = app.getDatabaseFixtures()
                     .aTestRefund()
                     .withTestCharge(defaultTestCharge)
                     .insert();
@@ -125,7 +131,7 @@ public class FeeDaoIT {
                     .withId(testRefund.getId())
                     .build();
 
-            feeDao.persist(new FeeEntity(refundEntity, Instant.now(), Fee.of(FeeType.TRANSACTION, 100L)));
+            feeDao.persist(new FeeEntity(refundEntity, Instant.now(), Fee.of(TRANSACTION, 100L)));
             assertThat(app.getDatabaseTestHelper().getFeesByRefundId(refundEntity.getId()).size(), is(1));
 
             feeDao.deleteFeesByRefundId(testRefund.getId());
@@ -136,7 +142,7 @@ public class FeeDaoIT {
 
         @Test
         void shouldNotFailIfNoFeeExists() {
-            DatabaseFixtures.TestRefund testRefund = app.getDatabaseFixtures()
+            TestRefund testRefund = app.getDatabaseFixtures()
                     .aTestRefund()
                     .withTestCharge(defaultTestCharge)
                     .insert();
@@ -150,4 +156,68 @@ public class FeeDaoIT {
             assertThat(app.getDatabaseTestHelper().getFeesByRefundId(refundEntity.getId()).size(), is(0));
         }
     }
+
+    @Nested
+    class InsertChargeOrRefundFeeIfAbsent {
+
+        @ParameterizedTest
+        @CsvSource(value = {
+                "transaction,scheme_fee",
+                "null,null"
+        }, nullValues = "null")
+        void shouldInsertChargeFeeIfAbsent(String feeType, String feeSubType) {
+            long chargeId = defaultTestCharge.getChargeId();
+
+            var createdDate = LocalDateTime.ofInstant(Instant.now().truncatedTo(ChronoUnit.MICROS), ZoneOffset.UTC);
+
+            boolean firstInsert = feeDao.insertChargeFeeIfAbsent("1", chargeId, feeType, feeSubType, 11L, createdDate);
+            boolean duplicateInsert = feeDao.insertChargeFeeIfAbsent("1", chargeId, feeType, feeSubType, 11L, createdDate);
+
+            List<Map<String, Object>> feesForCharge = app.getDatabaseTestHelper().getFeesByChargeId(chargeId);
+
+            assertThat(firstInsert, is(true));
+            assertThat(duplicateInsert, is(false));
+            assertThat(feesForCharge.size(), is(1));
+            assertThat(feesForCharge.getFirst().get("amount_due"), is(11L));
+            assertThat(feesForCharge.getFirst().get("amount_collected"), is(11L));
+            assertThat(feesForCharge.getFirst().get("fee_type"), is(feeType));
+            assertThat(feesForCharge.getFirst().get("fee_sub_type"), is(feeSubType));
+            assertThat(feesForCharge.getFirst().get("created_date"), is(Timestamp.valueOf(createdDate)));
+
+        }
+
+        @ParameterizedTest
+        @CsvSource(value = {
+                "transaction,scheme_fee",
+                "null,null"
+        }, nullValues = "null")
+        void shouldInsertRefundFeeIfAbsent(String feeType, String feeSubType) {
+            TestRefund testRefund = app.getDatabaseFixtures()
+                    .aTestRefund()
+                    .withTestCharge(defaultTestCharge)
+                    .insert();
+
+            Long refundId = RefundEntityFixture.aValidRefundEntity()
+                    .withId(testRefund.getId())
+                    .build().getId();
+
+            var createdDate = LocalDateTime.ofInstant(Instant.now().truncatedTo(ChronoUnit.MICROS), ZoneOffset.UTC);
+
+            boolean firstInsert = feeDao.insertRefundFeeIfAbsent("1", refundId, feeType, feeSubType, 11L, createdDate);
+            boolean duplicateInsert = feeDao.insertRefundFeeIfAbsent("1", refundId, feeType, feeSubType, 11L, createdDate);
+
+            List<Map<String, Object>> feesForCharge = app.getDatabaseTestHelper().getFeesByRefundId(refundId);
+
+            assertThat(firstInsert, is(true));
+            assertThat(duplicateInsert, is(false));
+            assertThat(feesForCharge.size(), is(1));
+            assertThat(feesForCharge.getFirst().get("amount_due"), is(11L));
+            assertThat(feesForCharge.getFirst().get("amount_collected"), is(11L));
+            assertThat(feesForCharge.getFirst().get("fee_type"), is(feeType));
+            assertThat(feesForCharge.getFirst().get("fee_sub_type"), is(feeSubType));
+            assertThat(feesForCharge.getFirst().get("created_date"), is(Timestamp.valueOf(createdDate)));
+
+        }
+    }
 }
+
