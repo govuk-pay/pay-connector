@@ -2,6 +2,7 @@ package uk.gov.pay.connector.gateway.worldpay;
 
 import com.google.common.collect.ImmutableList;
 import com.google.inject.persist.Transactional;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.pay.connector.charge.model.domain.Charge;
@@ -14,9 +15,9 @@ import uk.gov.pay.connector.gateway.util.XMLUnmarshallerException;
 import uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntity;
 import uk.gov.pay.connector.gatewayaccount.service.GatewayAccountService;
 import uk.gov.pay.connector.refund.model.domain.RefundStatus;
+import uk.gov.pay.connector.refund.service.RefundService;
 import uk.gov.pay.connector.util.IpDomainMatcher;
 
-import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,6 +26,8 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.CAPTURED;
 import static uk.gov.service.payments.logging.LoggingKeys.GATEWAY_ACCOUNT_ID;
 import static uk.gov.service.payments.logging.LoggingKeys.PAYMENT_EXTERNAL_ID;
+import static uk.gov.service.payments.logging.LoggingKeys.PROVIDER;
+import static uk.gov.service.payments.logging.LoggingKeys.REFUND_EXTERNAL_ID;
 
 public class WorldpayNotificationService {
 
@@ -44,6 +47,7 @@ public class WorldpayNotificationService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final ChargeService chargeService;
+    private final RefundService refundService;
     private final WorldpayNotificationConfiguration config;
     private final IpDomainMatcher ipDomainMatcher;
     private final ChargeNotificationProcessor chargeNotificationProcessor;
@@ -53,15 +57,16 @@ public class WorldpayNotificationService {
     @Inject
     public WorldpayNotificationService(
             ChargeService chargeService,
+            RefundService refundService,
             WorldpayNotificationConfiguration config,
             IpDomainMatcher ipDomainMatcher,
             ChargeNotificationProcessor chargeNotificationProcessor,
             RefundNotificationProcessor refundNotificationProcessor,
             GatewayAccountService gatewayAccountService) {
         this.chargeService = chargeService;
+        this.refundService = refundService;
         this.config = config;
         this.ipDomainMatcher = ipDomainMatcher;
-
         this.chargeNotificationProcessor = chargeNotificationProcessor;
         this.refundNotificationProcessor = refundNotificationProcessor;
         this.gatewayAccountService = gatewayAccountService;
@@ -156,11 +161,47 @@ public class WorldpayNotificationService {
     }
 
     private void processRefundNotification(WorldpayNotification notification, Charge charge, GatewayAccountEntity gatewayAccountEntity) {
-        if(isOfflineRefund(notification)) {
+        if (isOfflineRefund(notification)) {
             logger.info("{} notification {} ignored (SENT_FOR_REFUND without refund authorisation code)", PAYMENT_GATEWAY_NAME, notification);
         } else {
-            refundNotificationProcessor.invoke(PaymentGatewayName.WORLDPAY, newRefundStatus(notification), gatewayAccountEntity,
-                notification.getReference(), notification.getTransactionId(), charge);
+            String refundGatewayTransactionId = notification.getReference();
+            String chargeGatewayTransactionId = notification.getTransactionId();
+
+            if (isBlank(refundGatewayTransactionId)) {
+                logger.atWarn()
+                    .setMessage("Refund notification could not be used to update charge (missing reference)")
+                    .addKeyValue(PAYMENT_EXTERNAL_ID, charge.getExternalId())
+                    .addKeyValue(PROVIDER, PaymentGatewayName.WORLDPAY)
+                    .addKeyValue(GATEWAY_ACCOUNT_ID, gatewayAccountEntity.getId())
+                    .log();
+            }
+
+            refundService.findByChargeExternalIdAndGatewayTransactionId(charge.getExternalId(), refundGatewayTransactionId)
+                .ifPresentOrElse(refundEntity -> 
+                    refundNotificationProcessor.invoke(
+                        PaymentGatewayName.WORLDPAY,
+                        newRefundStatus(notification),
+                        gatewayAccountEntity,
+                        charge,
+                        refundEntity
+                    ), 
+                    () -> refundService.findHistoricRefundByChargeExternalIdAndGatewayTransactionId(charge, refundGatewayTransactionId).ifPresentOrElse(
+                        refund -> logger.atWarn()
+                            .addKeyValue(REFUND_EXTERNAL_ID, refund.getExternalId())
+                            .addKeyValue(PAYMENT_EXTERNAL_ID, charge.getExternalId())
+                            .addKeyValue(PROVIDER, PaymentGatewayName.WORLDPAY)
+                            .log("{} notification could not be processed as refund [{}] has been expunged from connector", PaymentGatewayName.WORLDPAY, refund.getExternalId()),
+                        () -> logger.atWarn()
+                            .addKeyValue(PAYMENT_EXTERNAL_ID, charge.getExternalId())
+                            .addKeyValue(PROVIDER, PaymentGatewayName.WORLDPAY)
+                            .addKeyValue("payment_gateway_transaction_id", chargeGatewayTransactionId)
+                            .addKeyValue(REFUND_EXTERNAL_ID, refundGatewayTransactionId)
+                            .addKeyValue("gateway_transaction_id", refundGatewayTransactionId)
+                            .log("{} notification '{}' could not be used to update refund (associated refund entity not found) for charge [{}]",
+                                    PaymentGatewayName.WORLDPAY, refundGatewayTransactionId, charge.getExternalId())
+                    )
+                );
+            
         }
     }
 
