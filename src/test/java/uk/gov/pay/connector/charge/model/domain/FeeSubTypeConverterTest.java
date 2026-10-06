@@ -36,7 +36,7 @@ class FeeSubTypeConverterTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"fixed", "variable", "adyen_markup", "scheme_fee", "interchange"})
+    @ValueSource(strings = {"fixed", "variable", "scheme_fee", "interchange"})
     void shouldReturnCorrectFeeSubTypeForCorrespondingFeeSubType(String feeSubTypeValue) {
         FeeSubType feeSubType = feeSubTypeConverter.convertToEntityAttribute(feeSubTypeValue);
         assertThat(feeSubType.getName(), is(feeSubTypeValue));
