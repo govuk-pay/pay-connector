@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import uk.gov.pay.connector.events.EventService;
 import uk.gov.pay.connector.events.model.Event;
 import uk.gov.pay.connector.events.model.charge.PaymentIncludedInPayout;
+import uk.gov.pay.connector.events.model.payout.PayoutPaid;
 import uk.gov.pay.connector.events.model.refund.RefundIncludedInPayout;
 import uk.gov.pay.connector.gateway.PaymentGatewayName;
 import uk.gov.pay.connector.gateway.PaymentProviders;
@@ -17,6 +18,7 @@ import uk.gov.pay.connector.queue.payout.PayoutReconcileHandler;
 import uk.gov.pay.connector.queue.payout.PayoutReconcileMessage;
 import uk.gov.service.payments.commons.queue.exception.QueueException;
 
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -36,14 +38,18 @@ public class AdyenPayoutReconciliationHandler implements PayoutReconcileHandler 
     private final AdyenPayoutReportParser adyenPayoutReportParser;
     private final AdyenPaymentProvider adyenPaymentProvider;
     private final EventService eventService;
+    private final PayoutEmitterService payoutEmitterService;
+    
 
     @Inject
     public AdyenPayoutReconciliationHandler(PaymentProviders paymentProviders,
                                             AdyenPayoutReportParser adyenPayoutReportParser,
-                                            EventService eventService) {
+                                            EventService eventService,
+                                            PayoutEmitterService payoutEmitterService) {
         this.adyenPayoutReportParser = adyenPayoutReportParser;
         adyenPaymentProvider = (AdyenPaymentProvider) paymentProviders.byName(PaymentGatewayName.ADYEN);
         this.eventService = eventService;
+        this.payoutEmitterService = payoutEmitterService;
     }
 
     public boolean reconcile(PayoutReconcileMessage payoutReconcileMessage) {
@@ -62,7 +68,7 @@ public class AdyenPayoutReconciliationHandler implements PayoutReconcileHandler 
 
             var balancePayoutReportRecords = adyenPayoutReportParser.parse(csv);
 
-            reconcileRecords(balancePayoutReportRecords);
+            reconcileRecords(balancePayoutReportRecords, Instant.parse(payout.getCreationDate()));
         } catch (Exception e) {
             LOGGER.atError()
                     .setMessage("Failed to reconcile Adyen balance platform payout report")
@@ -73,7 +79,7 @@ public class AdyenPayoutReconciliationHandler implements PayoutReconcileHandler 
         return true;
     }
 
-    private void reconcileRecords(List<AdyenBalancePayoutReportRecord> balancePayoutReportRecords) {
+    private void reconcileRecords(List<AdyenBalancePayoutReportRecord> balancePayoutReportRecords, Instant reportDateAndTime) {
         Map<String, AdyenBalancePayoutReportRecord> bankTransferRecordByBalanceAccountId = balancePayoutReportRecords.stream()
                 .filter(r -> "bankTransfer".equals(r.type()))
                 .collect(Collectors.toMap(AdyenBalancePayoutReportRecord::balanceAccount,
@@ -105,6 +111,10 @@ public class AdyenPayoutReconciliationHandler implements PayoutReconcileHandler 
                         emitRefundEvent(pspModificationMerchantReference, bankTransferRecord);
                     }
                     break;
+                case "bankTransfer":
+                    if (emittedEventsForIDs.add(transferRecord.transferId()) && transferRecord.category().equals("bank")) {
+                        emitPayoutEvent(transferRecord, bankTransferRecord, reportDateAndTime);
+                    }
                 case null:
                     LOGGER.atError()
                             .setMessage("Payout contains balance transfer of type null, which is unexpected.")
@@ -126,6 +136,17 @@ public class AdyenPayoutReconciliationHandler implements PayoutReconcileHandler 
         });
         LOGGER.atInfo()
                 .setMessage("Finished reconciling Adyen balance platform payout report")
+                .log();
+    }
+
+    private void emitPayoutEvent(AdyenBalancePayoutReportRecord payoutRecord, AdyenBalancePayoutReportRecord bankTransferRecord, Instant timestamp) {
+        var payoutEvent = PayoutPaid.from(timestamp, bankTransferRecord);
+        
+        payoutEmitterService.emitPayoutEvent(payoutEvent, payoutRecord.balanceAccount());
+
+        LOGGER.atInfo()
+                .setMessage("Emitted event for payout {}")
+                .addArgument(payoutRecord.transferId())
                 .log();
     }
 
