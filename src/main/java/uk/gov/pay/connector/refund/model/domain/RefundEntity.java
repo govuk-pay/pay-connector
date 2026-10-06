@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static java.time.temporal.ChronoUnit.MICROS;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
@@ -243,8 +244,15 @@ public class RefundEntity extends AbstractVersionedEntity {
     public Optional<Long> getFeeAmount() {
         return fees.isEmpty() ? Optional.empty() :
                 Optional.of(fees.stream()
-                        .map(FeeEntity::getAmountCollected)
-                        .reduce(0L, Long::sum));
+                        .collect(Collectors.toMap(
+                                fee -> Arrays.asList(fee.getFeeType(), fee.getFeeSubType()),
+                                FeeEntity::getAmountCollected,
+                                (existing, _) -> existing
+                        ))
+                        .values()
+                        .stream()
+                        .mapToLong(Long::longValue)
+                        .sum());
     }
 
     public Optional<Long> getNetAmount() {

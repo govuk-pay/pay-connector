@@ -56,6 +56,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static net.logstash.logback.argument.StructuredArguments.kv;
@@ -541,9 +542,16 @@ public class ChargeEntity extends AbstractVersionedEntity {
 
     public Optional<Long> getFeeAmount() {
         return fees.isEmpty() ? Optional.empty() :
-            Optional.of(fees.stream()
-                .map(FeeEntity::getAmountCollected)
-                .reduce(0L, Long::sum));
+                Optional.of(fees.stream()
+                        .collect(Collectors.toMap(
+                                fee -> Arrays.asList(fee.getFeeType(), fee.getFeeSubType()),
+                                FeeEntity::getAmountCollected,
+                                (existing, _) -> existing
+                        ))
+                        .values()
+                        .stream()
+                        .mapToLong(Long::longValue)
+                        .sum());
     }
 
     public Optional<Long> getNetAmount() {

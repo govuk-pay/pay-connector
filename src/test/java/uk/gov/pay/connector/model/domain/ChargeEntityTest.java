@@ -29,6 +29,9 @@ import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.AUTHORISATIO
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.CAPTURED;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.CREATED;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.ENTERING_CARD_DETAILS;
+import static uk.gov.pay.connector.charge.model.domain.FeeSubType.FIXED;
+import static uk.gov.pay.connector.charge.model.domain.FeeSubType.SCHEME_FEE;
+import static uk.gov.pay.connector.charge.model.domain.FeeType.TRANSACTION;
 import static uk.gov.pay.connector.common.model.api.ExternalChargeState.EXTERNAL_CREATED;
 import static uk.gov.pay.connector.common.model.api.ExternalChargeState.EXTERNAL_STARTED;
 import static uk.gov.pay.connector.common.model.api.ExternalChargeState.EXTERNAL_SUBMITTED;
@@ -86,9 +89,7 @@ class ChargeEntityTest {
     @Test
     void shouldRejectAnInvalidStatusTransition() {
         ChargeEntity chargeCreated = ChargeEntityFixture.aValidChargeEntity().withStatus(CREATED).build();
-        assertThrows( InvalidStateTransitionException.class, () -> {
-            chargeCreated.setStatus(CAPTURED);
-        });
+        assertThrows( InvalidStateTransitionException.class, () -> chargeCreated.setStatus(CAPTURED));
     }
 
     @Test
@@ -101,7 +102,23 @@ class ChargeEntityTest {
 
         Optional<Long> totalFee = chargeCreated.getFeeAmount();
         assertTrue(totalFee.isPresent());
-        assertEquals(totalFee.get().longValue(), 130L);
+        assertEquals(130L, totalFee.get().longValue());
+    }
+
+    @Test
+    void shouldIgnoreDuplicateFees() {
+        ChargeEntity chargeCreated = ChargeEntityFixture.aValidChargeEntity()
+                .withFee(Fee.of(TRANSACTION, 100L, FIXED))
+                .withFee(Fee.of(TRANSACTION, 50L, FIXED))
+                .withFee(Fee.of(TRANSACTION, 10L, SCHEME_FEE))
+                .withFee(Fee.of(FeeType.RADAR, 10L))
+                .withFee(Fee.of(FeeType.RADAR, 10L))
+                .withFee(Fee.of(FeeType.THREE_D_S, 20L))
+                .withStatus(CAPTURED).build();
+
+        Optional<Long> totalFee = chargeCreated.getFeeAmount();
+        assertTrue(totalFee.isPresent());
+        assertEquals(140L, totalFee.get().longValue());
     }
 
     @Test
