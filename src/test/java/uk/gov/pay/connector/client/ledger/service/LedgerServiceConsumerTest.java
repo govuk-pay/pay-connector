@@ -12,6 +12,7 @@ import jakarta.ws.rs.core.Response;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -84,7 +85,7 @@ public class LedgerServiceConsumerTest {
                         .stringType("return_url", "https://service-name.gov.uk/transactions/12345")
                         .stringValue("payment_provider", "sandbox")
                         .stringValue("credential_external_id", CREDENTIAL_ID)
-                        .date("created_date", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+                        .datetime("created_date", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
                                 Date.from(Instant.parse("2020-02-13T16:26:04.204Z")))
                         .booleanValue("delayed_capture", false)
                         .stringValue("transaction_type", "PAYMENT")
@@ -133,7 +134,7 @@ public class LedgerServiceConsumerTest {
                         .stringType("email", "Joe.Bogs@example.org")
                         .stringValue("payment_provider", "sandbox")
                         .stringValue("credential_external_id", CREDENTIAL_ID)
-                        .date("created_date", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+                        .datetime("created_date", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
                                 Date.from(Instant.parse("2020-02-13T16:26:04.204Z")))
                         .booleanValue("delayed_capture", false)
                         .stringValue("transaction_type", "PAYMENT")
@@ -176,7 +177,7 @@ public class LedgerServiceConsumerTest {
                         .numberType("amount", 1000)
                         .object("state", new PactDslJsonBody()
                                 .stringType("status", "success"))
-                        .date("created_date", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+                        .datetime("created_date", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
                                 Date.from(Instant.parse("2020-07-20T13:39:38.940Z")))
                         .stringValue("transaction_type", "REFUND")
                         .stringValue("transaction_id", TRANSACTION_ID)
@@ -217,7 +218,7 @@ public class LedgerServiceConsumerTest {
                         .stringValue("gateway_account_id", "3")
                         .numberType("amount", 100)
                         .object("state", new PactDslJsonBody().stringValue("status", "submitted"))
-                        .date("created_date", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+                        .datetime("created_date", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
                                 Date.from(Instant.parse("2019-12-23T15:24:07.061Z")))
                         .stringValue("transaction_type", "REFUND")
                         .stringType("transaction_id", "nklfm1pk9flpu91j815kp2835o")
@@ -228,7 +229,7 @@ public class LedgerServiceConsumerTest {
                         .stringValue("gateway_account_id", "3")
                         .numberType("amount", 110)
                         .object("state", new PactDslJsonBody().stringValue("status", "error"))
-                        .date("created_date", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+                        .datetime("created_date", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
                                 Date.from(Instant.parse("2019-12-23T16:20:12.343Z")))
                         .stringValue("transaction_type", "REFUND")
                         .stringType("transaction_id", "migtkmlt6gvm16sim5h0p7oeje")
@@ -334,7 +335,7 @@ public class LedgerServiceConsumerTest {
                         .stringValue("gateway_transaction_id", "gateway-tx-123456")
                         .stringType("return_url", "https://somewhere.gov.uk/rainbow/1")
                         .stringValue("payment_provider", "sandbox")
-                        .date("created_date", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+                        .datetime("created_date", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
                                 Date.from(Instant.parse("2018-10-16T10:46:02.121Z")))
                         .object("refund_summary", new PactDslJsonBody()
                                 .stringValue("status", "available")
