@@ -9,6 +9,8 @@ import org.junit.jupiter.params.provider.CsvSource;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntity;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntityFixture;
 import uk.gov.pay.connector.charge.model.domain.FeeEntity;
+import uk.gov.pay.connector.charge.model.domain.FeeSubType;
+import uk.gov.pay.connector.charge.model.domain.FeeType;
 import uk.gov.pay.connector.extension.AppWithPostgresAndSqsExtension;
 import uk.gov.pay.connector.fee.dao.FeeDao;
 import uk.gov.pay.connector.fee.model.Fee;
@@ -24,9 +26,11 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Optional.ofNullable;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
+import static uk.gov.pay.connector.charge.model.domain.ChargeEntityFixture.aValidChargeEntity;
 import static uk.gov.pay.connector.charge.model.domain.FeeSubType.SCHEME_FEE;
 import static uk.gov.pay.connector.charge.model.domain.FeeType.TRANSACTION;
 
@@ -170,8 +174,14 @@ public class FeeDaoIT {
 
             var createdDate = LocalDateTime.ofInstant(Instant.now().truncatedTo(ChronoUnit.MICROS), ZoneOffset.UTC);
 
-            boolean firstInsert = feeDao.insertChargeFeeIfAbsent("1", chargeId, feeType, feeSubType, 11L, createdDate);
-            boolean duplicateInsert = feeDao.insertChargeFeeIfAbsent("1", chargeId, feeType, feeSubType, 11L, createdDate);
+            ChargeEntity chargeEntity = aValidChargeEntity()
+                    .withId(chargeId)
+                    .build();
+            Fee fee = getFee(feeType, feeSubType);
+            FeeEntity feeEntity = new FeeEntity(chargeEntity, createdDate.toInstant(ZoneOffset.UTC), fee);
+
+            boolean firstInsert = feeDao.insertChargeFeeIfAbsent(feeEntity, chargeId);
+            boolean duplicateInsert = feeDao.insertChargeFeeIfAbsent(feeEntity, chargeId);
 
             List<Map<String, Object>> feesForCharge = app.getDatabaseTestHelper().getFeesByChargeId(chargeId);
 
@@ -197,16 +207,18 @@ public class FeeDaoIT {
                     .withTestCharge(defaultTestCharge)
                     .insert();
 
-            Long refundId = RefundEntityFixture.aValidRefundEntity()
+            RefundEntity refundEntity = RefundEntityFixture.aValidRefundEntity()
                     .withId(testRefund.getId())
-                    .build().getId();
+                    .build();
 
             var createdDate = LocalDateTime.ofInstant(Instant.now().truncatedTo(ChronoUnit.MICROS), ZoneOffset.UTC);
+            Fee fee = getFee(feeType, feeSubType);
+            FeeEntity feeEntity = new FeeEntity(refundEntity, createdDate.toInstant(ZoneOffset.UTC), fee);
 
-            boolean firstInsert = feeDao.insertRefundFeeIfAbsent("1", refundId, feeType, feeSubType, 11L, createdDate);
-            boolean duplicateInsert = feeDao.insertRefundFeeIfAbsent("1", refundId, feeType, feeSubType, 11L, createdDate);
+            boolean firstInsert = feeDao.insertRefundFeeIfAbsent(feeEntity, refundEntity.getId());
+            boolean duplicateInsert = feeDao.insertRefundFeeIfAbsent(feeEntity, refundEntity.getId());
 
-            List<Map<String, Object>> feesForCharge = app.getDatabaseTestHelper().getFeesByRefundId(refundId);
+            List<Map<String, Object>> feesForCharge = app.getDatabaseTestHelper().getFeesByRefundId(refundEntity.getId());
 
             assertThat(firstInsert, is(true));
             assertThat(duplicateInsert, is(false));
@@ -217,6 +229,12 @@ public class FeeDaoIT {
             assertThat(feesForCharge.getFirst().get("fee_sub_type"), is(feeSubType));
             assertThat(feesForCharge.getFirst().get("created_date"), is(Timestamp.valueOf(createdDate)));
 
+        }
+
+        private static Fee getFee(String feeType, String feeSubType) {
+            FeeType feeTypeEnum = ofNullable(feeType).map(FeeType::fromString).orElse(null);
+            FeeSubType feeSubtypeEnum = ofNullable(feeSubType).map(FeeSubType::fromString).orElse(null);
+            return Fee.of(feeTypeEnum, 11L, feeSubtypeEnum);
         }
     }
 }

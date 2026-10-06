@@ -12,7 +12,6 @@ class FeeSubTypeTest {
     void shouldReturnFeeSubTypeForKnownValue() {
         assertThat(FeeSubType.fromString("fixed"), is(FeeSubType.FIXED));
         assertThat(FeeSubType.fromString("variable"), is(FeeSubType.VARIABLE));
-        assertThat(FeeSubType.fromString("adyen_markup"), is(FeeSubType.ADYEN_MARKUP));
         assertThat(FeeSubType.fromString("scheme_fee"), is(FeeSubType.SCHEME_FEE));
         assertThat(FeeSubType.fromString("interchange"), is(FeeSubType.INTERCHANGE));
     }

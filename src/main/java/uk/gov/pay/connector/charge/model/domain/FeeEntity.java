@@ -19,8 +19,10 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+
 import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.util.Optional;
 
 @Entity
 @Table(name = "fees")
@@ -28,7 +30,7 @@ import java.time.ZonedDateTime;
 @SequenceGenerator(name = "charges_charge_id_seq",
         sequenceName = "charges_charge_id_seq", allocationSize = 1)
 public class FeeEntity {
-    
+
     public FeeEntity() {
     }
 
@@ -94,10 +96,10 @@ public class FeeEntity {
     @Column(name = "collected_date")
     @Convert(converter = UTCDateTimeConverter.class)
     private ZonedDateTime collectedDate;
-    
+
     @Column(name = "gateway_transaction_id")
     private String gatewayTransactionId;
-    
+
     public long getAmountCollected() {
         return amountCollected;
     }
@@ -110,15 +112,31 @@ public class FeeEntity {
         return feeType;
     }
 
-    public void setFeeType(FeeType feeType) {
-        this.feeType = feeType;
-    }
-
     public FeeSubType getFeeSubType() {
         return feeSubType;
     }
 
+    public String getFeeTypeAsString() {
+        return Optional.ofNullable(feeType).map(FeeType::getName).orElse(null);
+    }
+
+    public String getFeeSubTypeAsString() {
+        return Optional.ofNullable(feeSubType).map(FeeSubType::getName).orElse(null);
+    }
+
     public RefundEntity getRefundEntity() {
         return refundEntity;
+    }
+
+    public String getExternalId() {
+        return externalId;
+    }
+
+    public ChargeEntity getChargeEntity() {
+        return chargeEntity;
+    }
+
+    public long getAmountDue() {
+        return amountDue;
     }
 }

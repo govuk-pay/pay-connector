@@ -9,7 +9,6 @@ import static org.apache.commons.lang3.Strings.CS;
 public enum FeeSubType {
     FIXED("fixed"),
     VARIABLE("variable"),
-    ADYEN_MARKUP("adyen_markup"),
     SCHEME_FEE("scheme_fee"),
     INTERCHANGE("interchange");
 
