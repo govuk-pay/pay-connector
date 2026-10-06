@@ -18,24 +18,19 @@ import uk.gov.pay.connector.charge.model.domain.Charge;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntity;
 import uk.gov.pay.connector.gateway.PaymentGatewayName;
 import uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntity;
-import uk.gov.pay.connector.refund.model.domain.Refund;
 import uk.gov.pay.connector.refund.model.domain.RefundEntity;
 import uk.gov.pay.connector.refund.model.domain.RefundStatus;
 import uk.gov.pay.connector.refund.service.RefundService;
 import uk.gov.pay.connector.usernotification.service.UserNotificationService;
-
-import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static uk.gov.pay.connector.charge.model.domain.ChargeEntityFixture.aValidChargeEntity;
 import static uk.gov.pay.connector.charge.model.domain.ChargeEntityFixture.defaultGatewayAccountEntity;
 import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
@@ -59,8 +54,6 @@ class RefundNotificationProcessorTest {
 
     private static PaymentGatewayName paymentGatewayName = PaymentGatewayName.WORLDPAY;
     private static final String PAYMENT_REFERENCE = "payment-reference";
-    private static final String REFUND_GATEWAY_TRANSACTION_ID = "refund-gateway-tx-id";
-    private static final String REFUND_EXTERNAL_ID = "refund-123";
     private static final String TRANSACTION_ID = "transactionId";
     private final GatewayAccountEntity gatewayAccountEntity = defaultGatewayAccountEntity();
     private final ChargeEntity chargeEntity = aValidChargeEntity()
@@ -81,10 +74,6 @@ class RefundNotificationProcessorTest {
     @Test
     void shouldInvokeTransitionRefundStateForSuccessfulRefund() {
         var targetRefundStatus = RefundStatus.REFUNDED;
-        when(refundService.findByChargeExternalIdAndGatewayTransactionId(
-                charge.getExternalId(),
-                REFUND_GATEWAY_TRANSACTION_ID))
-                .thenReturn(Optional.of(refundEntity));
 
         invokeRefundNotificationProcessorWithNewStatus(targetRefundStatus);
 
@@ -94,9 +83,6 @@ class RefundNotificationProcessorTest {
 
     @Test
     void shouldInvokeSendEmailNotificationsForSuccessfulRefunds() {
-        Optional<RefundEntity> optionalRefundEntity = Optional.of(refundEntity);
-        when(refundService.findByChargeExternalIdAndGatewayTransactionId(charge.getExternalId(), REFUND_GATEWAY_TRANSACTION_ID)).thenReturn(optionalRefundEntity);
-
         invokeRefundNotificationProcessorWithNewStatus(RefundStatus.REFUNDED);
         verify(userNotificationService).sendRefundIssuedEmail(refundEntity, charge, gatewayAccountEntity);
     }
@@ -110,8 +96,6 @@ class RefundNotificationProcessorTest {
     @Test
     void shouldNotInvokeSendEmailNotifications_WhenRefundStatusWasSetAsRefundError() {
         refundEntity.setStatus(REFUND_ERROR);
-        Optional<RefundEntity> optionalRefundEntity = Optional.of(refundEntity);
-        when(refundService.findByChargeExternalIdAndGatewayTransactionId(charge.getExternalId(), REFUND_GATEWAY_TRANSACTION_ID)).thenReturn(optionalRefundEntity);
 
         invokeRefundNotificationProcessorWithNewStatus(REFUND_ERROR);
         verify(userNotificationService, never()).sendRefundIssuedEmail(refundEntity, charge, gatewayAccountEntity);
@@ -119,9 +103,6 @@ class RefundNotificationProcessorTest {
 
     @Test
     void shouldLogFailedRefund_WhenRefundStatusWasSetAsRefundError() {
-        Optional<RefundEntity> optionalRefundEntity = Optional.of(refundEntity);
-        when(refundService.findByChargeExternalIdAndGatewayTransactionId(charge.getExternalId(), REFUND_GATEWAY_TRANSACTION_ID)).thenReturn(optionalRefundEntity);
-
         invokeRefundNotificationProcessorWithNewStatus(REFUND_ERROR);
 
         logs.assertContains("Refund request record set as failed (REFUND_ERROR)");
@@ -131,10 +112,6 @@ class RefundNotificationProcessorTest {
     @Test
     void shouldLogIllegalStateTransitionAtInfoLevel_WhenWorldpayStatusTransitionIsIllegal() {
         refundEntity.setStatus(RefundStatus.REFUND_ERROR);
-        when(refundService.findByChargeExternalIdAndGatewayTransactionId(
-                charge.getExternalId(),
-                REFUND_GATEWAY_TRANSACTION_ID))
-                .thenReturn(Optional.of(refundEntity));
 
         invokeRefundNotificationProcessorWithNewStatus(RefundStatus.REFUNDED);
 
@@ -146,37 +123,6 @@ class RefundNotificationProcessorTest {
         then(userNotificationService)
                 .should(never())
                 .sendRefundIssuedEmail(any(), any(), any());
-    }
-
-    @Test
-    void shouldLogError_whenRefundGatewayTransactionIdIsNotAvailable() {
-        refundNotificationProcessor.invoke(paymentGatewayName, REFUND_ERROR, gatewayAccountEntity, null, TRANSACTION_ID, charge);
-
-        logs.assertContains("Refund notification could not be used to update charge (missing reference)");
-    }
-
-    @Test
-    void shouldLogError_whenRefundEntityIsNotAvailable() {
-        refundNotificationProcessor.invoke(paymentGatewayName, RefundStatus.REFUNDED, gatewayAccountEntity, "unknown", TRANSACTION_ID, charge);
-
-        String expectedLogMessage = String.format("%s notification '%s' could not be used to update refund (associated refund entity not found) for charge [%s]",
-                paymentGatewayName,
-                "unknown",
-                charge.getExternalId());
-        logs.assertContains(expectedLogMessage);
-    }
-
-    @Test
-    void shouldLogWarning_whenNotificationIsForAnExpungedRefund() {
-        String gatewayTransactionId = "refund-gateway-tx-id123";
-        when(refundService.findHistoricRefundByChargeExternalIdAndGatewayTransactionId(charge, gatewayTransactionId))
-                .thenReturn(Optional.of(Refund.from(refundEntity)));
-
-        refundNotificationProcessor.invoke(paymentGatewayName, RefundStatus.REFUNDED, gatewayAccountEntity, gatewayTransactionId, TRANSACTION_ID, charge);
-
-        String expectedLogMessage = String.format("%s notification could not be processed as refund [%s] has been expunged from connector",
-                paymentGatewayName, refundEntity.getExternalId());
-        logs.assertContains(expectedLogMessage);
     }
 
     @Nested
@@ -197,9 +143,6 @@ class RefundNotificationProcessorTest {
         void setUp() {
             paymentGatewayName = WORLDPAY;
             refundEntity.setStatus(oldStatus);
-            when(refundService.findByChargeExternalIdAndGatewayTransactionId(charge.getExternalId(), REFUND_GATEWAY_TRANSACTION_ID))
-                    .thenReturn(Optional.of(refundEntity));
-
         }
 
         @Test
@@ -243,8 +186,6 @@ class RefundNotificationProcessorTest {
         @BeforeEach
         void setUp() {
             refundEntity.setStatus(status);
-            when(refundService.findByChargeExternalIdAndGatewayTransactionId(charge.getExternalId(), REFUND_GATEWAY_TRANSACTION_ID))
-                    .thenReturn(Optional.of(refundEntity));
         }
 
         @Test
@@ -281,19 +222,14 @@ class RefundNotificationProcessorTest {
                 paymentGatewayName,
                 newStatus,
                 gatewayAccountEntity,
-                REFUND_GATEWAY_TRANSACTION_ID,
-                TRANSACTION_ID,
-                charge);
+                charge,
+                refundEntity);
     }
 
     @Test
     void shouldTransitionRefund_WhenRefundStatusWasSetAsRefundError_ForAdyen() {
         refundEntity.setStatus(REFUND_ERROR);
-
-        when(refundService.findRefundByExternalId(REFUND_EXTERNAL_ID))
-                .thenReturn(Optional.of(refundEntity));
-
-        invokeRefundNotificationProcessorByExternalId(ADYEN, RefundStatus.REFUNDED, REFUND_EXTERNAL_ID);
+        invokeRefundNotificationProcessor(ADYEN, RefundStatus.REFUNDED);
 
         verify(refundService)
                 .transitionRefundState(refundEntity, gatewayAccountEntity, RefundStatus.REFUNDED, charge);
@@ -305,10 +241,8 @@ class RefundNotificationProcessorTest {
     @Test
     void shouldLogIllegalStateTransitionAtErrorLevel_IfRefundFailedWhenRefundStatusWasSetAsRefundedForAdyen() {
         refundEntity.setStatus(RefundStatus.REFUNDED);
-        when(refundService.findRefundByExternalId(REFUND_EXTERNAL_ID))
-                .thenReturn(Optional.of(refundEntity));
 
-        invokeRefundNotificationProcessorByExternalId(ADYEN, RefundStatus.REFUND_ERROR, REFUND_EXTERNAL_ID);
+        invokeRefundNotificationProcessor(ADYEN, RefundStatus.REFUND_ERROR);
 
         assertThat(logs.getEvents(), everyItem(hasProperty("level", is(Level.ERROR))));
         logs.assertContains("Adyen Notification received for refund would cause an illegal state transition");
@@ -321,49 +255,10 @@ class RefundNotificationProcessorTest {
     }
 
     @Test
-    void shouldLogWarningAndReturnWhenAdyenRefundCannotBeFoundByExternalId() {
-        when(refundService.findRefundByExternalId(REFUND_EXTERNAL_ID))
-                .thenReturn(Optional.empty());
-
-        invokeRefundNotificationProcessorByExternalId(ADYEN, RefundStatus.REFUNDED, REFUND_EXTERNAL_ID);
-
-        assertThat(logs.getEvents(), everyItem(hasProperty("level", is(Level.WARN))));
-        logs.assertContains("ADYEN notification 'refund-123' could not be used to update refund (associated refund entity not found) for charge [%s]".formatted(charge.getExternalId()));
-        then(refundService)
-                .should(never())
-                .findHistoricRefundByChargeExternalIdAndGatewayTransactionId(any(Charge.class), anyString());
-        then(refundService)
-                .should(never())
-                .transitionRefundState(any(), any(), any(), any());
-        then(userNotificationService)
-                .should(never())
-                .sendRefundIssuedEmail(any(), any(), any());
-    }
-
-    @Test
-    void shouldLogWarningAndReturnWhenRefundExternalIdIsMissing() {
-        invokeRefundNotificationProcessorByExternalId(ADYEN, RefundStatus.REFUNDED, null);
-
-        assertThat(logs.getEvents(), everyItem(hasProperty("level", is(Level.WARN))));
-        logs.assertContains("Refund notification could not be used to update charge (missing reference)");
-        then(refundService)
-                .should(never())
-                .findRefundByExternalId(anyString());
-        then(refundService)
-                .should(never())
-                .transitionRefundState(any(), any(), any(), any());
-        then(userNotificationService)
-                .should(never())
-                .sendRefundIssuedEmail(any(), any(), any());
-    }
-
-    @Test
     void shouldLogRedundantNotificationAtInfoLevel_WhenStatusIsUnchangedUsingExternalId() {
         refundEntity.setStatus(RefundStatus.REFUNDED);
-        when(refundService.findRefundByExternalId(REFUND_EXTERNAL_ID))
-                .thenReturn(Optional.of(refundEntity));
 
-        invokeRefundNotificationProcessorByExternalId(ADYEN, RefundStatus.REFUNDED, REFUND_EXTERNAL_ID);
+        invokeRefundNotificationProcessor(ADYEN, RefundStatus.REFUNDED);
 
         assertThat(logs.getEvents(), everyItem(hasProperty("level", is(Level.INFO))));
         logs.assertContains("Notification received for refund [someExternalId] is redundant and therefore ignored because refund is already in state [REFUNDED]");
@@ -376,12 +271,12 @@ class RefundNotificationProcessorTest {
     }
 
   
-    private void invokeRefundNotificationProcessorByExternalId(PaymentGatewayName gatewayName, RefundStatus newStatus, String refundExternalId) {
-        refundNotificationProcessor.processRefundByExternalId(
+    private void invokeRefundNotificationProcessor(PaymentGatewayName gatewayName, RefundStatus newStatus) {
+        refundNotificationProcessor.invoke(
                 gatewayName,
                 newStatus,
                 gatewayAccountEntity,
-                refundExternalId,
-                charge);
+                charge,
+                refundEntity);
     }
 }
