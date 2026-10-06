@@ -127,6 +127,7 @@ class AdyenPayoutReconciliationHandlerTest {
         assertEquals("PAYMENT_INCLUDED_IN_PAYOUT", eventEmitted.getEventType());
         assertEquals("charge-external-id-123", eventEmitted.getResourceExternalId());
         assertEquals(eventEmitted.getTimestamp(), convertToInstant("2023-12-15 07:00:12"));
+        logs.assertContains("Emitted event for payment charge-external-id-123 included in payout 3JY1Y65VXYY7GD3F");
     }
 
     @Test
@@ -144,6 +145,7 @@ class AdyenPayoutReconciliationHandlerTest {
         assertEquals("REFUND_INCLUDED_IN_PAYOUT", refundEventEmitted.getEventType());
         assertEquals("refund-external-id-123", refundEventEmitted.getResourceExternalId());
         assertEquals(refundEventEmitted.getTimestamp(), convertToInstant("2023-12-15 07:00:12"));
+        logs.assertContains("Emitted event for refund refund-external-id-123 included in payout 3CY1XOPVXWKYA3O9");
     }
 
     @Test
@@ -161,6 +163,7 @@ class AdyenPayoutReconciliationHandlerTest {
         assertEquals("PAYOUT_PAID", payoutEventEmitted.getEventType());
         assertEquals("3CY1XOPVXWKYA3O9", payoutEventEmitted.getResourceExternalId());
         assertEquals("2026-09-23T22:04:12Z", payoutEventEmitted.getTimestamp().toString());
+        logs.assertContains("Emitted event for payout 3CY1XOPVXWKYA3O9");
     }
 
     @Test
@@ -181,7 +184,7 @@ class AdyenPayoutReconciliationHandlerTest {
         
         handler.reconcile(payoutReconcileMessage);
 
-        logs.assertContains("Payout contains balance transfer of type null, which is unexpected.");
+        logs.assertContains("Payout contains type null, which is unexpected.");
     }
     
     @Test

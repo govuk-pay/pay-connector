@@ -115,9 +115,10 @@ public class AdyenPayoutReconciliationHandler implements PayoutReconcileHandler 
                     if (emittedEventsForIDs.add(transferRecord.transferId()) && transferRecord.category().equals("bank")) {
                         emitPayoutEvent(transferRecord, bankTransferRecord, reportDateAndTime);
                     }
+                    break;
                 case null:
                     LOGGER.atError()
-                            .setMessage("Payout contains balance transfer of type null, which is unexpected.")
+                            .setMessage("Payout contains type null, which is unexpected.")
                             .addKeyValue(BALANCE_ACCOUNT_ID, transferRecord.balanceAccount())
                             .addKeyValue(CATEGORY, transferRecord.category())
                             .addKeyValue(TRANSACTION_ID, transferRecord.transactionId())
@@ -158,7 +159,7 @@ public class AdyenPayoutReconciliationHandler implements PayoutReconcileHandler 
 
         LOGGER.atInfo()
                 .setMessage("Emitted event for payment {} included in payout {}")
-                .addArgument(bankTransferRecord.pspPaymentMerchantReference())
+                .addArgument(payoutRecord.pspPaymentMerchantReference())
                 .addArgument(payoutRecord.transferId())
                 .addKeyValue(PAYMENT_EXTERNAL_ID, bankTransferRecord.pspPaymentMerchantReference())
                 .log();
@@ -172,9 +173,9 @@ public class AdyenPayoutReconciliationHandler implements PayoutReconcileHandler 
         emitEvent(refundEvent, pspModificationReference, transferId);
 
         LOGGER.atInfo()
-                .setMessage(format("Emitted event for refund [%s] included in payout [%s]",
-                        pspModificationReference,
-                        transferId))
+                .setMessage("Emitted event for refund {} included in payout {}")
+                .addArgument(pspModificationReference)
+                .addArgument(transferId)
                 .addKeyValue(REFUND_EXTERNAL_ID, pspModificationReference).log();
     }
 
