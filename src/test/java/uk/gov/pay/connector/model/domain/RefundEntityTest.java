@@ -18,13 +18,15 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static uk.gov.pay.connector.charge.model.domain.ChargeEntityFixture.aValidChargeEntity;
+import static uk.gov.pay.connector.charge.model.domain.FeeSubType.FIXED;
+import static uk.gov.pay.connector.charge.model.domain.FeeSubType.VARIABLE;
 import static uk.gov.pay.connector.model.domain.RefundEntityFixture.aValidRefundEntity;
 import static uk.gov.pay.connector.model.domain.RefundEntityFixture.userEmail;
 import static uk.gov.pay.connector.model.domain.RefundEntityFixture.userExternalId;
 import static uk.gov.pay.connector.refund.model.domain.RefundStatus.CREATED;
 import static uk.gov.pay.connector.refund.model.domain.RefundStatus.REFUNDED;
-import static uk.gov.pay.connector.refund.model.domain.RefundStatus.REFUND_SUBMITTED;
 import static uk.gov.pay.connector.refund.model.domain.RefundStatus.REFUND_ERROR;
+import static uk.gov.pay.connector.refund.model.domain.RefundStatus.REFUND_SUBMITTED;
 
 class RefundEntityTest {
 
@@ -72,6 +74,23 @@ class RefundEntityTest {
         
         assertTrue(feeAmount.isPresent());
         assertThat(feeAmount.get(), is(100L));
+    }
+
+    @Test
+    void shouldIgnoreDuplicateFees() {
+        RefundEntity refund = aValidRefundEntity().build();
+
+        var fees = refund.getFees();
+        
+        fees.add(new FeeEntity(refund, Instant.now(), Fee.of(FeeType.TRANSACTION, 100L, FIXED)));
+        fees.add(new FeeEntity(refund, Instant.now(), Fee.of(FeeType.TRANSACTION, 50L, FIXED)));
+        fees.add(new FeeEntity(refund, Instant.now(), Fee.of(FeeType.RADAR, 10L)));
+        fees.add(new FeeEntity(refund, Instant.now(), Fee.of(FeeType.RADAR, 25L)));
+
+        Optional<Long> feeAmount = refund.getFeeAmount();
+
+        assertTrue(feeAmount.isPresent());
+        assertThat(feeAmount.get(), is(110L));
     }
 
     @Test
@@ -133,11 +152,11 @@ class RefundEntityTest {
     void shouldReturnTotalFeeAmountWhenRefundHasMultipleFees() {
         RefundEntity refund = RefundEntityFixture.aValidRefundEntity().build();
 
-        FeeEntity fee1 = new FeeEntity(refund, Instant.now(), Fee.of(FeeType.TRANSACTION, 100L));
+        FeeEntity fee1 = new FeeEntity(refund, Instant.now(), Fee.of(FeeType.TRANSACTION, 100L, FIXED));
 
         refund.getFees().add(fee1);
 
-        FeeEntity fee2 = new FeeEntity(refund, Instant.now(), Fee.of(FeeType.TRANSACTION, 20L));
+        FeeEntity fee2 = new FeeEntity(refund, Instant.now(), Fee.of(FeeType.TRANSACTION, 20L, VARIABLE));
 
         refund.getFees().add(fee2);
 
