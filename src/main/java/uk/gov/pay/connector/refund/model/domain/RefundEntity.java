@@ -237,6 +237,10 @@ public class RefundEntity extends AbstractVersionedEntity {
         this.parityCheckDate = parityCheckDate;
     }
 
+    public void addFee(FeeEntity fee) {
+        this.fees.add(fee);
+    }
+
     public List<FeeEntity> getFees() {
         return fees;
     }
