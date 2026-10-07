@@ -3,6 +3,7 @@ package uk.gov.pay.connector.events.eventdetails.charge;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntity;
 import uk.gov.pay.connector.events.eventdetails.EventDetails;
 import uk.gov.pay.connector.fee.model.Fee;
+import uk.gov.pay.connector.refund.model.domain.RefundEntity;
 
 import java.util.List;
 import java.util.Objects;
@@ -28,6 +29,18 @@ public class FeeIncurredEventDetails extends EventDetails {
         
         return new FeeIncurredEventDetails(charge.getFeeAmount().orElse(null),
                 charge.getNetAmount().orElse(null),
+                listOfFees
+        );
+    }
+
+    public static EventDetails from(RefundEntity refundEntity) {
+        List<Fee> listOfFees = refundEntity.getFees()
+                .stream()
+                .map(Fee::from)
+                .collect(Collectors.toList());
+
+        return new FeeIncurredEventDetails(refundEntity.getFeeAmount().orElse(null),
+                refundEntity.getNetAmount().orElse(null),
                 listOfFees
         );
     }
