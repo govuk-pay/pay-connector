@@ -17,8 +17,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
 import uk.gov.pay.connector.events.model.payout.PayoutEvent;
-import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.TransferEventStatus;
 import uk.gov.pay.connector.gateway.adyen.webhook.AdyenWebhookDeserialiser;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.AdyenTransferNotification;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.TransferEventStatus;
 import uk.gov.pay.connector.gateway.exception.AdyenNotificationException;
 import uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntity;
 import uk.gov.pay.connector.gatewayaccountcredentials.service.GatewayAccountCredentialsService;
@@ -32,6 +33,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -40,6 +42,7 @@ import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
 import static uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.TransferEventStatus.RECEIVED;
 import static uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntityFixture.aGatewayAccountEntity;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_TRANSFER_NOTIFICATION;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.ADYEN_TRANSFER_NOTIFICATION_FOR_FEES;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.load;
 
 @ExtendWith(MockitoExtension.class)
@@ -59,6 +62,9 @@ class AdyenTransferNotificationHandlerTest {
     @Mock
     private AdyenTransferNotificationHandler handler;
 
+    @Mock
+    private AdyenTransferNotificationHandlerForFees mockAdyenTransferNotificationHandlerForFees;
+
     @Captor
     private ArgumentCaptor<LoggingEvent> loggingEventArgumentCaptor;
 
@@ -68,7 +74,8 @@ class AdyenTransferNotificationHandlerTest {
     @BeforeEach
     void setUp() {
         AdyenWebhookDeserialiser adyenWebhookDeserialiser = new AdyenWebhookDeserialiser(new JsonObjectMapper(new ObjectMapper()));
-        handler = new AdyenTransferNotificationHandler(payoutEmitterService, adyenWebhookDeserialiser, gatewayAccountCredentialsService);
+        handler = new AdyenTransferNotificationHandler(payoutEmitterService, adyenWebhookDeserialiser,
+                gatewayAccountCredentialsService, mockAdyenTransferNotificationHandlerForFees);
         Logger root = (Logger) LoggerFactory.getLogger(AdyenTransferNotificationHandler.class);
         root.setLevel(Level.INFO);
         root.addAppender(mockAppender);
@@ -96,6 +103,16 @@ class AdyenTransferNotificationHandlerTest {
 
         PayoutEvent event = eventArgumentCaptor.getAllValues().getFirst();
         assertEquals("PAYOUT_CREATED", event.getEventType());
+    }
+
+    @Test
+    void shouldInvokeTransferHandlerForFee_WhenCategoryIsPlatformPayment() {
+        var payload = load(ADYEN_TRANSFER_NOTIFICATION_FOR_FEES);
+
+        handler.process(payload);
+
+        verify(mockAdyenTransferNotificationHandlerForFees).process(any(AdyenTransferNotification.class));
+        verifyNoInteractions(gatewayAccountCredentialsService, payoutEmitterService);
     }
 
     @Test
