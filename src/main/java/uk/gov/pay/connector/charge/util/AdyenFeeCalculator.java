@@ -3,11 +3,15 @@ package uk.gov.pay.connector.charge.util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.pay.connector.fee.model.Fee;
+import uk.gov.pay.connector.queue.tasks.handlers.adyen.fee.AdyenFeeTransferType;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static uk.gov.pay.connector.charge.model.domain.FeeSubType.FIXED;
+import static uk.gov.pay.connector.charge.model.domain.FeeSubType.INTERCHANGE;
+import static uk.gov.pay.connector.charge.model.domain.FeeSubType.SCHEME_FEE;
+import static uk.gov.pay.connector.charge.model.domain.FeeSubType.VARIABLE;
 import static uk.gov.pay.connector.charge.model.domain.FeeType.FRAUD_PROTECTION;
 import static uk.gov.pay.connector.charge.model.domain.FeeType.GATEWAY;
 import static uk.gov.pay.connector.charge.model.domain.FeeType.TRANSACTION;
@@ -19,8 +23,21 @@ public class AdyenFeeCalculator {
     private AdyenFeeCalculator() {
     }
 
-    public static List<Fee> getFeeListBasedOnFixedCommission(long gatewayFee,
-                                                             long fraudProtectionFee, long fixedCommission) {
+    public static List<Fee> generateFeeList(AdyenFeeTransferType adyenFeeTransferType, long feeAmount,
+                                            long paymentOrRefundGatewayFeeInPence,
+                                            long fraudAvoidanceFeeInPence) {
+        return switch (adyenFeeTransferType) {
+            case FIXED_COMMISSION -> getFeeListBasedOnFixedCommission(feeAmount, paymentOrRefundGatewayFeeInPence,
+                    fraudAvoidanceFeeInPence);
+            case VARIABLE_COMMISSION -> List.of(Fee.of(TRANSACTION, feeAmount, VARIABLE));
+            case INTERCHANGE -> List.of(Fee.of(TRANSACTION, feeAmount, INTERCHANGE));
+            case SCHEME_FEE -> List.of(Fee.of(TRANSACTION, feeAmount, SCHEME_FEE));
+            case UNSUPPORTED -> throw new IllegalArgumentException("Cannot calculate fees for " + adyenFeeTransferType);
+        };
+    }
+
+    private static List<Fee> getFeeListBasedOnFixedCommission(long fixedCommission, long gatewayFee,
+                                                              long fraudProtectionFee) {
         long fixedCommissionWithoutGatewayAndFraudProtectionFee = fixedCommission - (gatewayFee + fraudProtectionFee);
 
         if (fixedCommissionWithoutGatewayAndFraudProtectionFee < 0) {
