@@ -16,7 +16,6 @@ import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.AdyenTransferNot
 
 import java.time.InstantSource;
 import java.util.List;
-import java.util.Optional;
 
 import static uk.gov.pay.connector.charge.util.AdyenFeeCalculator.generateFeeList;
 import static uk.gov.pay.connector.queue.tasks.handlers.adyen.fee.AdyenFeeTransferClassifier.classify;
@@ -34,10 +33,6 @@ public class AdyenTransferNotificationHandlerForFees {
     private final InstantSource instantSource;
     private static final Logger LOGGER = LoggerFactory.getLogger(AdyenTransferNotificationHandlerForFees.class);
 
-    private static final String LOGGING_KEY_TYPE = "type";
-    private static final String LOGGING_KEY_STATUS = "status";
-    private static final String LOGGING_KEY_EVENT_ID = "event_id";
-    private static final String LOGGING_KEY_DESCRIPTION = "description";
     private static final String LOGGING_KEY_PLATFORM_PAYMENT_TYPE = "platform_payment_type";
 
     @Inject
@@ -55,30 +50,21 @@ public class AdyenTransferNotificationHandlerForFees {
         var adyenTransferData = transferNotification.data();
 
         try {
-            MDC.put(LOGGING_KEY_TYPE, adyenTransferData.type());
-            MDC.put(LOGGING_KEY_STATUS, adyenTransferData.status());
-            MDC.put(LOGGING_KEY_EVENT_ID, adyenTransferData.eventId());
-            MDC.put(LOGGING_KEY_DESCRIPTION, adyenTransferData.description());
-
             validate(adyenTransferData);
 
             MDC.put(LOGGING_KEY_PLATFORM_PAYMENT_TYPE, adyenTransferData.categoryData().platformPaymentType());
 
-            Optional<AdyenTransactionTypeForTransfer> mayBeTransactionTypeForEvent =
-                    from(adyenTransferData.type(), adyenTransferData.status());
-
-            mayBeTransactionTypeForEvent.ifPresentOrElse(transactionTypeForTransfer -> {
-                        if (transactionTypeForTransfer == CAPTURE) {
-                            processPaymentTransferEvent(adyenTransferData);
-                        }
-                    },
-                    () -> LOGGER.atInfo()
-                            .setMessage("Ignored transfer notification")
-                            .log());
+            from(adyenTransferData.type(), adyenTransferData.status())
+                    .ifPresentOrElse(transactionTypeForTransfer -> {
+                                if (transactionTypeForTransfer == CAPTURE) {
+                                    processPaymentTransferEvent(adyenTransferData);
+                                }
+                            },
+                            () -> LOGGER.atInfo()
+                                    .setMessage("Ignored transfer notification")
+                                    .log());
         } finally {
-            List.of(LOGGING_KEY_TYPE, LOGGING_KEY_STATUS,
-                            LOGGING_KEY_EVENT_ID, LOGGING_KEY_DESCRIPTION,
-                            LOGGING_KEY_PLATFORM_PAYMENT_TYPE, PAYMENT_EXTERNAL_ID)
+            List.of(LOGGING_KEY_PLATFORM_PAYMENT_TYPE, PAYMENT_EXTERNAL_ID)
                     .forEach(MDC::remove);
         }
     }

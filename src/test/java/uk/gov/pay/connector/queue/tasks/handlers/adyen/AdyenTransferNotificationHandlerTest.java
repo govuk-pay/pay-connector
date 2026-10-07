@@ -23,6 +23,7 @@ import uk.gov.pay.connector.gateway.exception.AdyenNotificationException;
 import uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntity;
 import uk.gov.pay.connector.gatewayaccountcredentials.service.GatewayAccountCredentialsService;
 import uk.gov.pay.connector.payout.PayoutEmitterService;
+import uk.gov.pay.connector.queue.tasks.handlers.adyen.fee.AdyenTransferNotificationHandlerForFees;
 import uk.gov.pay.connector.util.JsonObjectMapper;
 
 import java.util.List;
@@ -151,7 +152,7 @@ class AdyenTransferNotificationHandlerTest {
         verify(payoutEmitterService).emitPayoutEvent(eventArgumentCaptor.capture(), accountId.capture());
 
         PayoutEvent event = eventArgumentCaptor.getAllValues().getFirst();
-        assertEquals("PAYOUT_UPDATED",event.getEventType());
+        assertEquals("PAYOUT_UPDATED", event.getEventType());
     }
 
     @ParameterizedTest
@@ -162,13 +163,13 @@ class AdyenTransferNotificationHandlerTest {
         GatewayAccountEntity gatewayAccountEntity = aGatewayAccountEntity()
                 .withGatewayName(ADYEN.getName())
                 .build();
-        
+
 
         var payload = load(ADYEN_TRANSFER_NOTIFICATION)
                 .replace("{{type}}", "balancePlatform.transfer.updated")
                 .replace("{{status}}", status.getValue())
                 .replace("22222222222", id)
-                .replace( "{{eventStatus2}}", status.getValue())
+                .replace("{{eventStatus2}}", status.getValue())
                 .replace("{{reasonCode}}", "some reason");
 
         when(gatewayAccountCredentialsService.findGatewayAccountForCredentialKeyAndValue("balance_account_id", id))
@@ -179,7 +180,7 @@ class AdyenTransferNotificationHandlerTest {
         verify(payoutEmitterService).emitPayoutEvent(eventArgumentCaptor.capture(), accountId.capture());
 
         PayoutEvent event = eventArgumentCaptor.getAllValues().getFirst();
-        assertEquals("PAYOUT_FAILED",event.getEventType());
+        assertEquals("PAYOUT_FAILED", event.getEventType());
     }
 
     @Test

@@ -205,10 +205,7 @@ class AdyenTransferNotificationHandlerForFeesTest {
                     null, "charge-external-id-123", platformPaymentType, null, null);
         }
 
-        Amount adyenAmount = null;
-        if (amount != null) {
-            adyenAmount = new Amount("GBP", amount);
-        }
+        Amount adyenAmount = (amount == null) ? null : new Amount("GBP", amount);
 
         AdyenTransferData transferData = AdyenTransferDataFixture.anAdyenTransferDataFixture()
                 .withCategoryData(adyenPlatformPaymentCategory)
