@@ -1254,6 +1254,23 @@ paths:
       summary: Handle Worldpay notifications
       tags:
       - Notifications
+  /v1/api/refunds/{refundExternalId}:
+    get:
+      operationId: getRefundByExternalId
+      parameters:
+      - in: path
+        name: refundExternalId
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Refund exists in Connector
+        "404":
+          description: Refund missing or expunged
+      summary: Check if a refund exists in Connector
+      tags:
+      - Refunds
   /v1/api/service/{serviceExternalId}/account/{accountType}/switch-psp:
     post:
       operationId: switchPaymentProviderByServiceIdAndAccountType
