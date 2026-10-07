@@ -207,6 +207,21 @@ public class RefundsResource {
     }
 
     @GET
+    @Path("/v1/api/refunds/{refundExternalId}")
+    @Operation(
+            summary = "Check if a refund exists in Connector",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Refund exists in Connector"),
+                    @ApiResponse(responseCode = "404", description = "Refund missing or expunged")
+            }
+    )
+    public Response getRefundByExternalId(@PathParam("refundExternalId") String refundExternalId) {
+        return refundService.findRefundByExternalId(refundExternalId)
+                .map(refundEntity -> Response.ok().build())
+                .orElseGet(() -> Response.status(Response.Status.NOT_FOUND).build());
+    }
+ 
+    @GET
     @Path("/v1/api/service/{serviceId}/account/{accountType}/charges/{chargeId}/refunds/{refundId}")
     @Produces(APPLICATION_JSON)
     @Operation(
