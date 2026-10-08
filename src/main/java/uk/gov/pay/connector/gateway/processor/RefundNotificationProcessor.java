@@ -11,6 +11,9 @@ import uk.gov.pay.connector.refund.model.domain.RefundStatus;
 import uk.gov.pay.connector.refund.service.RefundService;
 import uk.gov.pay.connector.usernotification.service.UserNotificationService;
 
+import java.time.Instant;
+import java.time.InstantSource;
+
 import static uk.gov.pay.connector.refund.model.domain.RefundStatus.REFUNDED;
 import static uk.gov.pay.connector.refund.model.domain.RefundStatus.REFUND_ERROR;
 import static uk.gov.service.payments.logging.LoggingKeys.GATEWAY_ACCOUNT_ID;
@@ -23,28 +26,24 @@ public class RefundNotificationProcessor {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final RefundService refundService;
-    private final WorldpayGatewayRefundNotificationProcessor worldpayGatewayRefundNotificationProcessor;
-    private final AdyenGatewayRefundNotificationProcessor adyenGatewayRefundNotificationProcessor;
     private final UserNotificationService userNotificationService;
+    private final InstantSource instantSource;
+    private final GatewayRefundNotificationProcessorResolver gatewayRefundNotificationProcessorResolver;
 
     @Inject
     public RefundNotificationProcessor(RefundService refundService,
-                                       WorldpayGatewayRefundNotificationProcessor worldpayGatewayRefundNotificationProcessor,
-                                       AdyenGatewayRefundNotificationProcessor adyenGatewayRefundNotificationProcessor,
-                                       UserNotificationService userNotificationService) {
+                                       GatewayRefundNotificationProcessorResolver gatewayRefundNotificationProcessorResolver,
+                                       UserNotificationService userNotificationService,
+                                       InstantSource instantSource) {
         this.refundService = refundService;
-        this.worldpayGatewayRefundNotificationProcessor = worldpayGatewayRefundNotificationProcessor;
-        this.adyenGatewayRefundNotificationProcessor = adyenGatewayRefundNotificationProcessor;
+        this.gatewayRefundNotificationProcessorResolver = gatewayRefundNotificationProcessorResolver;
         this.userNotificationService = userNotificationService;
+        this.instantSource = instantSource;
     }
 
     public void invoke(PaymentGatewayName gatewayName, RefundStatus newStatus,
                        GatewayAccountEntity gatewayAccountEntity, Charge charge, RefundEntity refundEntity) {
-        GatewayRefundNotificationProcessor processor = switch (gatewayName) {
-            case WORLDPAY -> worldpayGatewayRefundNotificationProcessor;
-            case ADYEN -> adyenGatewayRefundNotificationProcessor;
-            default -> throw new IllegalArgumentException("Unsupported Gateway: " + gatewayName);
-        };
+        GatewayRefundNotificationProcessor processor = gatewayRefundNotificationProcessorResolver.getForGateway(gatewayName);
 
         RefundStatus currentStatus = refundEntity.getStatus();
 
@@ -58,9 +57,11 @@ public class RefundNotificationProcessor {
             logger.error("{} Notification received for refund would cause an illegal state transition: refund [{}] cannot be set as [{}] because it is already in state [{}].",
                     gatewayName, refundEntity.getExternalId(), newStatus, currentStatus);
             return;
-        } 
+        }
 
-        refundService.transitionRefundState(refundEntity, gatewayAccountEntity, newStatus, charge);
+        Instant now = instantSource.instant();
+        refundService.transitionRefundState(refundEntity, gatewayAccountEntity, newStatus, charge, now);
+        processor.emitAdditionalEvents(charge, currentStatus, newStatus, now);
 
         if (newStatus == REFUNDED) {
             userNotificationService.sendRefundIssuedEmail(refundEntity, charge, gatewayAccountEntity);
