@@ -1,0 +1,51 @@
+{
+  "data": {
+    "balancePlatform": "Pay_UK",
+    "creationDate": "2026-10-05T10:00:05+02:00",
+    "id": "6JH0J46CKLM5G6E4",
+    "accountHolder": {
+      "description": "Account Holder",
+      "id": "AH1234"
+    },
+    "amount": {
+      "currency": "GBP",
+      "value": 73
+    },
+    "balanceAccount": {
+      "description": "Balance account for Split fees",
+      "id": "BA_FOR_SPLIT_FEE_123"
+    },
+    "category": "platformPayment",
+    "categoryData": {
+      "modificationMerchantReference": "{{modificationMerchantReference}}",
+      "modificationPspReference": "modificationReference123",
+      "paymentMerchantReference": "{{paymentMerchantReference}}",
+      "platformPaymentType": "{{platformPaymentType}}",
+      "pspPaymentReference": "Gateway-transaction-id-123",
+      "type": "platformPayment"
+    },
+    "createdAt": "2026-10-05T09:59:59+02:00",
+    "description": "{{description}}",
+    "direction": "incoming",
+    "reason": "approved",
+    "reference": "Reference123",
+    "status": "{{status}}",
+    "type": "{{type}}",
+    "balances": [
+      {
+        "balance": 19,
+        "currency": "GBP",
+        "received": 0,
+        "reserved": 0
+      }
+    ],
+    "eventId": "EVENT_ID_123",
+    "events": [
+    ],
+    "sequenceNumber": 3,
+    "updatedAt": "2026-10-05T10:00:05+02:00"
+  },
+  "environment": "test",
+  "timestamp": "2026-10-05T08:00:06.397Z",
+  "type": "balancePlatform.transfer.updated"
+}

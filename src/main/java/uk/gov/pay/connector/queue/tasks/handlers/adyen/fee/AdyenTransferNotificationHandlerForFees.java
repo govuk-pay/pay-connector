@@ -61,7 +61,7 @@ public class AdyenTransferNotificationHandlerForFees {
                                 }
                             },
                             () -> LOGGER.atInfo()
-                                    .setMessage("Ignored transfer notification")
+                                    .setMessage("Ignored transfer notification for unknown type or status")
                                     .log());
         } finally {
             List.of(LOGGING_KEY_PLATFORM_PAYMENT_TYPE, PAYMENT_EXTERNAL_ID)
