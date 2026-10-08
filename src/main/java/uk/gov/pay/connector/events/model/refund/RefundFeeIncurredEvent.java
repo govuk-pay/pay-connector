@@ -7,14 +7,15 @@ import uk.gov.pay.connector.events.exception.EventCreationException;
 import uk.gov.pay.connector.refund.model.domain.RefundEntity;
 
 import java.time.Instant;
+import java.util.List;
 
 public class RefundFeeIncurredEvent extends RefundEvent {
     public RefundFeeIncurredEvent(String resourceExternalId, EventDetails eventDetails, Instant timestamp) {
         super(resourceExternalId, eventDetails, timestamp);
     }
 
-    public static RefundFeeIncurredEvent from(RefundEntity refundEntity) throws EventCreationException {
-        Instant earliestInstant = refundEntity.getFees()
+    public static RefundFeeIncurredEvent from(RefundEntity refundEntity, List<FeeEntity> feeEntities) throws EventCreationException {
+        Instant earliestInstant = feeEntities
                 .stream()
                 .map(FeeEntity::getCreatedDate)
                 .min(Instant::compareTo)

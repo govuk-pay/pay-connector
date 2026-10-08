@@ -102,13 +102,43 @@ class AdyenTransferNotificationHandlerIT {
         assertFeeDetails(gatewayFeeRecord, expectedFeeType, 73, is(expectedFeeSubType));
     }
 
+    @Test
+    void shouldProcessRefundFeeNotificationsForPaymentFee() {
+        var refundExternalId = RandomIdGenerator.newId();
+        DatabaseFixtures.TestCharge testCharge = app.getDatabaseFixtures()
+                .aTestCharge()
+                .withTestAccount(defaultTestAccount)
+                .withChargeId(secureRandomLong())
+                .withExternalChargeId(RandomIdGenerator.newId())
+                .insert();
+        
+        var refund = app.getDatabaseFixtures()
+                .aTestRefund()
+                .withTestCharge(testCharge)
+                .withExternalRefundId(refundExternalId)
+                .insert();
+
+        var feeAmount = 10L;
+        String payload = createRefundFeeTransferNotification(testCharge, refundExternalId);
+        payload = payload.replace("73", Long.toString(feeAmount));
+
+        adyenTransferNotificationHandler.process(payload);
+        
+        List<Map<String, Object>> feesForRefund = app.getDatabaseTestHelper().getFeesByRefundId(refund.getId());
+
+        assertThat(feesForRefund.size(), is(1));
+
+        Map<String, Object> gatewayFeeRecord = getFeeRecord(feesForRefund, "gateway");
+        assertFeeDetails(gatewayFeeRecord, "gateway", feeAmount, is(nullValue()));
+    }
+
     @ParameterizedTest
     @CsvSource({
             "capture, received",
             "internalTransfer, booked"
     })
     void shouldIgnoreFeeNotificationForUnknownStatusAndType(String type, String status) {
-        String payload = getFeeTransactionNotificationPayload(testCharge.getExternalChargeId(),
+        String payload = getFeeTransactionNotificationPayload(testCharge.getExternalChargeId(), "",
                 "Commission", status, type, "some desc");
 
         adyenTransferNotificationHandler.process(payload);
@@ -122,8 +152,13 @@ class AdyenTransferNotificationHandlerIT {
     private String createPaymentFeeTransferNotification(DatabaseFixtures.TestCharge charge,
                                                         String platformPaymentType,
                                                         String description) {
-        return getFeeTransactionNotificationPayload(charge.getExternalChargeId(),
+        return getFeeTransactionNotificationPayload(charge.getExternalChargeId(), "",
                 platformPaymentType, "captured", "capture", description);
+    }
+
+    private String createRefundFeeTransferNotification(DatabaseFixtures.TestCharge charge, String refundExternalId) {
+        return getFeeTransactionNotificationPayload(charge.getExternalChargeId(), refundExternalId,
+                "PaymentFee", "refunded", "refund", "Fixed");
     }
 
     private static void assertFeeDetails(Map<String, Object> gatewayFeeRecord, String feeType,
@@ -140,6 +175,7 @@ class AdyenTransferNotificationHandlerIT {
     }
 
     private String getFeeTransactionNotificationPayload(String chargeExternalId,
+                                                        String refundExternalId,
                                                         String platformPaymentType,
                                                         String status,
                                                         String type,
@@ -147,6 +183,7 @@ class AdyenTransferNotificationHandlerIT {
         return load(ADYEN_TRANSFER_NOTIFICATION_FOR_FEES)
                 .replace("{{paymentMerchantReference}}", chargeExternalId)
                 .replace("{{platformPaymentType}}", platformPaymentType)
+                .replace("{{modificationMerchantReference}}", refundExternalId)
                 .replace("{{status}}", status)
                 .replace("{{type}}", type)
                 .replace("{{description}}", description);
