@@ -1,5 +1,6 @@
 package uk.gov.pay.connector.gateway.adyen.webhook;
 
+import com.adyen.model.configurationwebhooks.AccountHolderNotificationRequest;
 import com.adyen.model.notification.NotificationRequest;
 import com.adyen.model.notification.NotificationRequestItem;
 import com.adyen.model.reportwebhooks.ReportNotificationRequest;
@@ -77,4 +78,14 @@ public class AdyenWebhookDeserialiser {
         return notificationRequest.getNotificationItems().getFirst();
     }
 
+    public AccountHolderNotificationRequest deserialiseAccountHolderPayload(String payload) {
+        try {
+            return AccountHolderNotificationRequest.fromJson(payload);
+        } catch (JsonProcessingException e) {
+            LOGGER.atError()
+                    .setMessage("Error deserialising account holder notification")
+                    .log();
+            throw new WebApplicationException("Error deserialising account holder notification", e);
+        }
+    }
 }

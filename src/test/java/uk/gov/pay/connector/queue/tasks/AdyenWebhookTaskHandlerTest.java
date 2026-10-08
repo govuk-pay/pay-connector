@@ -22,6 +22,7 @@ import uk.gov.pay.connector.charge.service.ChargeService;
 import uk.gov.pay.connector.gateway.adyen.webhook.AdyenWebhookDeserialiser;
 import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenCancellationNotificationHandler;
 import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenCaptureNotificationHandler;
+import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenAccountHolderNotificationHandler;
 import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenRefundNotificationHandler;
 import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenTokenWebhookNotificationHandler;
 import uk.gov.pay.connector.queue.tasks.handlers.adyen.AdyenTransferNotificationHandler;
@@ -70,6 +71,9 @@ class AdyenWebhookTaskHandlerTest {
 
     @Mock
     private AdyenTransferNotificationHandler mockAdyenTransferWebhookNotificationHandler;
+    
+    @Mock
+    private AdyenAccountHolderNotificationHandler mockAdyenAccountHolderNotificationHandler;
 
     @Mock
     private Charge mockCharge;
@@ -242,6 +246,13 @@ class AdyenWebhookTaskHandlerTest {
         adyenWebhookTaskHandler.processAdyenTransferWebhookNotification(payload);
 
         verify(mockAdyenTransferWebhookNotificationHandler).process(payload);
+    }
+
+    @Test
+    void shouldDelegateConfigurationWebhookTaskToConfigurationHandler() {
+        adyenWebhookTaskHandler.processAdyenConfigurationWebhookNotification(payload);
+
+        verify(mockAdyenAccountHolderNotificationHandler).process(payload);
     }
 
     @Test
