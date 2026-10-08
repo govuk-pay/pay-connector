@@ -4,6 +4,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.inject.persist.Transactional;
 import io.dropwizard.core.setup.Environment;
 import io.prometheus.client.Counter;
+import jakarta.inject.Inject;
 import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +18,6 @@ import uk.gov.pay.connector.refund.model.domain.RefundEntity;
 import uk.gov.pay.connector.refund.model.domain.RefundStatus;
 import uk.gov.pay.connector.refund.service.RefundStateEventMap;
 
-import jakarta.inject.Inject;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 
@@ -48,7 +48,7 @@ public class StateTransitionService {
     }
 
     @Transactional
-    public void offerRefundStateTransition(RefundEntity refundEntity, RefundStatus refundStatus) {
+    public void offerRefundStateTransition(RefundEntity refundEntity, RefundStatus refundStatus, Instant eventTimestamp) {
         Class refundEventClass = RefundStateEventMap.calculateRefundEventClass(refundEntity.getUserExternalId(), refundStatus);
         RefundStateTransition refundStateTransition = new RefundStateTransition(refundEntity.getExternalId(), refundStatus, refundEventClass);
         stateTransitionQueue.offer(refundStateTransition);
@@ -56,7 +56,7 @@ public class StateTransitionService {
         eventService.recordOfferedEvent(ResourceType.REFUND,
                 refundEntity.getExternalId(),
                 Event.eventTypeForClass(refundEventClass),
-                Instant.now());
+                eventTimestamp);
     }
 
     @Transactional

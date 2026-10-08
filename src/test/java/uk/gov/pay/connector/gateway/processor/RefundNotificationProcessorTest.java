@@ -20,11 +20,14 @@ import uk.gov.pay.connector.refund.model.domain.RefundStatus;
 import uk.gov.pay.connector.refund.service.RefundService;
 import uk.gov.pay.connector.usernotification.service.UserNotificationService;
 
+import java.time.Instant;
+import java.time.InstantSource;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -34,9 +37,12 @@ import static uk.gov.pay.connector.charge.model.domain.ChargeEntityFixture.defau
 import static uk.gov.pay.connector.model.domain.RefundEntityFixture.aValidRefundEntity;
 import static uk.gov.pay.connector.refund.model.domain.RefundStatus.REFUNDED;
 import static uk.gov.pay.connector.refund.model.domain.RefundStatus.REFUND_ERROR;
+import static uk.gov.pay.connector.refund.model.domain.RefundStatus.REFUND_SUBMITTED;
 
 @ExtendWith(MockitoExtension.class)
 class RefundNotificationProcessorTest {
+
+    private static final Instant INSTANT = Instant.parse("2026-10-02T10:24:16Z");
 
     @RegisterExtension
     LogCapturer logs = LogCapturer.create().captureForType(RefundNotificationProcessor.class);
@@ -44,9 +50,9 @@ class RefundNotificationProcessorTest {
     @Mock
     private RefundService refundService;
     @Mock
-    WorldpayGatewayRefundNotificationProcessor worldpayGatewayRefundNotificationProcessor;
+    GatewayRefundNotificationProcessor  gatewayRefundNotificationProcessor;
     @Mock
-    AdyenGatewayRefundNotificationProcessor adyenGatewayRefundNotificationProcessor;
+    GatewayRefundNotificationProcessorResolver gatewayRefundNotificationProcessorResolver;
     @Mock
     private UserNotificationService userNotificationService;
 
@@ -63,21 +69,27 @@ class RefundNotificationProcessorTest {
             .withTransactionId(TRANSACTION_ID)
             .build();
     private Charge charge;
+    private final InstantSource instantSource = InstantSource.fixed(INSTANT);
+
 
     @BeforeEach
     void setup() {
         charge = Charge.from(chargeEntity);
         refundEntity = aValidRefundEntity().build();
+        
+        when(gatewayRefundNotificationProcessorResolver.getForGateway(any(PaymentGatewayName.class))).thenReturn(gatewayRefundNotificationProcessor);
 
         refundNotificationProcessor = new RefundNotificationProcessor(
                 refundService,
-                worldpayGatewayRefundNotificationProcessor,
-                adyenGatewayRefundNotificationProcessor,
-                userNotificationService);
+                gatewayRefundNotificationProcessorResolver,
+                userNotificationService,
+                instantSource);
     }
 
     @Test
-    void shouldInvokeTransitionRefundStateForSuccessfulRefund() {
+    void shouldInvokeTransitionRefundStateForProcessedNotification() {
+        refundEntity.setStatus(REFUND_SUBMITTED);
+        
         refundNotificationProcessor.invoke(
                 paymentGatewayName,
                 REFUNDED,
@@ -85,7 +97,8 @@ class RefundNotificationProcessorTest {
                 charge,
                 refundEntity);
 
-        verify(refundService).transitionRefundState(refundEntity, gatewayAccountEntity, REFUNDED, charge);
+        verify(refundService).transitionRefundState(refundEntity, gatewayAccountEntity, REFUNDED, charge, INSTANT);
+        verify(gatewayRefundNotificationProcessor).emitAdditionalEvents(charge, REFUND_SUBMITTED, REFUNDED, INSTANT);
     }
 
     @Test
@@ -108,7 +121,7 @@ class RefundNotificationProcessorTest {
                 gatewayAccountEntity,
                 charge,
                 refundEntity);
-        
+
         verify(userNotificationService, never()).sendRefundIssuedEmail(refundEntity, charge, gatewayAccountEntity);
     }
 
@@ -122,7 +135,7 @@ class RefundNotificationProcessorTest {
                 gatewayAccountEntity,
                 charge,
                 refundEntity);
-        
+
         verify(userNotificationService, never()).sendRefundIssuedEmail(refundEntity, charge, gatewayAccountEntity);
     }
 
@@ -144,15 +157,8 @@ class RefundNotificationProcessorTest {
         RefundStatus currentStatus = REFUNDED;
         RefundStatus newStatus = REFUND_ERROR;
         refundEntity.setStatus(currentStatus);
-        
-        switch (gatewayName) {
-            case ADYEN -> when(adyenGatewayRefundNotificationProcessor.isRefundTransitionIllegal(currentStatus, newStatus))
-                    .thenReturn(true);
-            case WORLDPAY -> when(worldpayGatewayRefundNotificationProcessor.isRefundTransitionIllegal(currentStatus, newStatus))
-                    .thenReturn(true);
-            default -> fail("No valid gateway");
-        }
 
+       when(gatewayRefundNotificationProcessor.isRefundTransitionIllegal(currentStatus, newStatus)).thenReturn(true);
 
         refundNotificationProcessor.invoke(
                 gatewayName,
@@ -163,16 +169,16 @@ class RefundNotificationProcessorTest {
 
         assertThat(logs.getEvents(), everyItem(hasProperty("level", is(Level.ERROR))));
         logs.assertContains(gatewayName + " Notification received for refund would cause an illegal state transition");
-        
+
         verifyNoInteractions(refundService);
         verifyNoInteractions(userNotificationService);
     }
-    
+
     @ParameterizedTest
     @EnumSource(RefundStatus.class)
     void shouldNotProcessRefundIfCurrentStatusIsTheSameAsTheNewStatus(RefundStatus status) {
         refundEntity.setStatus(status);
-        
+
         refundNotificationProcessor.invoke(
                 paymentGatewayName,
                 status,
