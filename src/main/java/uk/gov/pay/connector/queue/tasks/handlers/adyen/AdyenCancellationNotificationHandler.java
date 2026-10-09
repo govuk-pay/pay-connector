@@ -13,6 +13,9 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.EXPIRED;
+import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.EXPIRE_CANCEL_FAILED;
+import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.EXPIRE_CANCEL_SUBMITTED;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.SYSTEM_CANCELLED;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.SYSTEM_CANCEL_ERROR;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.SYSTEM_CANCEL_SUBMITTED;
@@ -68,6 +71,8 @@ public class AdyenCancellationNotificationHandler {
             return success ? Optional.of(SYSTEM_CANCELLED) : Optional.of(SYSTEM_CANCEL_ERROR);
         } else if (userCancelledStatuses.contains(currentStatus)) {
             return success ? Optional.of(USER_CANCELLED) : Optional.of(USER_CANCEL_ERROR);
+        } else if (currentStatus == EXPIRE_CANCEL_SUBMITTED) {
+            return success ? Optional.of(EXPIRED) : Optional.of(EXPIRE_CANCEL_FAILED);
         }
 
         return Optional.empty();
