@@ -62,9 +62,11 @@ class AdyenCancellationNotificationHandlerTest {
     @CsvSource({"true,USER CANCEL SUBMITTED,USER CANCELLED",
             "true,SYSTEM CANCEL SUBMITTED,SYSTEM CANCELLED",
             "true,USER CANCEL ERROR,USER CANCELLED",
+            "true,EXPIRE CANCEL SUBMITTED,EXPIRED",
             "false,USER CANCEL SUBMITTED,USER CANCEL ERROR",
             "false,SYSTEM CANCEL SUBMITTED,SYSTEM CANCEL ERROR",
             "false,SYSTEM CANCEL SUBMITTED,SYSTEM CANCEL ERROR",
+            "false,EXPIRE CANCEL SUBMITTED,EXPIRE CANCEL FAILED"
     })
     void shouldProcessCancelNotificationForConnectorCharge(Boolean success, String currentStatus, String expectedStatus) {
         when(mockAdyenWebhookDeserialiser.deserialiseAndGetNotificationItem(payload))

@@ -23,6 +23,7 @@ import static io.dropwizard.testing.ConfigOverride.config;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.CAPTURED;
+import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.EXPIRE_CANCEL_SUBMITTED;
 import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
 import static uk.gov.pay.connector.refund.model.domain.RefundStatus.REFUNDED;
 import static uk.gov.pay.connector.refund.model.domain.RefundStatus.REFUND_ERROR;
@@ -72,6 +73,28 @@ class AdyenWebhookTaskHandlerForPaymentWebhooksIT {
         var chargeFromDatabase = app.getDatabaseTestHelper()
                 .getChargeByExternalId(testCharge.getExternalChargeId());
         assertThat(chargeFromDatabase.get("status"), is(expectedStatus));
+    }
+
+    @Test
+    void should_update_charge_in_valid_success_state_for_expired_cancel_submitted() {
+        var testCharge = createTestChargeWithStatus(EXPIRE_CANCEL_SUBMITTED);
+
+        adyenWebhookTaskHandler.processAdyenWebhookNotification(load(ADYEN_CANCELLATION_SUCCESS_NOTIFICATION));
+
+        var chargeFromDatabase = app.getDatabaseTestHelper()
+                .getChargeByExternalId(testCharge.getExternalChargeId());
+        assertThat(chargeFromDatabase.get("status"), is("EXPIRED"));
+    }
+    
+    @Test
+    void should_update_charge_in_valid_state_failed_for_expired_cancel_submitted() {
+        var testCharge = createTestChargeWithStatus(EXPIRE_CANCEL_SUBMITTED);
+
+        adyenWebhookTaskHandler.processAdyenWebhookNotification(load(ADYEN_CANCELLATION_FAILED_NOTIFICATION));
+
+        var chargeFromDatabase = app.getDatabaseTestHelper()
+                .getChargeByExternalId(testCharge.getExternalChargeId());
+        assertThat(chargeFromDatabase.get("status"), is("EXPIRE CANCEL FAILED"));
     }
 
     @ParameterizedTest
