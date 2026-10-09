@@ -2220,4 +2220,26 @@
         </sql>
     </changeSet>
 
+    <changeSet id="create table to use for fee locking mechanism" author="">
+        <createTable tableName="fee_processing_lock">
+            <column name="id" type="bigserial" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="charge_id" type="bigint">
+                <constraints foreignKeyName="fk__fee_processing_lock_charge" referencedTableName="charges"
+                             referencedColumnNames="id" nullable="false"/>
+            </column>
+            <column name="created_date" type="timestamp without timezone"
+                    defaultValueComputed="(now() at time zone 'utc')">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="add index to fee_processing_lock.charge_id" runInTransaction="false" author="">
+        <sql>
+            CREATE UNIQUE INDEX CONCURRENTLY idx_fee_processing_lock_charge_id ON fee_processing_lock (charge_id);
+        </sql>
+    </changeSet>
+
 </databaseChangeLog>
