@@ -147,13 +147,18 @@ public class AdyenTransferNotificationHandlerForFees {
         var feeInserted = feeDao.insertRefundFeeIfAbsent(feeEntity, refundEntity.getId());
 
         if (feeInserted) {
-            emitFeeEventForRefund(refundEntity, List.of(feeEntity));
+            mayBeRefund = refundService.findRefundByExternalId(refundExternalId);
+            
+            if (mayBeRefund.isPresent()){
+                refundEntity = mayBeRefund.get();
+                emitFeeEventForRefund(refundEntity);
 
-            checkFeeEqualsConfigAndLog(environment, feeAmount);
+                checkFeeEqualsConfigAndLog(environment, feeAmount);
 
-            LOGGER.atInfo()
-                    .setMessage("Processed transfer notification for refund fees")
-                    .log();
+                LOGGER.atInfo()
+                        .setMessage("Processed transfer notification for refund fees")
+                        .log();
+            }
         } else {
             LOGGER.atInfo()
                     .setMessage("Refund fee already exists")
@@ -179,9 +184,9 @@ public class AdyenTransferNotificationHandlerForFees {
         feeDao.insertChargeFeeIfAbsent(feeEntity, chargeEntity.getId());
     }
 
-    private void emitFeeEventForRefund(RefundEntity refundEntity, List<FeeEntity> feeEntities) {
+    private void emitFeeEventForRefund(RefundEntity refundEntity) {
         try {
-            RefundFeeIncurredEvent event = RefundFeeIncurredEvent.from(refundEntity, feeEntities);
+            RefundFeeIncurredEvent event = RefundFeeIncurredEvent.from(refundEntity);
             eventService.emitAndRecordEvent(event);
 
             LOGGER.atInfo()

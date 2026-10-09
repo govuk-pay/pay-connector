@@ -21,6 +21,7 @@ import uk.gov.pay.connector.charge.service.ChargeService;
 import uk.gov.pay.connector.events.EventService;
 import uk.gov.pay.connector.events.model.refund.RefundFeeIncurredEvent;
 import uk.gov.pay.connector.fee.dao.FeeDao;
+import uk.gov.pay.connector.fee.model.Fee;
 import uk.gov.pay.connector.gateway.adyen.response.AdyenTransferDataFixture;
 import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.AdyenPlatformPaymentCategory;
 import uk.gov.pay.connector.gateway.adyen.webhook.json.transfer.AdyenTransferData;
@@ -186,14 +187,17 @@ class AdyenTransferNotificationHandlerForFeesTest {
         AdyenTransferNotification adyenTransferNotification = buildNotification(refundExternalId, refundExternalId,
                 "refund", "refunded", "PaymentFee", "Refund Fee", 10L, "test");
 
+        when(instantSource.instant()).thenReturn(NOW);
+        var feeAmount = adyenTransferNotification.data().amount().value();
+        var refundFee = Fee.of(GATEWAY, feeAmount, null);
+        refundEntity.addFee(new FeeEntity(refundEntity, instantSource.instant(), refundFee));
         when(mockRefundService.findRefundByExternalId(refundExternalId)).thenReturn(Optional.of(refundEntity));
         when(mockFeeDao.insertRefundFeeIfAbsent(any(FeeEntity.class), eq(refundEntity.getId()))).thenReturn(true);
-        when(instantSource.instant()).thenReturn(NOW);
         when(mockAdyenGatewayConfig.getPaymentOrRefundGatewayFeeInPence()).thenReturn(10);
-
+        
         handler.process(adyenTransferNotification);
 
-        verify(mockRefundService).findRefundByExternalId(refundExternalId);
+        verify(mockRefundService, times(2)).findRefundByExternalId(refundExternalId);
 
         verify(mockFeeDao, times(1))
                 .insertRefundFeeIfAbsent(argumentCaptor.capture(), eq(refundEntity.getId()));
@@ -241,14 +245,17 @@ class AdyenTransferNotificationHandlerForFeesTest {
                 "refund", "refunded", "PaymentFee", "Refund Fee", 10L,
                 environment);
 
-        when(mockRefundService.findRefundByExternalId(refundExternalId)).thenReturn(Optional.of(refundEntity));
         when(instantSource.instant()).thenReturn(NOW);
+        var feeAmount = adyenTransferNotification.data().amount().value();
+        var refundFee = Fee.of(GATEWAY, feeAmount, null);
+        refundEntity.addFee(new FeeEntity(refundEntity, instantSource.instant(), refundFee));
+        when(mockRefundService.findRefundByExternalId(refundExternalId)).thenReturn(Optional.of(refundEntity));
         when(mockAdyenGatewayConfig.getPaymentOrRefundGatewayFeeInPence()).thenReturn(50);
         when(mockFeeDao.insertRefundFeeIfAbsent(any(FeeEntity.class), eq(refundEntity.getId()))).thenReturn(true);
 
         handler.process(adyenTransferNotification);
 
-        verify(mockRefundService).findRefundByExternalId(refundExternalId);
+        verify(mockRefundService, times(2)).findRefundByExternalId(refundExternalId);
 
         verify(mockFeeDao, times(1))
                 .insertRefundFeeIfAbsent(argumentCaptor.capture(), eq(refundEntity.getId()));
@@ -294,14 +301,18 @@ class AdyenTransferNotificationHandlerForFeesTest {
     }
 
     @Test
-    void shouldHandleErrorWhenCreatingRefundFeeIncurredEvent() {
+    void shouldHandleErrorWhenEmittingEvent() {
         var refundExternalId = "refund-external-id-123";
 
         AdyenTransferNotification adyenTransferNotification = buildNotification(refundExternalId, refundExternalId,
                 "refund", "refunded", "PaymentFee", "Refund Fee", 10L, "test");
 
-        when(mockRefundService.findRefundByExternalId(refundExternalId)).thenReturn(Optional.of(refundEntity));
         when(instantSource.instant()).thenReturn(NOW);
+        var feeAmount = adyenTransferNotification.data().amount().value();
+        var refundFee = Fee.of(GATEWAY, feeAmount, null);
+        refundEntity.addFee(new FeeEntity(refundEntity, instantSource.instant(), refundFee));
+        when(mockRefundService.findRefundByExternalId(refundExternalId)).thenReturn(Optional.of(refundEntity));
+        
         when(mockFeeDao.insertRefundFeeIfAbsent(any(FeeEntity.class), eq(refundEntity.getId()))).thenReturn(true);
         
         doThrow(new RuntimeException("Event emission failed"))

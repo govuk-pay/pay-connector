@@ -10,7 +10,6 @@ import uk.gov.pay.connector.model.domain.RefundEntityFixture;
 import uk.gov.pay.connector.refund.model.domain.RefundEntity;
 
 import java.time.Instant;
-import java.util.List;
 
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasNoJsonPath;
@@ -38,7 +37,7 @@ public class RefundFeeIncurredEventTest {
     void serializesFeeIncurredEventGivenRefundEntity() throws JsonProcessingException, EventCreationException {
         FeeEntity gatewayFee = new FeeEntity(refundEntity, createdDate, Fee.of(GATEWAY, 100L));
         refundEntity.addFee(gatewayFee);
-        String actual = RefundFeeIncurredEvent.from(refundEntity, List.of(gatewayFee)).toJsonString();
+        String actual = RefundFeeIncurredEvent.from(refundEntity).toJsonString();
 
         assertThat(actual, hasJsonPath("$.timestamp", equalTo("2026-10-01T10:00:00.000000Z")));
         assertThat(actual, hasJsonPath("$.event_type", equalTo("REFUND_FEE_INCURRED_EVENT")));
