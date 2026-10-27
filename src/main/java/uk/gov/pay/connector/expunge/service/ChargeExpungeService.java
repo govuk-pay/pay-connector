@@ -18,6 +18,7 @@ import uk.gov.service.payments.commons.model.AuthorisationMode;
 
 import jakarta.inject.Inject;
 import jakarta.persistence.OptimisticLockException;
+
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -70,7 +71,7 @@ public class ChargeExpungeService {
     @Inject
     public ChargeExpungeService(ChargeDao chargeDao, ConnectorConfiguration connectorConfiguration,
                                 ParityCheckService parityCheckService,
-                                ChargeService chargeService, IdempotencyDao idempotencyDao, 
+                                ChargeService chargeService, IdempotencyDao idempotencyDao,
                                 TaskQueueService taskQueueService) {
         this.chargeDao = chargeDao;
         expungeConfig = connectorConfiguration.getExpungeConfig();
@@ -130,38 +131,44 @@ public class ChargeExpungeService {
     }
 
     private void parityCheckAndExpungeIfMet(ChargeEntity chargeEntity) {
-        boolean hasChargeBeenParityCheckedBefore = chargeEntity.getParityCheckDate() != null;
+        var lastParityCheckDate = chargeEntity.getParityCheckDate();
+        var chargeExternalId = chargeEntity.getExternalId();
 
         if (!inTerminalState(chargeEntity)) {
-            chargeService.updateChargeParityStatus(chargeEntity.getExternalId(), SKIPPED);
-            logger.info("Charge not expunged because it is not in a terminal state",
-                    kv(PAYMENT_EXTERNAL_ID, chargeEntity.getExternalId()));
+            skipExpunge(chargeExternalId, "it is not in a terminal state");
 
             if (isChargeStuckInCaptureSubmittedStateAndWorldpayPayment(chargeEntity)) {
                 taskQueueService.addQueryAndUpdateChargeInSubmittedStateTask(chargeEntity);
             }
-
-        } else if (chargeEntity.getPaymentGatewayName() == STRIPE && isStripePaymentMissingFees(chargeEntity)) {
-            chargeService.updateChargeParityStatus(chargeEntity.getExternalId(), SKIPPED);
-            logger.info("Charge not expunged because it is a Stripe payment that requires fees to be collected, but " +
-                            "fees have not yet been processed.",
-                    kv(PAYMENT_EXTERNAL_ID, chargeEntity.getExternalId()));
-        } else if (chargeEntity.getAuthorisationMode() == AuthorisationMode.AGREEMENT &&
-                idempotencyDao.idempotencyExistsByResourceExternalId(chargeEntity.getExternalId())) {
-            logger.info("Charge not expunged from connector because Idempotency record exists for charge",
-                    kv(PAYMENT_EXTERNAL_ID, chargeEntity.getExternalId()));
-        } else if (parityCheckService.parityCheckChargeForExpunger(chargeEntity)) {
-            expungeCharge(chargeEntity);
-            logger.info("Charge expunged from connector {}", kv(PAYMENT_EXTERNAL_ID, chargeEntity.getExternalId()));
-        } else {
-            if (hasChargeBeenParityCheckedBefore) {
-                logger.warn("Charge cannot be expunged because parity check with ledger repeatedly failed",
-                        kv(PAYMENT_EXTERNAL_ID, chargeEntity.getExternalId()));
-            } else {
-                logger.warn("Charge cannot be expunged because parity check with ledger failed",
-                        kv(PAYMENT_EXTERNAL_ID, chargeEntity.getExternalId()));
-            }
+            return;
         }
+
+        if (chargeEntity.getPaymentGatewayName() == STRIPE && isStripePaymentMissingFees(chargeEntity)) {
+            skipExpunge(chargeExternalId, 
+                    "it is a Stripe payment that requires fees to be collected, but fees have not yet been processed.");
+            return;
+        }
+        
+        if (hasActiveAgreementIdempotency(chargeEntity)) {
+            logExpungeSkipped(chargeExternalId, "Idempotency record exists for charge");
+            return;
+        }
+        
+        if (parityCheckService.parityCheckChargeForExpunger(chargeEntity)) {
+            expungeCharge(chargeEntity);
+            logger.info("Charge expunged from connector {}", kv(PAYMENT_EXTERNAL_ID, chargeExternalId));
+        } else {
+            logParityCheckFailure(lastParityCheckDate, chargeExternalId);
+        }
+    }
+
+    private void skipExpunge(String externalId, String reason) {
+        chargeService.updateChargeParityStatus(externalId, SKIPPED);
+        logExpungeSkipped(externalId, reason);
+    }
+
+    private void logExpungeSkipped(String externalId, String reason) {
+        logger.info("Charge not expunged because {}", reason, kv(PAYMENT_EXTERNAL_ID, externalId));
     }
 
     private boolean isChargeStuckInCaptureSubmittedStateAndWorldpayPayment(ChargeEntity chargeEntity) {
@@ -175,6 +182,17 @@ public class ChargeExpungeService {
         // yet collected the fee.
         return isNotBlank(chargeEntity.getGatewayTransactionId()) &&
                 chargeEntity.getFees().isEmpty();
+    }
+
+    private boolean hasActiveAgreementIdempotency(ChargeEntity chargeEntity) {
+        return chargeEntity.getAuthorisationMode() == AuthorisationMode.AGREEMENT
+                && idempotencyDao.idempotencyExistsByResourceExternalId(chargeEntity.getExternalId());
+    }
+
+    private void logParityCheckFailure(ZonedDateTime lastParityCheckDate, String externalId) {
+        String reason = lastParityCheckDate == null ? "failed" : "repeatedly failed";
+        logger.warn("Charge cannot be expunged because parity check with ledger {}",
+                reason, kv(PAYMENT_EXTERNAL_ID, externalId));
     }
 
     @Transactional
