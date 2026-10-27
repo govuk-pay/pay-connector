@@ -1,5 +1,6 @@
 package uk.gov.pay.connector.events;
 
+import org.hamcrest.core.Is;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +16,7 @@ import uk.gov.pay.connector.charge.model.CardDetailsEntity;
 import uk.gov.pay.connector.charge.model.FirstDigitsCardNumber;
 import uk.gov.pay.connector.charge.model.LastDigitsCardNumber;
 import uk.gov.pay.connector.charge.model.domain.Auth3dsRequiredEntity;
+import uk.gov.pay.connector.charge.model.domain.CardDetailsEntityFixture;
 import uk.gov.pay.connector.charge.model.domain.Charge;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntity;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntityFixture;
@@ -33,6 +35,8 @@ import uk.gov.pay.connector.events.model.charge.BackfillerGatewayTransactionIdSe
 import uk.gov.pay.connector.events.model.charge.BackfillerRecreatedUserEmailCollected;
 import uk.gov.pay.connector.events.model.charge.CaptureConfirmed;
 import uk.gov.pay.connector.events.model.charge.CaptureSubmitted;
+import uk.gov.pay.connector.events.model.charge.CardDetailsObtained;
+import uk.gov.pay.connector.events.model.charge.CardDetailsObtainedEventDetails;
 import uk.gov.pay.connector.events.model.charge.FeeIncurredEvent;
 import uk.gov.pay.connector.events.model.charge.Gateway3dsExemptionResultObtainedEvent;
 import uk.gov.pay.connector.events.model.charge.Gateway3dsInfoObtained;
@@ -47,6 +51,7 @@ import uk.gov.pay.connector.events.model.charge.Requested3dsExemption;
 import uk.gov.pay.connector.events.model.refund.RefundCreatedByService;
 import uk.gov.pay.connector.events.model.refund.RefundSucceeded;
 import uk.gov.pay.connector.fee.model.Fee;
+import uk.gov.pay.connector.gateway.PaymentGatewayName;
 import uk.gov.pay.connector.model.domain.RefundEntityFixture;
 import uk.gov.pay.connector.pact.ChargeEventEntityFixture;
 import uk.gov.pay.connector.pact.RefundHistoryEntityFixture;
@@ -57,6 +62,7 @@ import uk.gov.pay.connector.refund.dao.RefundDao;
 import uk.gov.pay.connector.refund.model.domain.RefundEntity;
 import uk.gov.pay.connector.refund.model.domain.RefundHistory;
 import uk.gov.pay.connector.refund.model.domain.RefundStatus;
+import uk.gov.pay.connector.wallets.WalletType;
 import uk.gov.service.payments.commons.model.CardExpiryDate;
 import uk.gov.service.payments.commons.queue.exception.QueueException;
 
@@ -73,7 +79,8 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.AdditionalMatchers.and;
 import static org.mockito.AdditionalMatchers.geq;
 import static org.mockito.AdditionalMatchers.leq;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.Mockito.atMostOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -81,19 +88,20 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.AUTHORISATION_SUCCESS;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.AUTHORISATION_REJECTED;
+import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.AUTHORISATION_SUCCESS;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.CREATED;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.ENTERING_CARD_DETAILS;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.PAYMENT_NOTIFICATION_CREATED;
-import static uk.gov.pay.connector.paymentprocessor.model.Exemption3ds.EXEMPTION_REJECTED;
+import static uk.gov.pay.connector.charge.model.domain.Exemption3dsType.CORPORATE;
+import static uk.gov.pay.connector.charge.model.domain.Exemption3dsType.OPTIMISED;
 import static uk.gov.pay.connector.paymentprocessor.model.Exemption3ds.EXEMPTION_HONOURED;
 import static uk.gov.pay.connector.paymentprocessor.model.Exemption3ds.EXEMPTION_NOT_REQUESTED;
 import static uk.gov.pay.connector.paymentprocessor.model.Exemption3ds.EXEMPTION_OUT_OF_SCOPE;
+import static uk.gov.pay.connector.paymentprocessor.model.Exemption3ds.EXEMPTION_REJECTED;
+import static uk.gov.pay.connector.wallets.WalletType.GOOGLE_PAY;
 import static uk.gov.service.payments.commons.model.AuthorisationMode.AGREEMENT;
 import static uk.gov.service.payments.commons.model.AuthorisationMode.MOTO_API;
-import static uk.gov.pay.connector.charge.model.domain.Exemption3dsType.OPTIMISED;
-import static uk.gov.pay.connector.charge.model.domain.Exemption3dsType.CORPORATE;
 
 @ExtendWith(MockitoExtension.class)
 class HistoricalEventEmitterServiceTest {
@@ -122,9 +130,9 @@ class HistoricalEventEmitterServiceTest {
         connectorConfiguration = new ConnectorConfiguration();
         historicalEventEmitterService = new HistoricalEventEmitterService(chargeDao, refundDao, chargeEventDao, emittedEventDao,
                 stateTransitionService, eventService, chargeService, connectorConfiguration);
-        CardDetailsEntity cardDetails = mock(CardDetailsEntity.class);
+        CardDetailsEntity cardDetails = CardDetailsEntityFixture.aCardDetailsEntityFixture().build();
         chargeEntity = ChargeEntityFixture
-                .aValidChargeEntity()
+                .aValidChargeEntity(PaymentGatewayName.ADYEN)
                 .withCardDetails(cardDetails)
                 .build();
         ChargeEventEntity chargeEventEntity = ChargeEventEntityFixture.aValidChargeEventEntity()
@@ -782,7 +790,6 @@ class HistoricalEventEmitterServiceTest {
         verify(eventService).emitAndRecordEvent(any(GatewayDoesNotRequire3dsAuthorisation.class), isNotNull());
     }
 
-
     @ParameterizedTest
     @MethodSource
     void shouldEmitEventWithRequested3dsExemptionObtained(Exemption3ds exemption3ds, ChargeStatus chargeStatus) throws QueueException {
@@ -810,7 +817,7 @@ class HistoricalEventEmitterServiceTest {
         assertThat(capturedEvents.getFirst().getEventType(), is("GATEWAY_3DS_EXEMPTION_RESULT_OBTAINED_EVENT"));
         assertThat(eventDetailsType.getExemption3ds(), is(exemption3ds.toString()));
     }
-    
+
     private static Stream<Arguments> shouldEmitEventWithRequested3dsExemptionObtained() {
         return Stream.of(
                 Arguments.of(EXEMPTION_NOT_REQUESTED, AUTHORISATION_SUCCESS),
@@ -879,6 +886,61 @@ class HistoricalEventEmitterServiceTest {
                 () -> assertThat(gatewayExemptionDetails.getExemption3ds(), is(exemption3ds == null ? null : exemption3ds.name()))
         );
     }
+
+    @Test
+    void shouldEmitCardDetailsObtainedEventWhenAdyenGooglePayChargeHasBeen3dsAuthorized() {
+        ChargeEventEntity successEvent = setupChargeEvent(AUTHORISATION_SUCCESS);
+
+        chargeEntity.setWalletType(GOOGLE_PAY);
+        chargeEntity.setRequires3ds(true);
+        chargeEntity.getEvents().add(successEvent);
+
+        when(chargeDao.findMaxId()).thenReturn(1L);
+        when(chargeDao.findById(1L)).thenReturn(Optional.of(chargeEntity));
+
+        historicalEventEmitterService.emitHistoricEventsById(1L, OptionalLong.empty(), 1L);
+        
+        ArgumentCaptor<CardDetailsObtained> cardDetailsObtainedArgument = ArgumentCaptor.forClass(CardDetailsObtained.class);
+
+        verify(eventService).emitAndRecordEvent(cardDetailsObtainedArgument.capture(), isNotNull());
+
+        CardDetailsObtained capturedEvent = cardDetailsObtainedArgument.getValue();
+        assertThat(cardDetailsObtainedArgument.getAllValues().size(), is(1));
+        assertThat(capturedEvent.getEventType(), is("CARD_DETAILS_OBTAINED"));
+        assertThat(((CardDetailsObtainedEventDetails) capturedEvent.getEventDetails()).getExpiryDate(), Is.is("12/99"));
+    }
+
+    @Test
+    void shouldNotEmitCardDetailsObtainedEventWhenNoneGooglePayAdyenChargeHasBeen3dsAuthorized() {
+        ChargeEventEntity successEvent = setupChargeEvent(AUTHORISATION_SUCCESS);
+        CardDetailsObtained mockCardDetailsObtained = mock(CardDetailsObtained.class);
+
+        chargeEntity.setRequires3ds(true);
+        chargeEntity.getEvents().add(successEvent);
+
+        when(chargeDao.findMaxId()).thenReturn(1L);
+        when(chargeDao.findById(1L)).thenReturn(Optional.of(chargeEntity));
+
+        historicalEventEmitterService.emitHistoricEventsById(1L, OptionalLong.empty(), 1L);
+
+        verifyNoInteractions(mockCardDetailsObtained);
+    }
+
+    @Test
+    void shouldNotEmitCardDetailsObtainedEventWhenAdyenGooglePayChargeHasNotBeen3dsAuthorized() {
+        ChargeEventEntity successEvent = setupChargeEvent(AUTHORISATION_SUCCESS);
+        CardDetailsObtained mockCardDetailsObtained = mock(CardDetailsObtained.class);
+
+        chargeEntity.setWalletType(GOOGLE_PAY);
+        chargeEntity.getEvents().add(successEvent);
+
+        when(chargeDao.findMaxId()).thenReturn(1L);
+        when(chargeDao.findById(1L)).thenReturn(Optional.of(chargeEntity));
+
+        historicalEventEmitterService.emitHistoricEventsById(1L, OptionalLong.empty(), 1L);
+
+        verifyNoInteractions(mockCardDetailsObtained);
+    }
     
     private ChargeEventEntity setupChargeEvent(ChargeStatus chargeStatus) {
         return ChargeEventEntityFixture.aValidChargeEventEntity()
@@ -910,7 +972,6 @@ class HistoricalEventEmitterServiceTest {
                 Arguments.of(CORPORATE, "CORPORATE", EXEMPTION_OUT_OF_SCOPE, AUTHORISATION_REJECTED)
         );
     }
-
     
     private RefundHistory getRefundHistoryEntity(ChargeEntity chargeEntity, RefundStatus refundStatus) {
         return RefundHistoryEntityFixture

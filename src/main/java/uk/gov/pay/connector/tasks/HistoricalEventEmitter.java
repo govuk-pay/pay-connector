@@ -19,6 +19,7 @@ import uk.gov.pay.connector.events.model.Event;
 import uk.gov.pay.connector.events.model.EventFactory;
 import uk.gov.pay.connector.events.model.charge.BackfillerGatewayTransactionIdSet;
 import uk.gov.pay.connector.events.model.charge.BackfillerRecreatedUserEmailCollected;
+import uk.gov.pay.connector.events.model.charge.CardDetailsObtained;
 import uk.gov.pay.connector.events.model.charge.FeeIncurredEvent;
 import uk.gov.pay.connector.events.model.charge.Gateway3dsExemptionResultObtainedEvent;
 import uk.gov.pay.connector.events.model.charge.Gateway3dsInfoObtained;
@@ -28,12 +29,14 @@ import uk.gov.pay.connector.events.model.charge.PaymentDetailsSubmittedByAPI;
 import uk.gov.pay.connector.events.model.charge.PaymentDetailsTakenFromPaymentInstrument;
 import uk.gov.pay.connector.events.model.charge.Requested3dsExemption;
 import uk.gov.pay.connector.events.model.refund.RefundEvent;
+import uk.gov.pay.connector.gateway.PaymentGatewayName;
 import uk.gov.pay.connector.queue.statetransition.PaymentStateTransition;
 import uk.gov.pay.connector.queue.statetransition.RefundStateTransition;
 import uk.gov.pay.connector.queue.statetransition.StateTransitionService;
 import uk.gov.pay.connector.refund.dao.RefundDao;
 import uk.gov.pay.connector.refund.model.domain.RefundHistory;
 import uk.gov.pay.connector.refund.service.RefundStateEventMap;
+import uk.gov.pay.connector.wallets.WalletType;
 
 import java.time.ZonedDateTime;
 import java.util.Comparator;
@@ -124,6 +127,26 @@ public class HistoricalEventEmitter {
         processGatewayDoesNotRequire3DSAuthorisation(charge, chargeEventEntities, forceEmission);
         processCharges3dsExemptionData(charge, chargeEventEntities, forceEmission);
         processCharges3dsExemptionResultData(charge, chargeEventEntities, forceEmission);
+        processGooglePay3dsChargesCardExpiryDate(charge, chargeEventEntities, forceEmission);
+    }
+    
+    private void processGooglePay3dsChargesCardExpiryDate(ChargeEntity charge, List<ChargeEventEntity> chargeEventEntities, boolean forceEmission) {
+        if (charge.getWalletType() == WalletType.GOOGLE_PAY 
+            && PaymentGatewayName.ADYEN.equals(charge.getPaymentGatewayName())
+            && charge.getCardDetails().getExpiryDate() != null
+            && charge.getRequires3ds() == true
+        ) {
+            chargeEventEntities
+                    .stream()
+                    .filter(event -> event.getStatus() == AUTHORISATION_SUCCESS || event.getStatus() == AUTHORISATION_REJECTED)
+                    .findFirst()
+                    .map(event -> CardDetailsObtained.from(charge, event.getUpdated().toInstant()))
+                    .filter(cardDetailsEvent -> forceEmission || !emittedEventDao.hasBeenEmittedBefore(cardDetailsEvent))
+                    .ifPresent(cardDetailsEvent -> {
+                        eventService.emitAndRecordEvent(cardDetailsEvent, getDoNotRetryEmitUntilDate());
+                        logger.info("3DS Exemption Result event emitted for [chargeExternalId={}]", charge.getExternalId());
+                    });
+        }
     }
 
     private void processCharges3dsExemptionResultData(ChargeEntity charge, List<ChargeEventEntity> chargeEventEntities, boolean forceEmission) {
