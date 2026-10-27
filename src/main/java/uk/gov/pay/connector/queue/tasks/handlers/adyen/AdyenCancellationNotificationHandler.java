@@ -4,6 +4,7 @@ import com.adyen.model.notification.NotificationRequestItem;
 import com.google.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import uk.gov.pay.connector.charge.model.domain.Charge;
 import uk.gov.pay.connector.charge.model.domain.ChargeStatus;
 import uk.gov.pay.connector.gateway.processor.ChargeNotificationProcessor;
@@ -22,7 +23,11 @@ import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.SYSTEM_CANCE
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.USER_CANCELLED;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.USER_CANCEL_ERROR;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.USER_CANCEL_SUBMITTED;
+import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
+import static uk.gov.pay.connector.util.MDCUtils.removeLogsFromMDC;
+import static uk.gov.service.payments.logging.LoggingKeys.GATEWAY_TRANSACTION_ID;
 import static uk.gov.service.payments.logging.LoggingKeys.PAYMENT_EXTERNAL_ID;
+import static uk.gov.service.payments.logging.LoggingKeys.PROVIDER;
 
 public class AdyenCancellationNotificationHandler {
 
@@ -32,6 +37,7 @@ public class AdyenCancellationNotificationHandler {
 
     private final List<ChargeStatus> systemCancelledStatuses = List.of(SYSTEM_CANCEL_SUBMITTED, SYSTEM_CANCELLED, SYSTEM_CANCEL_ERROR);
     private final List<ChargeStatus> userCancelledStatuses = List.of(USER_CANCEL_SUBMITTED, USER_CANCELLED, USER_CANCEL_ERROR);
+    private static final List<String> loggingKeys = List.of(GATEWAY_TRANSACTION_ID, PAYMENT_EXTERNAL_ID, PROVIDER);
 
     @Inject
     public AdyenCancellationNotificationHandler(ChargeNotificationProcessor chargeNotificationProcessor) {
@@ -41,11 +47,16 @@ public class AdyenCancellationNotificationHandler {
     public void process(NotificationRequestItem item, Charge foundCharge) {
         String gatewayTransactionId = item.getOriginalReference();
 
+        MDC.put(PROVIDER, ADYEN.getName());
+        MDC.put(GATEWAY_TRANSACTION_ID, gatewayTransactionId);
+        MDC.put(PAYMENT_EXTERNAL_ID, foundCharge.getExternalId());
+
         if (foundCharge.isHistoric()) {
             LOGGER.atInfo().setMessage("Ignored Adyen cancellation webhook for historic charge")
                     .addKeyValue(PAYMENT_EXTERNAL_ID, foundCharge.getExternalId())
-                    .addKeyValue("gateway_Transaction_id", gatewayTransactionId)
+                    .addKeyValue(GATEWAY_TRANSACTION_ID, gatewayTransactionId)
                     .log();
+            removeLogsFromMDC(loggingKeys);
             return;
         }
 
@@ -55,15 +66,17 @@ public class AdyenCancellationNotificationHandler {
         if (targetStatus.isPresent()) {
             chargeNotificationProcessor.invoke(gatewayTransactionId, foundCharge, targetStatus.get(),
                     ZonedDateTime.ofInstant(item.getEventDate().toInstant(), ZoneId.of("UTC")));
+            removeLogsFromMDC(loggingKeys);
             return;
         }
 
         LOGGER.atWarn().setMessage("Charge is not in expected state for cancellation: {}")
                 .addArgument(currentStatus.getValue())
                 .addKeyValue(PAYMENT_EXTERNAL_ID, foundCharge.getExternalId())
-                .addKeyValue("gateway_transaction_id", gatewayTransactionId)
+                .addKeyValue(GATEWAY_TRANSACTION_ID, gatewayTransactionId)
                 .addKeyValue("status", currentStatus.getValue())
                 .addKeyValue("success", item.isSuccess()).log();
+        removeLogsFromMDC(loggingKeys);
     }
 
     private Optional<ChargeStatus> getCancellationTargetStatus(ChargeStatus currentStatus, boolean success) {

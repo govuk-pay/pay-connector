@@ -4,6 +4,8 @@ import org.slf4j.MDC;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntity;
 import uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntity;
 
+import java.util.List;
+
 import static uk.gov.service.payments.logging.LoggingKeys.AGREEMENT_EXTERNAL_ID;
 import static uk.gov.service.payments.logging.LoggingKeys.AUTHORISATION_MODE;
 import static uk.gov.service.payments.logging.LoggingKeys.GATEWAY_ACCOUNT_ID;
@@ -37,5 +39,9 @@ public class MDCUtils {
     public static void removeGatewayAccountDetailsFromMDC() {
         MDC.remove(GATEWAY_ACCOUNT_ID);
         MDC.remove(GATEWAY_ACCOUNT_TYPE);
+    }
+    
+    public static void removeLogsFromMDC(List<String> keys) {
+        keys.forEach(MDC::remove);
     }
 }
