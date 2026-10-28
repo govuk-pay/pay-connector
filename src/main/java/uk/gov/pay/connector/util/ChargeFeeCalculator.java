@@ -48,7 +48,7 @@ public class ChargeFeeCalculator {
         });
     }
 
-    private static boolean hasRequiredFeesForAdyen(ChargeEntity charge) {
+    public static boolean hasRequiredFeesForAdyen(ChargeEntity charge) {
         if (ADYEN.getName().equals(charge.getPaymentProvider()) && charge.getChargeStatus().toExternal() == EXTERNAL_SUCCESS) {
             List<Fee> mappedFees = charge.getFees().stream().map(Fee::from).toList();
             return hasAllExpectedFeeRecordsForAdyen(mappedFees);

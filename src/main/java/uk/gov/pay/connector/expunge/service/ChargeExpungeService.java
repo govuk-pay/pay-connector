@@ -1,6 +1,8 @@
 package uk.gov.pay.connector.expunge.service;
 
 import com.google.inject.persist.Transactional;
+import jakarta.inject.Inject;
+import jakarta.persistence.OptimisticLockException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -15,9 +17,6 @@ import uk.gov.pay.connector.idempotency.dao.IdempotencyDao;
 import uk.gov.pay.connector.queue.tasks.TaskQueueService;
 import uk.gov.pay.connector.tasks.service.ParityCheckService;
 import uk.gov.service.payments.commons.model.AuthorisationMode;
-
-import jakarta.inject.Inject;
-import jakarta.persistence.OptimisticLockException;
 
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
@@ -35,8 +34,11 @@ import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.EXPIRE_CANCE
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.SYSTEM_CANCEL_SUBMITTED;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.USER_CANCEL_SUBMITTED;
 import static uk.gov.pay.connector.charge.model.domain.ParityCheckStatus.SKIPPED;
+import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
 import static uk.gov.pay.connector.gateway.PaymentGatewayName.STRIPE;
 import static uk.gov.pay.connector.gateway.PaymentGatewayName.WORLDPAY;
+import static uk.gov.pay.connector.gatewayaccount.model.GatewayAccountType.LIVE;
+import static uk.gov.pay.connector.util.ChargeFeeCalculator.hasRequiredFeesForAdyen;
 import static uk.gov.service.payments.logging.LoggingKeys.MDC_REQUEST_ID_KEY;
 import static uk.gov.service.payments.logging.LoggingKeys.PAYMENT_EXTERNAL_ID;
 
@@ -133,6 +135,7 @@ public class ChargeExpungeService {
     private void parityCheckAndExpungeIfMet(ChargeEntity chargeEntity) {
         var lastParityCheckDate = chargeEntity.getParityCheckDate();
         var chargeExternalId = chargeEntity.getExternalId();
+        var paymentGatewayName = chargeEntity.getPaymentGatewayName();
 
         if (!inTerminalState(chargeEntity)) {
             skipExpunge(chargeExternalId, "it is not in a terminal state");
@@ -143,17 +146,29 @@ public class ChargeExpungeService {
             return;
         }
 
-        if (chargeEntity.getPaymentGatewayName() == STRIPE && isStripePaymentMissingFees(chargeEntity)) {
-            skipExpunge(chargeExternalId, 
+        if (paymentGatewayName == STRIPE && isStripePaymentMissingFees(chargeEntity)) {
+            skipExpunge(chargeExternalId,
                     "it is a Stripe payment that requires fees to be collected, but fees have not yet been processed.");
             return;
         }
-        
+
+        if ((paymentGatewayName == ADYEN) && !hasRequiredFeesForAdyen(chargeEntity)) {
+            if (chargeEntity.getGatewayAccount().getType().equals(LIVE.toString())) {
+                skipExpunge(chargeExternalId,
+                        "it is an Adyen payment that requires fees to be collected, " +
+                                "but some required fees have not yet been processed.");
+                return;
+            }
+            else {
+                logger.warn("Some required fees are yet to be processed for Adyen test payment.", kv(PAYMENT_EXTERNAL_ID, chargeExternalId));
+            }
+        }
+
         if (hasActiveAgreementIdempotency(chargeEntity)) {
             logExpungeSkipped(chargeExternalId, "Idempotency record exists for charge");
             return;
         }
-        
+
         if (parityCheckService.parityCheckChargeForExpunger(chargeEntity)) {
             expungeCharge(chargeEntity);
             logger.info("Charge expunged from connector {}", kv(PAYMENT_EXTERNAL_ID, chargeExternalId));
