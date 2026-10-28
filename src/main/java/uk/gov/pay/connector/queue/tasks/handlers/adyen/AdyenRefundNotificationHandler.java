@@ -49,7 +49,7 @@ public class AdyenRefundNotificationHandler {
         MDC.put(PROVIDER, ADYEN.getName());
         MDC.put(GATEWAY_TRANSACTION_ID, refundGatewayTransactionId);
         MDC.put(PAYMENT_EXTERNAL_ID, charge.getExternalId());
-        MDC.put(REFUND_EXTERNAL_ID, item.getOriginalPsp());
+        MDC.put(REFUND_EXTERNAL_ID, item.getPspReference());
 
         if (isBlank(refundGatewayTransactionId)) {
             LOGGER.atWarn()
