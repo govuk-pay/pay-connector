@@ -32,13 +32,16 @@ import java.util.Optional;
 import static uk.gov.pay.connector.charge.model.domain.FeeType.GATEWAY;
 import static uk.gov.pay.connector.charge.util.AdyenFeeCalculator.generateFeeList;
 import static uk.gov.pay.connector.charge.util.AdyenFeeCalculator.hasAllExpectedFeeRecordsForAdyen;
+import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenEnvironment.LIVE;
 import static uk.gov.pay.connector.queue.tasks.handlers.adyen.fee.AdyenFeeTransferClassifier.classify;
 import static uk.gov.pay.connector.queue.tasks.handlers.adyen.fee.AdyenFeeTransferType.UNSUPPORTED;
 import static uk.gov.pay.connector.queue.tasks.handlers.adyen.fee.AdyenTransactionTypeForTransfer.from;
 import static uk.gov.pay.connector.queue.tasks.handlers.adyen.fee.AdyenTransferNotificationValidator.validate;
+import static uk.gov.pay.connector.util.MDCUtils.removeLogsFromMDC;
 import static uk.gov.service.payments.logging.LoggingKeys.LEDGER_EVENT_TYPE;
 import static uk.gov.service.payments.logging.LoggingKeys.PAYMENT_EXTERNAL_ID;
+import static uk.gov.service.payments.logging.LoggingKeys.PROVIDER;
 import static uk.gov.service.payments.logging.LoggingKeys.REFUND_EXTERNAL_ID;
 
 public class AdyenTransferNotificationHandlerForFees {
@@ -52,8 +55,12 @@ public class AdyenTransferNotificationHandlerForFees {
     private final FeeProcessingLockDao feeProcessingLockDao;
     private final InstantSource instantSource;
     private static final Logger LOGGER = LoggerFactory.getLogger(AdyenTransferNotificationHandlerForFees.class);
-
+    
     private static final String LOGGING_KEY_PLATFORM_PAYMENT_TYPE = "platform_payment_type";
+    private static final List<String> loggingKeys = List.of(LOGGING_KEY_PLATFORM_PAYMENT_TYPE,
+            PAYMENT_EXTERNAL_ID,
+            REFUND_EXTERNAL_ID,
+            PROVIDER);
 
     @Inject
     public AdyenTransferNotificationHandlerForFees(AdyenGatewayConfig adyenGatewayConfig,
@@ -79,6 +86,7 @@ public class AdyenTransferNotificationHandlerForFees {
         try {
             validate(adyenTransferData);
 
+            MDC.put(PROVIDER, ADYEN.getName());
             MDC.put(LOGGING_KEY_PLATFORM_PAYMENT_TYPE, adyenTransferData.categoryData().platformPaymentType());
 
             from(adyenTransferData.type(), adyenTransferData.status())
@@ -96,10 +104,7 @@ public class AdyenTransferNotificationHandlerForFees {
                                     .setMessage("Ignored transfer notification for unknown type or status")
                                     .log());
         } finally {
-            List.of(LOGGING_KEY_PLATFORM_PAYMENT_TYPE,
-                            PAYMENT_EXTERNAL_ID,
-                            REFUND_EXTERNAL_ID)
-                    .forEach(MDC::remove);
+            removeLogsFromMDC(loggingKeys);
         }
     }
 

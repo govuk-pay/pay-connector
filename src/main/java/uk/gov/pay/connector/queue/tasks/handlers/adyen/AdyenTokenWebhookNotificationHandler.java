@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.persist.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import uk.gov.pay.connector.agreement.dao.AgreementDao;
 import uk.gov.pay.connector.agreement.model.AgreementEntity;
 import uk.gov.pay.connector.charge.dao.ChargeDao;
@@ -11,24 +12,30 @@ import uk.gov.pay.connector.charge.model.domain.ChargeEntity;
 import uk.gov.pay.connector.charge.service.LinkPaymentInstrumentToAgreementService;
 import uk.gov.pay.connector.client.ledger.service.LedgerService;
 import uk.gov.pay.connector.events.model.agreement.AgreementInactivated;
-import uk.gov.pay.connector.gateway.adyen.webhook.json.token.AdyenTokenNotification;
 import uk.gov.pay.connector.gateway.adyen.webhook.AdyenWebhookDeserialiser;
+import uk.gov.pay.connector.gateway.adyen.webhook.json.token.AdyenTokenNotification;
 import uk.gov.pay.connector.paymentinstrument.dao.PaymentInstrumentDao;
 import uk.gov.pay.connector.paymentinstrument.model.PaymentInstrumentEntity;
 import uk.gov.pay.connector.paymentinstrument.model.PaymentInstrumentStatus;
 import uk.gov.pay.connector.util.RandomIdGenerator;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
+import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
 import static uk.gov.pay.connector.gateway.adyen.AdyenRequestFactory.SHOPPER_REFERENCE_DELIMITER;
 import static uk.gov.pay.connector.gateway.adyen.AdyenRequestFactory.STORED_PAYMENT_METHOD_ID;
 import static uk.gov.pay.connector.gateway.adyen.webhook.model.AdyenWebhookEvent.RECURRING_TOKEN_DISABLED;
 import static uk.gov.pay.connector.paymentinstrument.model.PaymentInstrumentStatus.ACTIVE;
 import static uk.gov.pay.connector.paymentinstrument.model.PaymentInstrumentStatus.CANCELLED;
 import static uk.gov.pay.connector.paymentinstrument.model.PaymentInstrumentStatus.INACTIVE;
+import static uk.gov.pay.connector.util.MDCUtils.removeLogsFromMDC;
 import static uk.gov.service.payments.logging.LoggingKeys.AGREEMENT_EXTERNAL_ID;
+import static uk.gov.service.payments.logging.LoggingKeys.PAYMENT_EXTERNAL_ID;
 import static uk.gov.service.payments.logging.LoggingKeys.PAYMENT_INSTRUMENT_EXTERNAL_ID;
+import static uk.gov.service.payments.logging.LoggingKeys.PROVIDER;
+import static uk.gov.service.payments.logging.LoggingKeys.PROVIDER_EVENT_ID;
 
 public class AdyenTokenWebhookNotificationHandler {
 
@@ -40,6 +47,11 @@ public class AdyenTokenWebhookNotificationHandler {
     private final AgreementDao agreementDao;
     private final LedgerService ledgerService;
     private final AdyenWebhookDeserialiser adyenWebhookDeserialiser;
+    private final List<String> loggingKeys = List.of(PAYMENT_INSTRUMENT_EXTERNAL_ID,
+            PROVIDER_EVENT_ID,
+            AGREEMENT_EXTERNAL_ID,
+            PAYMENT_EXTERNAL_ID,
+            PROVIDER);
 
     @Inject
     public AdyenTokenWebhookNotificationHandler(PaymentInstrumentDao paymentInstrumentDao,
@@ -86,10 +98,17 @@ public class AdyenTokenWebhookNotificationHandler {
             return;
         }
 
+        MDC.put(PROVIDER, ADYEN.getName());
+        MDC.put(PROVIDER_EVENT_ID, notification.eventId());
+        MDC.put(PAYMENT_INSTRUMENT_EXTERNAL_ID, notification.data().storedPaymentMethodId());
+        MDC.put(AGREEMENT_EXTERNAL_ID, webhookAgreementExternalId);
+        MDC.put(PAYMENT_EXTERNAL_ID, webhookChargeExternalId);
+
         if (notificationType.equals(RECURRING_TOKEN_DISABLED.getEventCodeOrType())) {
             paymentInstrumentDao.findByChargeExternalId(webhookChargeExternalId).ifPresentOrElse((paymentInstrument ->
                             inactivateAgreement(agreementEntity.get(), paymentInstrument)),
                     () -> logPaymentInstrumentNotFound(webhookChargeExternalId));
+            removeLogsFromMDC(loggingKeys);
             return;
         }
 
@@ -99,8 +118,9 @@ public class AdyenTokenWebhookNotificationHandler {
                         .setMessage("No charges for the agreement were found with payment instruments in a valid state (ACTIVE or CREATED)")
                         .addKeyValue(AGREEMENT_EXTERNAL_ID, webhookAgreementExternalId)
                         .log());
-    }
 
+        removeLogsFromMDC(loggingKeys);
+    }
 
     private void processWebhooks(ChargeEntity latestCharge, String webhookChargeExternalId,
                                  String webhookAgreementExternalId, AgreementEntity agreementEntity, AdyenTokenNotification notification) {
