@@ -29,7 +29,7 @@ import uk.gov.pay.connector.events.model.charge.PaymentDetailsSubmittedByAPI;
 import uk.gov.pay.connector.events.model.charge.PaymentDetailsTakenFromPaymentInstrument;
 import uk.gov.pay.connector.events.model.charge.Requested3dsExemption;
 import uk.gov.pay.connector.events.model.refund.RefundEvent;
-import uk.gov.pay.connector.gateway.PaymentGatewayName;
+import uk.gov.pay.connector.fee.model.Fee;
 import uk.gov.pay.connector.queue.statetransition.PaymentStateTransition;
 import uk.gov.pay.connector.queue.statetransition.RefundStateTransition;
 import uk.gov.pay.connector.queue.statetransition.StateTransitionService;
@@ -65,6 +65,8 @@ import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.EXPIRE_CANCE
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.PAYMENT_NOTIFICATION_CREATED;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.SYSTEM_CANCEL_READY;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.USER_CANCEL_READY;
+import static uk.gov.pay.connector.charge.util.AdyenFeeCalculator.hasAllExpectedFeeRecordsForAdyen;
+import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
 
 public class HistoricalEventEmitter {
     public static final List<ChargeStatus> TERMINAL_AUTHENTICATION_STATES = List.of(
@@ -132,7 +134,7 @@ public class HistoricalEventEmitter {
     
     private void processGooglePay3dsChargesCardExpiryDate(ChargeEntity charge, List<ChargeEventEntity> chargeEventEntities, boolean forceEmission) {
         if (charge.getWalletType() == WalletType.GOOGLE_PAY 
-            && PaymentGatewayName.ADYEN.equals(charge.getPaymentGatewayName())
+            && ADYEN.equals(charge.getPaymentGatewayName())
             && charge.getCardDetails().getExpiryDate() != null
             && charge.getRequires3ds() == true
         ) {
@@ -217,20 +219,30 @@ public class HistoricalEventEmitter {
     }
 
     private void processFeeIncurredEvent(ChargeEntity charge, boolean forceEmission) {
-        // We only want to emit the FEE_INCURRED event for charges using the new Stripe pricing. The original Stripe
-        // pricing has no FeeType
-        if (!filterFeesForStripeV2(charge.getFees()).isEmpty()) {
-            try {
-                var feeIncurredEvent = FeeIncurredEvent.from(charge);
-                boolean hasBeenEmittedBefore = emittedEventDao.hasBeenEmittedBefore(feeIncurredEvent);
-                if (forceEmission || !hasBeenEmittedBefore) {
-                    eventService.emitAndRecordEvent(feeIncurredEvent, getDoNotRetryEmitUntilDate());
-                } else {
-                    logger.info("Charge history event emitted before [chargeExternalId={}]", charge.getExternalId());
+        switch (charge.getPaymentGatewayName()) {
+            case ADYEN:
+                List<Fee> mappedFees = charge.getFees().stream().map(Fee::from).toList();
+                if (hasAllExpectedFeeRecordsForAdyen(mappedFees)) {
+                    emitFeeIncurredEvent(charge, forceEmission);
                 }
-            } catch (EventCreationException e) {
-                logger.warn(format("Failed to create fee incurred event [%s], exception: [%s]", charge.getExternalId(), e.getMessage()));
+            case STRIPE:
+                if (!filterFeesForStripeV2(charge.getFees()).isEmpty()) {
+                    emitFeeIncurredEvent(charge, forceEmission);
+                }
+        }
+    }
+
+    private void emitFeeIncurredEvent(ChargeEntity charge, boolean forceEmission) {
+        try {
+            var feeIncurredEvent = FeeIncurredEvent.from(charge);
+            boolean hasBeenEmittedBefore = emittedEventDao.hasBeenEmittedBefore(feeIncurredEvent);
+            if (forceEmission || !hasBeenEmittedBefore) {
+                eventService.emitAndRecordEvent(feeIncurredEvent, getDoNotRetryEmitUntilDate());
+            } else {
+                logger.info("Charge history event emitted before [chargeExternalId={}]", charge.getExternalId());
             }
+        } catch (EventCreationException e) {
+            logger.warn(format("Failed to create fee incurred event [%s], exception: [%s]", charge.getExternalId(), e.getMessage()));
         }
     }
 
