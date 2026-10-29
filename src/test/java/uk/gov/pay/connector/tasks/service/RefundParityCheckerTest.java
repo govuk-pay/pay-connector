@@ -1,25 +1,32 @@
 package uk.gov.pay.connector.tasks.service;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.pay.connector.charge.model.domain.FeeEntity;
+import uk.gov.pay.connector.charge.model.domain.FeeType;
 import uk.gov.pay.connector.charge.model.domain.ParityCheckStatus;
 import uk.gov.pay.connector.client.ledger.model.LedgerTransaction;
+import uk.gov.pay.connector.fee.model.Fee;
 import uk.gov.pay.connector.model.domain.RefundEntityFixture;
 import uk.gov.pay.connector.pact.RefundHistoryEntityFixture;
 import uk.gov.pay.connector.refund.dao.RefundDao;
 import uk.gov.pay.connector.refund.model.domain.RefundEntity;
 import uk.gov.pay.connector.refund.model.domain.RefundHistory;
 
+import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.Optional;
 
 import static java.time.ZoneOffset.UTC;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertNotEquals;
 import static org.mockito.Mockito.when;
 import static uk.gov.pay.connector.charge.model.domain.ParityCheckStatus.DATA_MISMATCH;
 import static uk.gov.pay.connector.charge.model.domain.ParityCheckStatus.EXISTS_IN_LEDGER;
@@ -109,6 +116,71 @@ class RefundParityCheckerTest {
         assertParityCheckStatus(transaction, DATA_MISMATCH);
     }
 
+    @Nested
+    class WhenRefundHasFee {
+        @BeforeEach
+        void setUpRefundWithFee() {
+            FeeEntity feeEntity = new FeeEntity(refundEntity, Instant.now(), Fee.of(FeeType.TRANSACTION, 2L));
+
+            refundEntity.getFees().add(feeEntity);
+
+            RefundHistory refundHistory = RefundHistoryEntityFixture.aValidRefundHistoryEntity()
+                    .withHistoryStartDate(refundEntity.getCreatedDate()).build();
+
+            when(mockRefundDao.getRefundHistoryByRefundExternalIdAndRefundStatus(
+                    refundEntity.getExternalId(), CREATED)).thenReturn(Optional.of(refundHistory));
+        }
+
+        @Test
+        void parityCheck_shouldMatchWhenFeeAndNetAmountMatchLedger() {
+            LedgerTransaction refundFromLedger = from(gatewayAccountId, refundEntity)
+                    .withFee(refundEntity.getFeeAmount().orElse(null))
+                    .withNetAmount(refundEntity.getNetAmount().orElse(null))
+                    .build();
+            
+            assertThat(refundFromLedger.getFee(), is(refundEntity.getFeeAmount().orElse(null))); 
+            assertThat(refundFromLedger.getNetAmount(), is(refundEntity.getNetAmount().orElse(null)));
+            assertParityCheckStatus(refundFromLedger, EXISTS_IN_LEDGER);
+        }
+
+        @Test
+        void parityCheck_shouldReturnDataMismatchWhenFeeDoesNotMatchLedger() {
+            LedgerTransaction refundFromLedger = from(gatewayAccountId, refundEntity)
+                    .withFee(30L)
+                    .withNetAmount(refundEntity.getNetAmount().orElse(null))
+                    .build();
+
+            assertThat(refundFromLedger.getNetAmount(), is(refundEntity.getNetAmount().orElse(null)));
+            assertNotEquals(refundFromLedger.getFee(),refundEntity.getFeeAmount().orElse(null));
+            assertParityCheckStatus(refundFromLedger, DATA_MISMATCH);
+        }
+
+        @Test
+        void parityCheck_shouldReturnDataMismatchWhenNetAmountDoesNotMatchLedger() {
+            LedgerTransaction refundFromLedger = from(gatewayAccountId, refundEntity)
+                    .withFee(refundEntity.getFeeAmount().orElse(null))
+                    .withNetAmount(4L)
+                    .build();
+
+            assertThat(refundFromLedger.getFee(), is(refundEntity.getFeeAmount().orElse(null)));
+            assertNotEquals(refundFromLedger.getNetAmount(), refundEntity.getNetAmount().orElse(null));
+            assertParityCheckStatus(refundFromLedger, DATA_MISMATCH);
+        }
+        
+        @Test
+        void parityCheck_shouldReturnDataMismatchWhenFeeAndNetAmountAreMissingFromLedger() {
+            LedgerTransaction refundFromLedger = from(gatewayAccountId, refundEntity)
+                    .withFee(null)
+                    .withNetAmount(null)
+                    .build();
+
+            assertThat(refundFromLedger.getFee(), is(nullValue()));
+            assertThat(refundFromLedger.getNetAmount(), is(nullValue()));
+
+            assertParityCheckStatus(refundFromLedger, DATA_MISMATCH);
+        }
+    }
+    
     private void assertParityCheckStatus(LedgerTransaction transaction, ParityCheckStatus parityCheckStatus) {
         ParityCheckStatus status = refundParityChecker.checkParity(refundEntity, transaction);
         assertThat(status, is(parityCheckStatus));
