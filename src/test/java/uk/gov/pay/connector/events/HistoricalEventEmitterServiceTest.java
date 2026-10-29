@@ -51,7 +51,6 @@ import uk.gov.pay.connector.events.model.charge.Requested3dsExemption;
 import uk.gov.pay.connector.events.model.refund.RefundCreatedByService;
 import uk.gov.pay.connector.events.model.refund.RefundSucceeded;
 import uk.gov.pay.connector.fee.model.Fee;
-import uk.gov.pay.connector.gateway.PaymentGatewayName;
 import uk.gov.pay.connector.model.domain.RefundEntityFixture;
 import uk.gov.pay.connector.pact.ChargeEventEntityFixture;
 import uk.gov.pay.connector.pact.RefundHistoryEntityFixture;
@@ -62,7 +61,6 @@ import uk.gov.pay.connector.refund.dao.RefundDao;
 import uk.gov.pay.connector.refund.model.domain.RefundEntity;
 import uk.gov.pay.connector.refund.model.domain.RefundHistory;
 import uk.gov.pay.connector.refund.model.domain.RefundStatus;
-import uk.gov.pay.connector.wallets.WalletType;
 import uk.gov.service.payments.commons.model.CardExpiryDate;
 import uk.gov.service.payments.commons.queue.exception.QueueException;
 
@@ -95,6 +93,10 @@ import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.ENTERING_CAR
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.PAYMENT_NOTIFICATION_CREATED;
 import static uk.gov.pay.connector.charge.model.domain.Exemption3dsType.CORPORATE;
 import static uk.gov.pay.connector.charge.model.domain.Exemption3dsType.OPTIMISED;
+import static uk.gov.pay.connector.charge.model.domain.FeeType.TRANSACTION;
+import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
+import static uk.gov.pay.connector.gateway.PaymentGatewayName.STRIPE;
+import static uk.gov.pay.connector.gateway.PaymentGatewayName.WORLDPAY;
 import static uk.gov.pay.connector.paymentprocessor.model.Exemption3ds.EXEMPTION_HONOURED;
 import static uk.gov.pay.connector.paymentprocessor.model.Exemption3ds.EXEMPTION_NOT_REQUESTED;
 import static uk.gov.pay.connector.paymentprocessor.model.Exemption3ds.EXEMPTION_OUT_OF_SCOPE;
@@ -132,7 +134,7 @@ class HistoricalEventEmitterServiceTest {
                 stateTransitionService, eventService, chargeService, connectorConfiguration);
         CardDetailsEntity cardDetails = CardDetailsEntityFixture.aCardDetailsEntityFixture().build();
         chargeEntity = ChargeEntityFixture
-                .aValidChargeEntity(PaymentGatewayName.ADYEN)
+                .aValidChargeEntity(ADYEN)
                 .withCardDetails(cardDetails)
                 .build();
         ChargeEventEntity chargeEventEntity = ChargeEventEntityFixture.aValidChargeEventEntity()
@@ -486,8 +488,8 @@ class HistoricalEventEmitterServiceTest {
     @Test
     void executeShouldEmitFeeIncurredEvent() {
         ChargeEntity chargeEntity = ChargeEntityFixture
-                .aValidChargeEntity()
-                .withFee(Fee.of(FeeType.TRANSACTION, 5L))
+                .aValidChargeEntity(STRIPE)
+                .withFee(Fee.of(TRANSACTION, 5L))
                 .withFee(Fee.of(FeeType.RADAR, 2L))
                 .build();
 
@@ -503,7 +505,7 @@ class HistoricalEventEmitterServiceTest {
     @Test
     void executeShouldNotEmitFeeIncurredEventWhenFeeTypeIsNull() {
         ChargeEntity chargeEntity = ChargeEntityFixture
-                .aValidChargeEntity()
+                .aValidChargeEntity(STRIPE)
                 .withFee(Fee.of(null, 5L))
                 .build();
 
@@ -518,8 +520,8 @@ class HistoricalEventEmitterServiceTest {
     @Test
     void executeShouldNotEmitFeeIncurredEventWhenEventHasBeenEmittedBefore() {
         ChargeEntity chargeEntity = ChargeEntityFixture
-                .aValidChargeEntity()
-                .withFee(Fee.of(FeeType.TRANSACTION, 5L))
+                .aValidChargeEntity(STRIPE)
+                .withFee(Fee.of(TRANSACTION, 5L))
                 .withFee(Fee.of(FeeType.RADAR, 2L))
                 .build();
 
@@ -535,7 +537,7 @@ class HistoricalEventEmitterServiceTest {
     @Test
     void executeShouldEmitFeeIncurredEventWhenOnlyRadarFeeIsPresent() {
         ChargeEntity chargeEntity = ChargeEntityFixture
-                .aValidChargeEntity()
+                .aValidChargeEntity(STRIPE)
                 .withFee(Fee.of(FeeType.RADAR, 2L))
                 .build();
 
@@ -546,6 +548,45 @@ class HistoricalEventEmitterServiceTest {
         historicalEventEmitterService.emitHistoricEventsById(1L, OptionalLong.empty(), 1L);
 
         verify(eventService, times(1)).emitAndRecordEvent(any(FeeIncurredEvent.class), isNotNull());
+    }
+    
+    @Test
+    void shouldEmitIncurredEventForAdyenPaymentWhenAllFeesArePresent() {
+        chargeEntity = ChargeEntityFixture
+                .aValidChargeEntity(ADYEN)
+                .withFee(Fee.of(TRANSACTION, 20L))
+                .build();
+
+        when(chargeDao.findMaxId()).thenReturn(1L);
+        when(chargeDao.findById(1L)).thenReturn(Optional.of(chargeEntity));
+        when(emittedEventDao.hasBeenEmittedBefore(any(FeeIncurredEvent.class))).thenReturn(false);
+
+        historicalEventEmitterService.emitHistoricEventsById(1L, OptionalLong.empty(), 1L);
+
+        verify(eventService, times(1)).emitAndRecordEvent(any(FeeIncurredEvent.class), isNotNull());
+    }
+
+    @Test
+    void shouldNotEmitIncurredEventForAdyenPaymentWhenAllFeesAreNotPresent() {
+        FeeIncurredEvent feeIncurredEvent = mock(FeeIncurredEvent.class);
+        
+        historicalEventEmitterService.emitHistoricEventsById(1L, OptionalLong.empty(),1L);
+
+        verifyNoInteractions(feeIncurredEvent);
+    }
+
+    @Test
+    void shouldNotEmitIncurredEventWhenPaymentProviderIsNotAdyenOrStripe() {
+        chargeEntity = ChargeEntityFixture
+                .aValidChargeEntity(WORLDPAY)
+                .withFee(Fee.of(TRANSACTION, 20L))
+                .build();
+
+        FeeIncurredEvent feeIncurredEvent = mock(FeeIncurredEvent.class);
+
+        historicalEventEmitterService.emitHistoricEventsById(1L, OptionalLong.empty(),1L);
+
+        verifyNoInteractions(feeIncurredEvent);
     }
 
     @Test
