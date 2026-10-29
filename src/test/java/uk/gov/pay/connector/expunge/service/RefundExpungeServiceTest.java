@@ -1,8 +1,10 @@
 package uk.gov.pay.connector.expunge.service;
 
+import io.github.netmikey.logunit.api.LogCapturer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.pay.connector.app.ConnectorConfiguration;
@@ -18,6 +20,7 @@ import uk.gov.pay.connector.refund.model.domain.RefundEntity;
 import uk.gov.pay.connector.refund.service.RefundService;
 import uk.gov.pay.connector.tasks.service.ParityCheckService;
 
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Optional;
 
@@ -29,6 +32,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.slf4j.event.Level.INFO;
+import static org.slf4j.event.Level.WARN;
 import static uk.gov.pay.connector.charge.model.domain.ParityCheckStatus.SKIPPED;
 import static uk.gov.pay.connector.refund.model.domain.RefundStatus.REFUNDED;
 import static uk.gov.pay.connector.refund.model.domain.RefundStatus.REFUND_SUBMITTED;
@@ -37,9 +42,9 @@ import static uk.gov.pay.connector.refund.model.domain.RefundStatus.REFUND_SUBMI
 class RefundExpungeServiceTest {
 
     private RefundExpungeService refundExpungeService;
-    private int minimumAgeOfRefundInDays = 3;
-    private int defaultNumberOfRefundsToExpunge = 10;
-    private int defaultExcludeRefundsParityCheckedWithInDays = 10;
+    private final int minimumAgeOfRefundInDays = 3;
+    private final int defaultNumberOfRefundsToExpunge = 10;
+    private final int defaultExcludeRefundsParityCheckedWithInDays = 10;
 
     @Mock
     private ExpungeConfig mockExpungeConfig;
@@ -55,6 +60,9 @@ class RefundExpungeServiceTest {
     private ParityCheckService mockParityCheckService;
     @Mock
     private FeeDao mockFeeDao;
+
+    @RegisterExtension
+    LogCapturer logs = LogCapturer.create().captureForType(RefundExpungeService.class);
 
     @BeforeEach
     public void setUp() {
@@ -164,6 +172,30 @@ class RefundExpungeServiceTest {
         refundExpungeService.expunge(1);
 
         verify(mockRefundDao, never()).expungeRefund(any());
+
+        logs.forLevel(INFO).assertContains("Refund cannot be expunged because parity check with ledger failed");
+    }
+
+    @Test
+    void expunge_shouldNotExpungeRefundIfParityCheckFailedAgain() {
+        when(mockExpungeConfig.isExpungeRefundsEnabled()).thenReturn(true);
+        when(mockExpungeConfig.getMinimumAgeOfRefundInDays()).thenReturn(minimumAgeOfRefundInDays);
+        when(mockExpungeConfig.getExcludeChargesOrRefundsParityCheckedWithInDays()).thenReturn(defaultExcludeRefundsParityCheckedWithInDays);
+
+        RefundEntity refundEntity = RefundEntityFixture.aValidRefundEntity()
+                .withStatus(REFUNDED)
+                .withParityCheckDate(ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1))
+                .build();
+        when(mockRefundDao.findRefundToExpunge(minimumAgeOfRefundInDays, defaultExcludeRefundsParityCheckedWithInDays))
+                .thenReturn(Optional.of(refundEntity));
+        when(mockChargeService.findChargeByExternalId(refundEntity.getChargeExternalId())).thenThrow(ChargeNotFoundRuntimeException.class);
+        when(mockParityCheckService.parityCheckRefundForExpunger(refundEntity)).thenReturn(false);
+
+        refundExpungeService.expunge(1);
+
+        verify(mockRefundDao, never()).expungeRefund(any());
+
+        logs.forLevel(WARN).assertContains("Refund cannot be expunged because parity check with ledger repeatedly failed");
     }
     
     

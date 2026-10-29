@@ -1,6 +1,8 @@
 package uk.gov.pay.connector.expunge.service;
 
 import com.google.inject.persist.Transactional;
+import jakarta.inject.Inject;
+import jakarta.persistence.OptimisticLockException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -15,8 +17,6 @@ import uk.gov.pay.connector.refund.model.domain.RefundStatus;
 import uk.gov.pay.connector.refund.service.RefundService;
 import uk.gov.pay.connector.tasks.service.ParityCheckService;
 
-import jakarta.inject.Inject;
-import jakarta.persistence.OptimisticLockException;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
@@ -87,30 +87,35 @@ public class RefundExpungeService {
     }
 
     private void parityCheckAndExpunge(RefundEntity refundEntity) {
-        boolean hasRefundBeenParityCheckedBefore = refundEntity.getParityCheckDate() != null;
+        ZonedDateTime lastParityCheckDate = refundEntity.getParityCheckDate();
+        String refundExternalId = refundEntity.getExternalId();
 
         if (chargeExistsForRefund(refundEntity)) {
-            refundService.updateRefundParityStatus(refundEntity.getExternalId(), SKIPPED);
-            logger.info("Refund cannot be expunged because charge has not been expunged from in-flight database",
-                    kv(REFUND_EXTERNAL_ID, refundEntity.getExternalId()));
-        } else if (isInExpungeableState(refundEntity)) {
-            boolean matchesWithLedger = parityCheckService.parityCheckRefundForExpunger(refundEntity);
-
-            if (matchesWithLedger) {
-                expungeRefund(refundEntity);
-                logger.info("Refund expunged from connector {}", kv(REFUND_EXTERNAL_ID, refundEntity.getExternalId()));
-            } else if (hasRefundBeenParityCheckedBefore) {
-                logger.warn("Refund cannot be expunged because parity check with ledger repeatedly failed",
-                        kv(REFUND_EXTERNAL_ID, refundEntity.getExternalId()));
-            } else {
-                logger.info("Refund cannot be expunged because parity check with ledger failed",
-                        kv(REFUND_EXTERNAL_ID, refundEntity.getExternalId()));
-            }
-        } else {
-            refundService.updateRefundParityStatus(refundEntity.getExternalId(), SKIPPED);
-            logger.info("Refund is not in expungeable state",
-                    kv(REFUND_EXTERNAL_ID, refundEntity.getExternalId()));
+            skipExpunge(refundExternalId,
+                    "Refund cannot be expunged because charge has not been expunged from in-flight database");
+            return;
         }
+
+        if (!isInExpungeableState(refundEntity)) {
+            skipExpunge(refundExternalId, "Refund is not in expungeable state");
+            return;
+        }
+        
+        boolean matchesWithLedger = parityCheckService.parityCheckRefundForExpunger(refundEntity);
+
+        if (matchesWithLedger) {
+            expungeRefund(refundEntity);
+            logger.info("Refund expunged from connector {}", kv(REFUND_EXTERNAL_ID, refundExternalId));
+            return;
+        }
+
+        logParityCheckFailure(lastParityCheckDate, refundExternalId);
+    }
+
+    private void skipExpunge(String refundExternalId, String message) {
+        refundService.updateRefundParityStatus(refundExternalId, SKIPPED);
+        logger.info(message,
+                kv(REFUND_EXTERNAL_ID, refundExternalId));
     }
 
     private boolean chargeExistsForRefund(RefundEntity refundEntity) {
@@ -132,6 +137,16 @@ public class RefundExpungeService {
         }
 
         return REFUNDED.equals(refundStatus) || REFUND_ERROR.equals(refundStatus);
+    }
+
+    private void logParityCheckFailure(ZonedDateTime lastParityCheckDate, String refundExternalId) {
+        if (lastParityCheckDate == null) {
+            logger.info("Refund cannot be expunged because parity check with ledger failed",
+                    kv(REFUND_EXTERNAL_ID, refundExternalId));
+        } else {
+            logger.warn("Refund cannot be expunged because parity check with ledger repeatedly failed",
+                    kv(REFUND_EXTERNAL_ID, refundExternalId));
+        }
     }
 
     @Transactional
