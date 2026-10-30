@@ -1,10 +1,15 @@
 package uk.gov.pay.connector.model.domain;
 
+import uk.gov.pay.connector.charge.model.domain.FeeEntity;
+import uk.gov.pay.connector.fee.model.Fee;
 import uk.gov.pay.connector.refund.model.domain.RefundEntity;
 import uk.gov.pay.connector.refund.model.domain.RefundStatus;
 
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import static uk.gov.pay.connector.util.RandomTestDataGeneratorUtils.secureRandomLong;
 
@@ -21,6 +26,8 @@ public class RefundEntityFixture {
     private ZonedDateTime createdDate = ZonedDateTime.now(ZoneId.of("UTC"));
     private String chargeExternalId = "chargeExternalId";
     private ZonedDateTime parityCheckDate = null;
+    private String paymentProvider;
+    private List<Fee> fees;
 
     public static RefundEntityFixture aValidRefundEntity() {
         return new RefundEntityFixture();
@@ -35,6 +42,15 @@ public class RefundEntityFixture {
         refundEntity.setCreatedDate(createdDate);
         refundEntity.setGatewayTransactionId(transactionId);
         refundEntity.setParityCheckDate(parityCheckDate);
+        refundEntity.setPaymentProvider(paymentProvider);
+
+        if (this.fees != null) {
+            fees.stream().forEach(partialFee -> {
+                FeeEntity fee = new FeeEntity(refundEntity, Instant.now(), partialFee);
+                refundEntity.addFee(fee);
+            });
+        }
+        
         return refundEntity;
     }
 
@@ -89,6 +105,19 @@ public class RefundEntityFixture {
 
     public RefundEntityFixture withParityCheckDate(ZonedDateTime parityCheckDate) {
         this.parityCheckDate = parityCheckDate;
+        return this;
+    }
+
+    public RefundEntityFixture withPaymentProvider(String paymentProvider) {
+        this.paymentProvider = paymentProvider;
+        return this;
+    }
+
+    public RefundEntityFixture withFee(Fee fee) {
+        if (this.fees == null) {
+            this.fees = new ArrayList<>();
+        }
+        this.fees.add(fee);
         return this;
     }
 }

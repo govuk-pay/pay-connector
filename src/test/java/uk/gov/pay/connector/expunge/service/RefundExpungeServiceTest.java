@@ -14,6 +14,7 @@ import uk.gov.pay.connector.charge.model.domain.ChargeEntity;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntityFixture;
 import uk.gov.pay.connector.charge.service.ChargeService;
 import uk.gov.pay.connector.fee.dao.FeeDao;
+import uk.gov.pay.connector.fee.model.Fee;
 import uk.gov.pay.connector.model.domain.RefundEntityFixture;
 import uk.gov.pay.connector.refund.dao.RefundDao;
 import uk.gov.pay.connector.refund.model.domain.RefundEntity;
@@ -34,8 +35,10 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.slf4j.event.Level.INFO;
 import static org.slf4j.event.Level.WARN;
+import static uk.gov.pay.connector.charge.model.domain.FeeType.GATEWAY;
 import static uk.gov.pay.connector.charge.model.domain.ParityCheckStatus.SKIPPED;
 import static uk.gov.pay.connector.refund.model.domain.RefundStatus.REFUNDED;
+import static uk.gov.pay.connector.refund.model.domain.RefundStatus.REFUND_ERROR;
 import static uk.gov.pay.connector.refund.model.domain.RefundStatus.REFUND_SUBMITTED;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,7 +46,6 @@ class RefundExpungeServiceTest {
 
     private RefundExpungeService refundExpungeService;
     private final int minimumAgeOfRefundInDays = 3;
-    private final int defaultNumberOfRefundsToExpunge = 10;
     private final int defaultExcludeRefundsParityCheckedWithInDays = 10;
 
     @Mock
@@ -74,16 +76,18 @@ class RefundExpungeServiceTest {
 
     @Test
     void expunge_shouldExpungeNoOfRefundsAsPerConfiguration() {
-        when(mockExpungeConfig.isExpungeRefundsEnabled()).thenReturn(true);
-        when(mockExpungeConfig.getMinimumAgeOfRefundInDays()).thenReturn(minimumAgeOfRefundInDays);
-        when(mockExpungeConfig.getExcludeChargesOrRefundsParityCheckedWithInDays()).thenReturn(defaultExcludeRefundsParityCheckedWithInDays);
+        initialMocking();
+        int defaultNumberOfRefundsToExpunge = 10;
 
         RefundEntity refundEntity = RefundEntityFixture.aValidRefundEntity()
-                .withStatus(REFUNDED).build();
+                .withStatus(REFUNDED)
+                .build();
+        
         when(mockParityCheckService.parityCheckRefundForExpunger(any())).thenReturn(true);
         when(mockRefundDao.findRefundToExpunge(minimumAgeOfRefundInDays, defaultExcludeRefundsParityCheckedWithInDays))
                 .thenReturn(Optional.of(refundEntity));
         when(mockChargeService.findChargeByExternalId(refundEntity.getChargeExternalId())).thenThrow(ChargeNotFoundRuntimeException.class);
+        
         refundExpungeService.expunge(defaultNumberOfRefundsToExpunge);
 
         verify(mockRefundDao, times(defaultNumberOfRefundsToExpunge)).expungeRefund(any());
@@ -93,21 +97,12 @@ class RefundExpungeServiceTest {
 
     @Test
     void expunge_shouldExpungeHistoricRefundInNonTerminalState() {
-        when(mockExpungeConfig.isExpungeRefundsEnabled()).thenReturn(true);
-        when(mockExpungeConfig.getMinimumAgeOfRefundInDays()).thenReturn(minimumAgeOfRefundInDays);
-        when(mockExpungeConfig.getExcludeChargesOrRefundsParityCheckedWithInDays()).thenReturn(defaultExcludeRefundsParityCheckedWithInDays);
+        initialMocking();
 
         RefundEntity refundEntity = RefundEntityFixture.aValidRefundEntity()
                 .withCreatedDate(ZonedDateTime.now(UTC).minusDays(20))
                 .withStatus(REFUND_SUBMITTED).build();
-        when(mockRefundDao.findRefundToExpunge(minimumAgeOfRefundInDays, defaultExcludeRefundsParityCheckedWithInDays))
-                .thenReturn(Optional.of(refundEntity));
-        when(mockChargeService.findChargeByExternalId(refundEntity.getChargeExternalId())).thenThrow(ChargeNotFoundRuntimeException.class);
-        when(mockParityCheckService.parityCheckRefundForExpunger(refundEntity)).thenReturn(true);
-
-        refundExpungeService.expunge(1);
-
-        verify(mockRefundDao).expungeRefund(refundEntity.getExternalId());
+        shouldExpunge(refundEntity);
     }
 
     @Test
@@ -120,32 +115,24 @@ class RefundExpungeServiceTest {
 
     @Test
     void expunge_shouldNotExpungeRefundInNonTerminalState() {
-        when(mockExpungeConfig.isExpungeRefundsEnabled()).thenReturn(true);
-        when(mockExpungeConfig.getMinimumAgeOfRefundInDays()).thenReturn(minimumAgeOfRefundInDays);
-        when(mockExpungeConfig.getExcludeChargesOrRefundsParityCheckedWithInDays()).thenReturn(defaultExcludeRefundsParityCheckedWithInDays);
+        initialMocking();
 
         RefundEntity refundEntity = RefundEntityFixture.aValidRefundEntity()
                 .withStatus(REFUND_SUBMITTED).build();
-        when(mockRefundDao.findRefundToExpunge(minimumAgeOfRefundInDays, defaultExcludeRefundsParityCheckedWithInDays))
-                .thenReturn(Optional.of(refundEntity));
-        when(mockChargeService.findChargeByExternalId(refundEntity.getChargeExternalId())).thenThrow(ChargeNotFoundRuntimeException.class);
-
-        refundExpungeService.expunge(1);
-
-        verify(mockRefundService).updateRefundParityStatus(refundEntity.getExternalId(), SKIPPED);
-        verify(mockRefundDao, never()).expungeRefund(any());
+        
+        shouldNotExpunge(refundEntity);
     }
 
     @Test
     void expunge_shouldNotExpungeRefundIfChargeExists() {
-        when(mockExpungeConfig.isExpungeRefundsEnabled()).thenReturn(true);
-        when(mockExpungeConfig.getMinimumAgeOfRefundInDays()).thenReturn(minimumAgeOfRefundInDays);
-        when(mockExpungeConfig.getExcludeChargesOrRefundsParityCheckedWithInDays()).thenReturn(defaultExcludeRefundsParityCheckedWithInDays);
+        initialMocking();
 
         ChargeEntity chargeEntity = ChargeEntityFixture.aValidChargeEntity().build();
         RefundEntity refundEntity = RefundEntityFixture.aValidRefundEntity()
                 .withChargeExternalId(chargeEntity.getExternalId())
-                .withStatus(REFUND_SUBMITTED).build();
+                .withStatus(REFUND_SUBMITTED)
+                .build();
+        
         when(mockRefundDao.findRefundToExpunge(minimumAgeOfRefundInDays, defaultExcludeRefundsParityCheckedWithInDays))
                 .thenReturn(Optional.of(refundEntity));
         when(mockChargeService.findChargeByExternalId(refundEntity.getChargeExternalId())).thenReturn(chargeEntity);
@@ -158,12 +145,11 @@ class RefundExpungeServiceTest {
 
     @Test
     void expunge_shouldNotExpungeRefundIfParityCheckFailed() {
-        when(mockExpungeConfig.isExpungeRefundsEnabled()).thenReturn(true);
-        when(mockExpungeConfig.getMinimumAgeOfRefundInDays()).thenReturn(minimumAgeOfRefundInDays);
-        when(mockExpungeConfig.getExcludeChargesOrRefundsParityCheckedWithInDays()).thenReturn(defaultExcludeRefundsParityCheckedWithInDays);
+        initialMocking();
 
         RefundEntity refundEntity = RefundEntityFixture.aValidRefundEntity()
-                .withStatus(REFUNDED).build();
+                .withStatus(REFUNDED)
+                .build();
         when(mockRefundDao.findRefundToExpunge(minimumAgeOfRefundInDays, defaultExcludeRefundsParityCheckedWithInDays))
                 .thenReturn(Optional.of(refundEntity));
         when(mockChargeService.findChargeByExternalId(refundEntity.getChargeExternalId())).thenThrow(ChargeNotFoundRuntimeException.class);
@@ -178,14 +164,13 @@ class RefundExpungeServiceTest {
 
     @Test
     void expunge_shouldNotExpungeRefundIfParityCheckFailedAgain() {
-        when(mockExpungeConfig.isExpungeRefundsEnabled()).thenReturn(true);
-        when(mockExpungeConfig.getMinimumAgeOfRefundInDays()).thenReturn(minimumAgeOfRefundInDays);
-        when(mockExpungeConfig.getExcludeChargesOrRefundsParityCheckedWithInDays()).thenReturn(defaultExcludeRefundsParityCheckedWithInDays);
+        initialMocking();
 
         RefundEntity refundEntity = RefundEntityFixture.aValidRefundEntity()
                 .withStatus(REFUNDED)
                 .withParityCheckDate(ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1))
                 .build();
+
         when(mockRefundDao.findRefundToExpunge(minimumAgeOfRefundInDays, defaultExcludeRefundsParityCheckedWithInDays))
                 .thenReturn(Optional.of(refundEntity));
         when(mockChargeService.findChargeByExternalId(refundEntity.getChargeExternalId())).thenThrow(ChargeNotFoundRuntimeException.class);
@@ -194,17 +179,15 @@ class RefundExpungeServiceTest {
         refundExpungeService.expunge(1);
 
         verify(mockRefundDao, never()).expungeRefund(any());
-
+        
         logs.forLevel(WARN).assertContains("Refund cannot be expunged because parity check with ledger repeatedly failed");
     }
     
     
     @Test
     void expunge_shouldDeleteRefundFeesBeforeExpungingRefund() {
-        when(mockExpungeConfig.isExpungeRefundsEnabled()).thenReturn(true);
-        when(mockExpungeConfig.getMinimumAgeOfRefundInDays()).thenReturn(minimumAgeOfRefundInDays);
-        when(mockExpungeConfig.getExcludeChargesOrRefundsParityCheckedWithInDays()).thenReturn(defaultExcludeRefundsParityCheckedWithInDays);
-        
+        initialMocking();
+
         RefundEntity refundEntity = RefundEntityFixture.aValidRefundEntity()
                 .withId(1L)
                 .withStatus(REFUNDED).build();
@@ -219,5 +202,79 @@ class RefundExpungeServiceTest {
         var order = inOrder(mockFeeDao, mockRefundDao);
         order.verify(mockFeeDao).deleteFeesByRefundId(refundEntity.getId());
         order.verify(mockRefundDao).expungeRefund(refundEntity.getExternalId());
+    }
+    
+    //Scenario 9
+    @Test
+    void expunge_shouldNotExpunge_IfIsLiveAdyenRefundWithNoFees() {
+        initialMocking();
+
+        RefundEntity refundEntity = RefundEntityFixture.aValidRefundEntity()
+                .withStatus(REFUNDED)
+                .withCreatedDate(ZonedDateTime.now(UTC).minusDays(20))
+                .withPaymentProvider("adyen")
+                .build();
+        shouldNotExpunge(refundEntity);
+
+        logs.forLevel(INFO).assertDoesNotContain("Refund cannot be expunged because parity check with ledger failed");
+        logs.forLevel(INFO).assertContains("Refund not expunged because" +
+                "it is an Adyen refund and some fees are yet to be processed.");
+    }
+
+    //Scenario 10
+    @Test
+    void expunge_shouldExpunge_IfIsAdyenRefundWithFeesPresent() {
+        initialMocking();
+
+        RefundEntity refundEntity = RefundEntityFixture.aValidRefundEntity()
+                .withCreatedDate(ZonedDateTime.now(UTC).minusDays(20))
+                .withStatus(REFUNDED)
+                .withFee(Fee.of(GATEWAY, 2L))
+                .withPaymentProvider("adyen")
+                .build();
+        
+        shouldExpunge(refundEntity);
+    }
+
+    //Scenario 11
+    @Test
+    void expunge_shouldExpunge_IfIsAdyenRefundWithNonSuccessfulStatus() {
+        initialMocking();
+
+        RefundEntity refundEntity = RefundEntityFixture.aValidRefundEntity()
+                .withCreatedDate(ZonedDateTime.now(UTC).minusDays(20))
+                .withStatus(REFUND_ERROR)
+                .withPaymentProvider("adyen")
+                .build();
+        
+        shouldExpunge(refundEntity);
+    }
+
+    private void initialMocking() {
+        when(mockExpungeConfig.isExpungeRefundsEnabled()).thenReturn(true);
+        when(mockExpungeConfig.getMinimumAgeOfRefundInDays()).thenReturn(minimumAgeOfRefundInDays);
+        when(mockExpungeConfig.getExcludeChargesOrRefundsParityCheckedWithInDays()).thenReturn(defaultExcludeRefundsParityCheckedWithInDays);
+    }
+
+    private void shouldExpunge(RefundEntity refundEntity) {
+        when(mockRefundDao.findRefundToExpunge(minimumAgeOfRefundInDays, defaultExcludeRefundsParityCheckedWithInDays))
+                .thenReturn(Optional.of(refundEntity));
+        when(mockChargeService.findChargeByExternalId(refundEntity.getChargeExternalId())).thenThrow(ChargeNotFoundRuntimeException.class);
+        when(mockParityCheckService.parityCheckRefundForExpunger(refundEntity)).thenReturn(true);
+
+        refundExpungeService.expunge(1);
+
+        verify(mockRefundDao).expungeRefund(refundEntity.getExternalId());
+    }
+
+    private void shouldNotExpunge(RefundEntity refundEntity) {
+        when(mockRefundDao.findRefundToExpunge(minimumAgeOfRefundInDays, defaultExcludeRefundsParityCheckedWithInDays))
+                .thenReturn(Optional.of(refundEntity));
+        when(mockChargeService.findChargeByExternalId(refundEntity.getChargeExternalId())).thenThrow(ChargeNotFoundRuntimeException.class);
+
+        refundExpungeService.expunge(1);
+
+        verify(mockRefundService).updateRefundParityStatus(refundEntity.getExternalId(), SKIPPED);
+        verify(mockRefundDao, never()).expungeRefund(any());
     }
 }
