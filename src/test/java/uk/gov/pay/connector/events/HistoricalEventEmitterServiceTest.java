@@ -549,7 +549,7 @@ class HistoricalEventEmitterServiceTest {
 
         verify(eventService, times(1)).emitAndRecordEvent(any(FeeIncurredEvent.class), isNotNull());
     }
-    
+
     @Test
     void shouldEmitIncurredEventForAdyenPaymentWhenAllFeesArePresent() {
         chargeEntity = ChargeEntityFixture
@@ -569,7 +569,7 @@ class HistoricalEventEmitterServiceTest {
     @Test
     void shouldNotEmitIncurredEventForAdyenPaymentWhenAllFeesAreNotPresent() {
         FeeIncurredEvent feeIncurredEvent = mock(FeeIncurredEvent.class);
-        
+
         historicalEventEmitterService.emitHistoricEventsById(1L, OptionalLong.empty(),1L);
 
         verifyNoInteractions(feeIncurredEvent);
@@ -854,7 +854,7 @@ class HistoricalEventEmitterServiceTest {
 
         List<Gateway3dsExemptionResultObtainedEvent> capturedEvents = argument.getAllValues();
         Gateway3dsExemptionResultObtainedEventDetails eventDetailsType = (Gateway3dsExemptionResultObtainedEventDetails) argument.getAllValues().getFirst().getEventDetails();
-        
+
         assertThat(capturedEvents.getFirst().getEventType(), is("GATEWAY_3DS_EXEMPTION_RESULT_OBTAINED_EVENT"));
         assertThat(eventDetailsType.getExemption3ds(), is(exemption3ds.toString()));
     }
@@ -893,9 +893,9 @@ class HistoricalEventEmitterServiceTest {
     @ParameterizedTest
     @MethodSource
     void shouldEmitRequested3dsExemptionWithEventDetailsIfExemption3dsDetailsNotNull(
-            Exemption3dsType exemption3dsType, 
-            String requestedExemptionDetailsType, 
-            Exemption3ds exemption3ds, 
+            Exemption3dsType exemption3dsType,
+            String requestedExemptionDetailsType,
+            Exemption3ds exemption3ds,
             ChargeStatus chargeStatus
     ) throws QueueException {
         ChargeEventEntity successEvent = setupChargeEvent(chargeStatus);
@@ -905,9 +905,9 @@ class HistoricalEventEmitterServiceTest {
 
         when(chargeDao.findMaxId()).thenReturn(1L);
         when(chargeDao.findById(1L)).thenReturn(Optional.of(chargeEntity));
-        
+
         historicalEventEmitterService.emitHistoricEventsById(1L, OptionalLong.empty(), 1L);
-        
+
         ArgumentCaptor<Requested3dsExemption> requested3dsExemptionArgument = ArgumentCaptor.forClass(Requested3dsExemption.class);
         ArgumentCaptor<Gateway3dsExemptionResultObtainedEvent> gateway3dsExemptionArgument = ArgumentCaptor.forClass(Gateway3dsExemptionResultObtainedEvent.class);
 
@@ -940,7 +940,7 @@ class HistoricalEventEmitterServiceTest {
         when(chargeDao.findById(1L)).thenReturn(Optional.of(chargeEntity));
 
         historicalEventEmitterService.emitHistoricEventsById(1L, OptionalLong.empty(), 1L);
-        
+
         ArgumentCaptor<CardDetailsObtained> cardDetailsObtainedArgument = ArgumentCaptor.forClass(CardDetailsObtained.class);
 
         verify(eventService).emitAndRecordEvent(cardDetailsObtainedArgument.capture(), isNotNull());
@@ -982,7 +982,7 @@ class HistoricalEventEmitterServiceTest {
 
         verifyNoInteractions(mockCardDetailsObtained);
     }
-    
+
     private ChargeEventEntity setupChargeEvent(ChargeStatus chargeStatus) {
         return ChargeEventEntityFixture.aValidChargeEventEntity()
                 .withTimestamp(ZonedDateTime.now().plusMinutes(2))
@@ -990,13 +990,13 @@ class HistoricalEventEmitterServiceTest {
                 .withChargeStatus(chargeStatus)
                 .build();
     }
-    
+
     private Auth3dsRequiredEntity setupAuth3dsRequiredEntity() {
         var auth3dsRequiredEntity = new Auth3dsRequiredEntity();
         auth3dsRequiredEntity.setThreeDsVersion("2.1.1");
         return auth3dsRequiredEntity;
     }
-    
+
     private static Stream<Arguments> shouldEmitRequested3dsExemptionWithEventDetailsIfExemption3dsDetailsNotNull() {
         return Stream.of(
                 Arguments.of(OPTIMISED, "OPTIMISED", EXEMPTION_HONOURED, AUTHORISATION_SUCCESS),
@@ -1013,7 +1013,7 @@ class HistoricalEventEmitterServiceTest {
                 Arguments.of(CORPORATE, "CORPORATE", EXEMPTION_OUT_OF_SCOPE, AUTHORISATION_REJECTED)
         );
     }
-    
+
     private RefundHistory getRefundHistoryEntity(ChargeEntity chargeEntity, RefundStatus refundStatus) {
         return RefundHistoryEntityFixture
                 .aValidRefundHistoryEntity()
