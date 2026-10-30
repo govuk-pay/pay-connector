@@ -177,7 +177,7 @@ public class AdyenRequestFactory {
     private static BillingAddress mapToBillingAddress(Address address) {
         var northAmericanRegionMapper = new NorthAmericanRegionMapper();
         String stateOrProvince = northAmericanRegionMapper.getNorthAmericanRegionForCountry(address)
-                .map(NorthAmericaRegion::getFullName)
+                .map(NorthAmericaRegion::getAbbreviation)
                 .orElse(null);
         return new BillingAddress(
                 address.getLine1(),

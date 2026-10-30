@@ -178,6 +178,29 @@ class AdyenRequestFactoryTest {
     }
 
     @ParameterizedTest
+    @CsvSource({"US, 90210, CA", "CA, K0G 1J0, ON"})
+    void should_use_abbreviated_north_america_state_or_province(String country, String postcode, String expectedSate) {
+        var billingAddress = new Address("line1", "line2", postcode, "city", postcode,country);
+        
+        var authoriseRequest = aCardAuthorisationGatewayRequest()
+                .withAuthCardDetails(anAuthCardDetails()
+                .withAddress(billingAddress)
+                        .withCardNo("4444333322221111")
+                        .withCardHolder("John Doe")
+                        .withCvc("737")
+                        .withEndDate(CardExpiryDate.valueOf("10/99"))
+                        .build())
+                .withCredentials(ADYEN_CREDENTIALS)
+                .withAmount("6234")
+                .build();
+        
+        var request = adyenRequestFactory.createPaymentRequest(authoriseRequest);
+        
+        assertThat(request.billingAddress().stateOrProvince(), is(expectedSate));
+    }
+    
+
+    @ParameterizedTest
     @CsvSource({
             "RECURRING,Subscription",
             "INSTALMENT,Subscription",
