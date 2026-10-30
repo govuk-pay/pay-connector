@@ -19,12 +19,14 @@ import uk.gov.pay.connector.tasks.service.ParityCheckService;
 
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Objects;
 import java.util.Optional;
 
 import static java.lang.String.format;
 import static java.time.ZoneOffset.UTC;
 import static net.logstash.logback.argument.StructuredArguments.kv;
 import static uk.gov.pay.connector.charge.model.domain.ParityCheckStatus.SKIPPED;
+import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
 import static uk.gov.pay.connector.refund.model.domain.RefundStatus.REFUNDED;
 import static uk.gov.pay.connector.refund.model.domain.RefundStatus.REFUND_ERROR;
 import static uk.gov.pay.connector.refund.model.domain.RefundStatus.REFUND_SUBMITTED;
@@ -100,16 +102,29 @@ public class RefundExpungeService {
             skipExpunge(refundExternalId, "Refund is not in expungeable state");
             return;
         }
-        
-        boolean matchesWithLedger = parityCheckService.parityCheckRefundForExpunger(refundEntity);
 
-        if (matchesWithLedger) {
+        // Adyen Check
+        if (Objects.equals(refundEntity.getPaymentProvider(), ADYEN.getName())
+                && isMissingRequiredFeesForAdyen(refundEntity)) {
+            skipExpunge(refundExternalId, "Refund not expunged because" +
+                    "it is an Adyen refund and some fees are yet to be processed.");
+            return;
+        }
+
+        if (parityCheckService.parityCheckRefundForExpunger(refundEntity)) {
             expungeRefund(refundEntity);
             logger.info("Refund expunged from connector {}", kv(REFUND_EXTERNAL_ID, refundExternalId));
             return;
         }
 
         logParityCheckFailure(lastParityCheckDate, refundExternalId);
+    }
+
+    private static boolean isMissingRequiredFeesForAdyen(RefundEntity refundEntity) {
+        if (refundEntity.getStatus().equals(REFUNDED)) {
+            return refundEntity.getFees().isEmpty();
+        }
+        return false;   
     }
 
     private void skipExpunge(String refundExternalId, String message) {
