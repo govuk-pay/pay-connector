@@ -5,10 +5,14 @@ import uk.gov.pay.connector.events.eventdetails.EventDetails;
 import uk.gov.pay.connector.events.eventdetails.charge.FeeIncurredEventDetails;
 import uk.gov.pay.connector.events.exception.EventCreationException;
 import uk.gov.pay.connector.refund.model.domain.RefundEntity;
+import uk.gov.pay.connector.refund.model.domain.RefundHistory;
 
 import java.time.Instant;
 
 public class RefundFeeIncurredEvent extends RefundEvent {
+    
+    private static final String FAILED_TO_CREATE_EVENT = "Failed to create FeeIncurredEvent due to no fees present on refund";
+    
     public RefundFeeIncurredEvent(String resourceExternalId, EventDetails eventDetails, Instant timestamp) {
         super(resourceExternalId, eventDetails, timestamp);
     }
@@ -18,10 +22,21 @@ public class RefundFeeIncurredEvent extends RefundEvent {
                 .stream()
                 .map(FeeEntity::getCreatedDate)
                 .min(Instant::compareTo)
-                .orElseThrow(() -> new EventCreationException(refundEntity.getExternalId(), "Failed to create FeeIncurredEvent due to no fees present on refund"));
+                .orElseThrow(() -> new EventCreationException(refundEntity.getExternalId(), FAILED_TO_CREATE_EVENT));
         return new RefundFeeIncurredEvent(
                 refundEntity.getExternalId(),
                 FeeIncurredEventDetails.from(refundEntity),
                 earliestInstant);
     }
-}
+
+    public static RefundFeeIncurredEvent from(RefundHistory refundHistory) throws EventCreationException {
+        Instant earliestInstant = refundHistory.getFees()
+                .stream()
+                .map(FeeEntity::getCreatedDate)
+                .min(Instant::compareTo)
+                .orElseThrow(() -> new EventCreationException(refundHistory.getExternalId(), FAILED_TO_CREATE_EVENT));
+        return new RefundFeeIncurredEvent(
+                refundHistory.getExternalId(),
+                FeeIncurredEventDetails.from(refundHistory),
+                earliestInstant);
+    }}
