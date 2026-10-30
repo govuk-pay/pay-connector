@@ -20,6 +20,7 @@ public class RefundEntityFixture {
     private String transactionId = "123456";
     private ZonedDateTime createdDate = ZonedDateTime.now(ZoneId.of("UTC"));
     private String chargeExternalId = "chargeExternalId";
+    private ZonedDateTime parityCheckDate = null;
 
     public static RefundEntityFixture aValidRefundEntity() {
         return new RefundEntityFixture();
@@ -33,6 +34,7 @@ public class RefundEntityFixture {
         refundEntity.setUserExternalId(userExternalId);
         refundEntity.setCreatedDate(createdDate);
         refundEntity.setGatewayTransactionId(transactionId);
+        refundEntity.setParityCheckDate(parityCheckDate);
         return refundEntity;
     }
 
@@ -82,6 +84,11 @@ public class RefundEntityFixture {
 
     public RefundEntityFixture withId(Long id) {
         this.id = id;
+        return this;
+    }
+
+    public RefundEntityFixture withParityCheckDate(ZonedDateTime parityCheckDate) {
+        this.parityCheckDate = parityCheckDate;
         return this;
     }
 }

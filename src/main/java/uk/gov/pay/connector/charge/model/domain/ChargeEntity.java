@@ -560,6 +560,10 @@ public class ChargeEntity extends AbstractVersionedEntity {
         return parityCheckDate;
     }
 
+    public void setParityCheckDate(ZonedDateTime parityCheckDate) {
+        this.parityCheckDate = parityCheckDate;
+    }
+
     public void updateParityCheck(ParityCheckStatus parityCheckStatus) {
         this.parityCheckStatus = parityCheckStatus;
         this.parityCheckDate = ZonedDateTime.now(ZoneId.of("UTC"));

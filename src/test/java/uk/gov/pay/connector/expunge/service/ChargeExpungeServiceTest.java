@@ -27,6 +27,8 @@ import uk.gov.pay.connector.tasks.service.ParityCheckService;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -128,6 +130,58 @@ class ChargeExpungeServiceTest {
                 .build();
         
         shouldNotExpunge(chargeEntity);
+    }
+
+    @Test
+    void expunge_shouldNotExpungeChargeIfParityCheckFailed() {
+        ChargeEntity chargeEntity = ChargeEntityFixture.aValidChargeEntity()
+                .withGatewayAccountEntity(liveGatewayAccount)
+                .withStatus(AUTHORISATION_REJECTED)
+                .withPaymentProvider("stripe")
+                .withGatewayTransactionId("a-gateway-transaction-id")
+                .withCreatedDate(Instant.parse("2022-01-01T11:08:00.000Z"))
+                .withFee(Fee.of(RADAR, 5L))
+                .build();
+
+
+        when(mockExpungeConfig.isExpungeChargesEnabled()).thenReturn(true);
+        when(mockExpungeConfig.getMinimumAgeOfChargeInDays()).thenReturn(minimumAgeOfChargeInDays);
+        when(mockChargeDao.findChargeToExpunge(minimumAgeOfChargeInDays, defaultExcludeChargesParityCheckedWithInDays))
+                .thenReturn(Optional.of(chargeEntity));
+        when(mockExpungeConfig.getExcludeChargesOrRefundsParityCheckedWithInDays()).thenReturn(defaultExcludeChargesParityCheckedWithInDays);
+        when(parityCheckService.parityCheckChargeForExpunger(chargeEntity)).thenReturn(false);
+
+        chargeExpungeService.expunge(1);
+
+        verify(mockChargeDao, never()).expungeCharge(any(), any());
+
+        logs.forLevel(INFO).assertContains("Charge cannot be expunged because parity check with ledger failed");
+    }
+
+    @Test
+    void expunge_shouldNotExpungeChargeIfParityCheckFailedAgain() {
+        ChargeEntity chargeEntity = ChargeEntityFixture.aValidChargeEntity()
+                .withGatewayAccountEntity(liveGatewayAccount)
+                .withStatus(AUTHORISATION_REJECTED)
+                .withPaymentProvider("stripe")
+                .withGatewayTransactionId("a-gateway-transaction-id")
+                .withCreatedDate(Instant.parse("2022-01-01T11:08:00.000Z"))
+                .withFee(Fee.of(RADAR, 5L))
+                .withParityCheckDate(ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1))
+                .build();
+        
+        when(mockExpungeConfig.isExpungeChargesEnabled()).thenReturn(true);
+        when(mockExpungeConfig.getMinimumAgeOfChargeInDays()).thenReturn(minimumAgeOfChargeInDays);
+        when(mockChargeDao.findChargeToExpunge(minimumAgeOfChargeInDays, defaultExcludeChargesParityCheckedWithInDays))
+                .thenReturn(Optional.of(chargeEntity));
+        when(mockExpungeConfig.getExcludeChargesOrRefundsParityCheckedWithInDays()).thenReturn(defaultExcludeChargesParityCheckedWithInDays);
+        when(parityCheckService.parityCheckChargeForExpunger(chargeEntity)).thenReturn(false);
+
+        chargeExpungeService.expunge(1);
+
+        verify(mockChargeDao, never()).expungeCharge(any(), any());
+
+        logs.forLevel(INFO).assertContains("Charge cannot be expunged because parity check with ledger repeatedly failed");
     }
 
     @Test

@@ -29,6 +29,7 @@ import uk.gov.service.payments.commons.model.SupportedLanguage;
 import uk.gov.service.payments.commons.model.charge.ExternalMetadata;
 
 import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -81,6 +82,7 @@ public class ChargeEntityFixture {
     private ChargeResponse.AuthorisationSummary authorisationSummary;
     private AgreementPaymentType agreementPaymentType;
     private String gatewayRejectionReason;
+    private ZonedDateTime parityCheckDate = null;
 
     public static ChargeEntityFixture aValidChargeEntity() {
         return new ChargeEntityFixture();
@@ -197,6 +199,7 @@ public class ChargeEntityFixture {
         chargeEntity.setPaymentInstrument(paymentInstrument);
         chargeEntity.setUpdatedDate(updatedDate);
         chargeEntity.setGatewayRejectionReason(gatewayRejectionReason);
+        chargeEntity.setParityCheckDate(parityCheckDate);
 
         if (this.auth3DsRequiredEntity != null) {
             chargeEntity.set3dsRequiredDetails(auth3DsRequiredEntity);
@@ -426,6 +429,11 @@ public class ChargeEntityFixture {
 
     public ChargeEntityFixture withAgreementPaymentType(AgreementPaymentType agreementPaymentType) {
         this.agreementPaymentType = agreementPaymentType;
+        return this;
+    }
+
+    public ChargeEntityFixture withParityCheckDate(ZonedDateTime parityCheckDate) {
+        this.parityCheckDate = parityCheckDate;
         return this;
     }
 }

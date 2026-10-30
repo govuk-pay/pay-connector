@@ -152,7 +152,7 @@ public class ChargeExpungeService {
             return;
         }
 
-        if ((paymentGatewayName == ADYEN) && !hasRequiredFeesForAdyen(chargeEntity)) {
+        if (paymentGatewayName == ADYEN && !hasRequiredFeesForAdyen(chargeEntity)) {
             if (chargeEntity.getGatewayAccount().getType().equals(LIVE.toString())) {
                 skipExpunge(chargeExternalId,
                         "it is an Adyen payment that requires fees to be collected, " +
