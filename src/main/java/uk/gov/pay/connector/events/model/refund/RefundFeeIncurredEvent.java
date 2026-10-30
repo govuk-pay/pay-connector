@@ -5,6 +5,7 @@ import uk.gov.pay.connector.events.eventdetails.EventDetails;
 import uk.gov.pay.connector.events.eventdetails.charge.FeeIncurredEventDetails;
 import uk.gov.pay.connector.events.exception.EventCreationException;
 import uk.gov.pay.connector.refund.model.domain.RefundEntity;
+import uk.gov.pay.connector.refund.model.domain.RefundHistory;
 
 import java.time.Instant;
 
@@ -24,4 +25,15 @@ public class RefundFeeIncurredEvent extends RefundEvent {
                 FeeIncurredEventDetails.from(refundEntity),
                 earliestInstant);
     }
-}
+
+    public static RefundFeeIncurredEvent from(RefundHistory refundHistory) throws EventCreationException {
+        Instant earliestInstant = refundHistory.getFees()
+                .stream()
+                .map(FeeEntity::getCreatedDate)
+                .min(Instant::compareTo)
+                .orElseThrow(() -> new EventCreationException(refundHistory.getExternalId(), "Failed to create FeeIncurredEvent due to no fees present on refund"));
+        return new RefundFeeIncurredEvent(
+                refundHistory.getExternalId(),
+                FeeIncurredEventDetails.from(refundHistory),
+                earliestInstant);
+    }}
