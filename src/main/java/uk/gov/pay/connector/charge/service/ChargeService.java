@@ -336,7 +336,7 @@ public class ChargeService {
             var agreementEntity = Optional.ofNullable(chargeRequest.getAgreementId()).map(agreementId ->
                     agreementDao.findByExternalIdAndGatewayAccountId(chargeRequest.getAgreementId(), gatewayAccount.getId())
                             .orElseThrow(() -> new ChargeException("Agreement with ID [" + chargeRequest.getAgreementId() + "] not found.", AGREEMENT_NOT_FOUND, HttpStatus.SC_BAD_REQUEST)));
-            
+
             AgreementPaymentType agreementPaymentType = null;
             if (chargeRequest.getSavePaymentInstrumentToAgreement() || chargeRequest.getAuthorisationMode() == AGREEMENT) {
                 agreementPaymentType = chargeRequest.getAgreementPaymentType().orElse(AgreementPaymentType.RECURRING);
@@ -347,9 +347,9 @@ public class ChargeService {
             chargeRequest.getPrefilledCardHolderDetails()
                     .map(this::createCardDetailsEntity)
                     .ifPresent(chargeEntity::setCardDetails);
-            
+
             var authorisationMode = chargeRequest.getAuthorisationMode();
-            
+
             if (authorisationMode == AuthorisationMode.AGREEMENT) {
                 agreementEntity.ifPresent(agreement -> {
                     checkAgreementHasActivePaymentInstrument(agreement);
@@ -379,10 +379,10 @@ public class ChargeService {
         });
     }
 
-    private void checkChargeValidity(ChargeCreateRequest chargeRequest, 
-                                     GatewayAccountEntity gatewayAccount, 
+    private void checkChargeValidity(ChargeCreateRequest chargeRequest,
+                                     GatewayAccountEntity gatewayAccount,
                                      GatewayAccountCredentialsEntity gatewayAccountCredential) {
-        
+
         checkGatewayAccount(chargeRequest, gatewayAccount);
         checkCardNumberInReferenceForPaymentLinkPayments(chargeRequest.getSource(), chargeRequest.getReference());
         checkAgreementOptions(chargeRequest, gatewayAccount);
@@ -401,8 +401,8 @@ public class ChargeService {
 
     private ChargeEntity buildChargeEntity(ChargeCreateRequest chargeRequest,
                                            GatewayAccountEntity gatewayAccount,
-                                           GatewayAccountCredentialsEntity gatewayAccountCredential, 
-                                           AgreementEntity agreementEntity, 
+                                           GatewayAccountCredentialsEntity gatewayAccountCredential,
+                                           AgreementEntity agreementEntity,
                                            AgreementPaymentType agreementPaymentType) {
         ChargeEntity.WebChargeEntityBuilder chargeEntityBuilder = aWebChargeEntity()
                 .withAmount(chargeRequest.getAmount())
@@ -684,7 +684,7 @@ public class ChargeService {
         } else if (chargeEntity.getRequires3ds() != null) {
             authorisationSummary = getAuthorisationSummary(chargeEntity.getRequires3ds(), null);
         } else if (chargeEntity.get3dsRequiredDetails() == null && chargeEntity.getRequires3ds() == null) {
-            authorisationSummary = getAuthorisationSummary(false,  null);
+            authorisationSummary = getAuthorisationSummary(false, null);
         }
 
         T builderOfResponse = responseBuilder
@@ -757,7 +757,7 @@ public class ChargeService {
                 exemption.setType(exemption3dsRequested == CORPORATE ? CORPORATE.name().toLowerCase() : null);
                 exemption.setOutcome(new ChargeResponse.Exemption.Outcome(exemption3ds));
             }
-        } else if (exemption3dsRequested != null){
+        } else if (exemption3dsRequested != null) {
             exemption = new ChargeResponse.Exemption();
             exemption.setRequested(true);
             exemption.setType(exemption3dsRequested == CORPORATE ? CORPORATE.name().toLowerCase() : null);
@@ -910,7 +910,7 @@ public class ChargeService {
     }
 
     @Transactional
-    public ChargeEntity updateChargePost3dsAuthorisation(String chargeExternalId, 
+    public ChargeEntity updateChargePost3dsAuthorisation(String chargeExternalId,
                                                          ChargeStatus newStatus,
                                                          OperationType operationType,
                                                          String transactionId,
@@ -920,15 +920,14 @@ public class ChargeService {
                                                          String gatewayRejectionReason,
                                                          CardExpiryDate cardExpiryDate) {
         return chargeDao.findByExternalId(chargeExternalId).map(charge -> {
+            boolean cardExpiryDateUpdated;
             try {
                 setTransactionId(charge, transactionId);
                 transitionChargeState(charge, newStatus);
                 Optional.ofNullable(auth3dsRequiredDetails).ifPresent(charge::set3dsRequiredDetails);
                 Optional.ofNullable(sessionIdentifier).map(ProviderSessionIdentifier::toString).ifPresent(charge::setProviderSessionId);
 
-                Optional.ofNullable(charge.getCardDetails())
-                        .filter(details -> details.getExpiryDate() == null)
-                        .ifPresent(details -> details.setExpiryDate(cardExpiryDate));
+                cardExpiryDateUpdated = updateCardExpiryDateIfMissing(charge, cardExpiryDate);
 
                 if (charge.isSavePaymentInstrumentToAgreement()) {
                     Optional.ofNullable(recurringAuthToken).ifPresent(token -> setPaymentInstrument(token, charge));
@@ -945,13 +944,27 @@ public class ChargeService {
             if (auth3dsRequiredDetails != null && isNotBlank(auth3dsRequiredDetails.getThreeDsVersion())) {
                 eventService.emitAndRecordEvent(Gateway3dsInfoObtained.from(charge, Instant.now()));
             }
-            
-            if (cardExpiryDate != null) {
+
+            if (cardExpiryDateUpdated) {
                 eventService.emitAndRecordEvent(CardDetailsObtained.from(charge, Instant.now()));
             }
 
             return charge;
         }).orElseThrow(() -> new ChargeNotFoundRuntimeException(chargeExternalId));
+    }
+
+    private boolean updateCardExpiryDateIfMissing(ChargeEntity charge, CardExpiryDate cardExpiryDate) {
+        if (cardExpiryDate == null) {
+            return false;
+        }
+
+        return Optional.ofNullable(charge.getCardDetails())
+                .filter(details -> details.getExpiryDate() == null)
+                .map(details -> {
+                    details.setExpiryDate(cardExpiryDate);
+                    return true;
+                })
+                .orElse(false);
     }
 
     public ChargeEntity updateChargePostCapture(ChargeEntity chargeEntity, ChargeStatus nextStatus) {
@@ -1221,7 +1234,7 @@ public class ChargeService {
             throw new AuthorisationApiNotAllowedForGatewayAccountException(gatewayAccount.getId());
         }
     }
-    
+
     private void checkIfGatewayAccountDisabled(GatewayAccountEntity gatewayAccount) {
         if (gatewayAccount.isDisabled()) {
             throw new GatewayAccountDisabledException("Attempt to create a charge for a disabled gateway account");
@@ -1268,12 +1281,12 @@ public class ChargeService {
             default -> {
                 if (hasAgreementId(chargeCreateRequest)) {
                     throw new UnexpectedAttributeException("agreement_id");
-                } 
-                
+                }
+
                 if (chargeCreateRequest.getSavePaymentInstrumentToAgreement()) {
                     throw new IncorrectAuthorisationModeForSavePaymentToAgreementException();
-                } 
-                
+                }
+
                 if (chargeCreateRequest.getAgreementPaymentType().isPresent()) {
                     throw new UnexpectedAttributeException("agreement_payment_type");
                 }
@@ -1285,7 +1298,7 @@ public class ChargeService {
         if (hasAgreementId(chargeCreateRequest)) {
             if (!chargeCreateRequest.getSavePaymentInstrumentToAgreement()) {
                 throw new UnexpectedAttributeException("agreement_id");
-            } 
+            }
             if (!gatewayAccount.isRecurringEnabled()) {
                 throw new RecurringCardPaymentsNotAllowedException(
                         "Attempt to save payment instrument to agreement for gateway account " +
@@ -1313,13 +1326,13 @@ public class ChargeService {
                     "Attempt to use authorisation mode 'agreement' for gateway account " +
                             gatewayAccount.getId() +
                             ", which does not have recurring card payments enabled");
-        } 
+        }
         if (!hasAgreementId(chargeCreateRequest)) {
             throw new MissingMandatoryAttributeException("agreement_id");
-        } 
+        }
         if (chargeCreateRequest.getSavePaymentInstrumentToAgreement()) {
             throw new IncorrectAuthorisationModeForSavePaymentToAgreementException();
-        } 
+        }
         if (chargeCreateRequest.isMoto()) {
             throw new UnexpectedAttributeException("moto");
         }
@@ -1338,7 +1351,7 @@ public class ChargeService {
 
         if (paymentInstrumentEntity.getStatus() != PaymentInstrumentStatus.ACTIVE) {
             throw new ChargeException("Agreement with ID [" + agreementEntity.getExternalId() + "] has payment instrument with ID [" +
-                    paymentInstrumentEntity.getExternalId() + "] but its state is [" + paymentInstrumentEntity.getStatus() + "]" , 
+                    paymentInstrumentEntity.getExternalId() + "] but its state is [" + paymentInstrumentEntity.getStatus() + "]",
                     AGREEMENT_NOT_ACTIVE, HttpStatus.SC_BAD_REQUEST);
         }
     }

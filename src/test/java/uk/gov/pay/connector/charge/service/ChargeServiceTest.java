@@ -159,31 +159,31 @@ class ChargeServiceTest {
 
     @Mock
     private ConnectorConfiguration mockedConfig;
-    
+
     @Mock
     private UriInfo mockedUriInfo;
-    
+
     @Mock
     private LinksConfig mockedLinksConfig;
-    
+
     @Mock
     private PaymentProviders mockedProviders;
-    
+
     @Mock
     private PaymentProvider mockedPaymentProvider;
-    
+
     @Mock
     private EventService mockEventService;
 
     @Mock
     private PaymentInstrumentService mockPaymentInstrumentService;
-    
+
     @Mock
     private StateTransitionService mockStateTransitionService;
 
     @Mock
     private RefundService mockedRefundService;
-    
+
     @Mock
     private GatewayAccountCredentialsService mockGatewayAccountCredentialsService;
 
@@ -192,7 +192,7 @@ class ChargeServiceTest {
 
     @Mock
     private CaptureProcessConfig mockedCaptureProcessConfig;
-    
+
     @Mock
     private TaskQueueService mockTaskQueueService;
 
@@ -258,7 +258,7 @@ class ChargeServiceTest {
 
         ChargeEventEntity chargeEventEntity = aChargeEventEntity().withChargeEntity(charge).withStatus(CAPTURED).build();
         when(mockedChargeEventDao.persistChargeEventOf(any(ChargeEntity.class), any(ZonedDateTime.class))).thenReturn(chargeEventEntity);
-        
+
         ZonedDateTime gatewayEventDate = ZonedDateTime.parse("2021-01-01T01:30:00.000Z");
         ChargeEntity updatedCharge = chargeService.forceTransitionChargeState(charge, CAPTURED, gatewayEventDate);
 
@@ -266,14 +266,14 @@ class ChargeServiceTest {
         verify(mockedChargeEventDao).persistChargeEventOf(chargeEntityArgumentCaptor.capture(), eq(gatewayEventDate));
         assertThat(chargeEntityArgumentCaptor.getValue().getStatus(), is(CAPTURED.getValue()));
         assertThat(updatedCharge.getStatus(), is(CAPTURED.getValue()));
-        
+
         verify(mockStateTransitionService).offerPaymentStateTransition(
-                charge.getExternalId(), 
-                AUTHORISATION_SUCCESS, 
-                CAPTURED, 
-                chargeEventEntity, 
+                charge.getExternalId(),
+                AUTHORISATION_SUCCESS,
+                CAPTURED,
+                chargeEventEntity,
                 StatusCorrectedToCapturedToMatchGatewayStatus.class);
-        
+
         verify(mockTaskQueueService).offerTasksOnStateTransition(charge);
     }
 
@@ -374,7 +374,7 @@ class ChargeServiceTest {
 
         verify(mockTaskQueueService).offerTasksOnStateTransition(charge);
     }
-    
+
     @ParameterizedTest
     @EnumSource(names = {
             "USER_CANCEL_SUBMITTED",
@@ -398,17 +398,17 @@ class ChargeServiceTest {
 
         final String expectedEmail = "test@examplecom";
         PatchRequestBuilder.PatchRequest patchRequest = PatchRequestBuilder.aPatchRequestBuilder(
-                ImmutableMap.of(
-                        "op", "replace",
-                        "path", "email",
-                        "value", expectedEmail))
+                        ImmutableMap.of(
+                                "op", "replace",
+                                "path", "email",
+                                "value", expectedEmail))
                 .withValidOps(singletonList("replace"))
                 .withValidPaths(ImmutableSet.of("email"))
                 .build();
 
         Optional<ChargeEntity> chargeEntity = chargeService.updateCharge(chargeEntityExternalId, patchRequest);
         assertThat(chargeEntity.get().getEmail(), is(expectedEmail));
-        
+
         verify(mockEventService).emitAndRecordEvent(any(UserEmailCollected.class));
     }
 
@@ -511,9 +511,9 @@ class ChargeServiceTest {
 
         final String chargeEntityExternalId = chargeSpy.getExternalId();
         when(mockedChargeDao.findByExternalId(chargeEntityExternalId)).thenReturn(Optional.of(chargeSpy));
-        
+
         chargeService.updateChargePost3dsAuthorisation(chargeSpy.getExternalId(), AUTHORISATION_SUCCESS, AUTHORISATION_3DS, "transaction-id",
-                null, null, null,null, null);
+                null, null, null, null, null);
 
         verify(chargeSpy).setGatewayTransactionId("transaction-id");
         verify(chargeSpy).setStatus(AUTHORISATION_SUCCESS);
@@ -524,6 +524,8 @@ class ChargeServiceTest {
 
     @Test
     void shouldUpdateChargePost3dsAuthorisationIfResponseHasCardExpiryDateAndChargeDoesNot() {
+        ArgumentCaptor<CardDetailsObtained> captor = ArgumentCaptor.forClass(CardDetailsObtained.class);
+
         CardDetailsEntity cardDetailsSpy = spy(aCardDetailsEntityFixture().withExpiryDate(null).build());
         ChargeEntity chargeSpy = spy(aValidChargeEntity()
                 .withStatus(AUTHORISATION_3DS_READY)
@@ -540,7 +542,11 @@ class ChargeServiceTest {
         verify(chargeSpy, never()).setGatewayTransactionId(anyString());
         verify(chargeSpy).setStatus(AUTHORISATION_REJECTED);
         verify(cardDetailsSpy).setExpiryDate(expiryDate);
+        verify(mockEventService).emitAndRecordEvent(captor.capture());
         verify(mockedChargeEventDao).persistChargeEventOf(eq(chargeSpy), isNull());
+
+        CardDetailsObtained capturedEvent = captor.getValue();
+        assertThat(((CardDetailsObtainedEventDetails) capturedEvent.getEventDetails()).getExpiryDate(), is("03/30"));
     }
 
     @Test
@@ -586,7 +592,7 @@ class ChargeServiceTest {
     }
 
     @Test
-    void shouldEmitEventIfCardExpiryDateIsNotNull() {
+    void shouldNotEmitEventIfCardExpiryDateIsNotUpdated() {
         ArgumentCaptor<CardDetailsObtained> eventCaptor = ArgumentCaptor.forClass(CardDetailsObtained.class);
 
         CardExpiryDate expiryDate = CardExpiryDate.valueOf("03/30");
@@ -602,12 +608,9 @@ class ChargeServiceTest {
         chargeService.updateChargePost3dsAuthorisation(charge.getExternalId(), AUTHORISATION_REJECTED, AUTHORISATION_3DS, null,
                 null, null, null, null, expiryDate);
 
-        verify(mockEventService).emitAndRecordEvent(eventCaptor.capture());
-
-        CardDetailsObtained capturedEvent = eventCaptor.getValue();
-        assertThat(((CardDetailsObtainedEventDetails) capturedEvent.getEventDetails()).getExpiryDate(), is("03/30"));
+        verifyNoInteractions(mockEventService);
     }
-    
+
     @Test
     void shouldNotEmitEventIfCardExpiryDateIsNull() {
         ChargeEntity charge = aValidChargeEntity().withStatus(AUTHORISATION_3DS_READY).build();
@@ -617,7 +620,7 @@ class ChargeServiceTest {
 
         chargeService.updateChargePost3dsAuthorisation(charge.getExternalId(), AUTHORISATION_REJECTED, AUTHORISATION_3DS, null,
                 null, null, null, null, null);
-        
+
         verifyNoInteractions(mockEventService);
     }
 
@@ -632,9 +635,9 @@ class ChargeServiceTest {
         final String chargeEntityExternalId = chargeSpy.getExternalId();
         when(mockedChargeDao.findByExternalId(chargeEntityExternalId)).thenReturn(Optional.of(chargeSpy));
         when(mockedAuth3dsRequiredEntity.getThreeDsVersion()).thenReturn("2.1.0");
-        
+
         chargeService.updateChargePost3dsAuthorisation(chargeSpy.getExternalId(), AUTHORISATION_3DS_REQUIRED, AUTHORISATION_3DS, "transaction-id",
-                mockedAuth3dsRequiredEntity, ProviderSessionIdentifier.of("provider-session-identifier"), 
+                mockedAuth3dsRequiredEntity, ProviderSessionIdentifier.of("provider-session-identifier"),
                 null, null, null);
 
         verify(chargeSpy).setGatewayTransactionId("transaction-id");
@@ -659,7 +662,7 @@ class ChargeServiceTest {
         final String chargeEntityExternalId = chargeSpy.getExternalId();
         when(mockedChargeDao.findByExternalId(chargeEntityExternalId)).thenReturn(Optional.of(chargeSpy));
         when(mockPaymentInstrumentService.createPaymentInstrument(chargeSpy, recurringAuthToken)).thenReturn(paymentInstrument);
-        
+
         chargeService.updateChargePost3dsAuthorisation(chargeSpy.getExternalId(), AUTHORISATION_SUCCESS, AUTHORISATION_3DS, "transaction-id",
                 null, null, recurringAuthToken, null, null);
 
@@ -933,7 +936,7 @@ class ChargeServiceTest {
             when(mockedChargeDao.findByExternalId(chargeEntityExternalId)).thenReturn(Optional.of(chargeSpy));
 
             chargeService.updateChargePost3dsAuthorisation(chargeEntityExternalId, AUTHORISATION_REJECTED,
-                    AUTHORISATION_3DS, "transaction-id", null, null, 
+                    AUTHORISATION_3DS, "transaction-id", null, null,
                     null, "6 - Expired Card", null);
 
             verify(chargeSpy).setGatewayTransactionId("transaction-id");
