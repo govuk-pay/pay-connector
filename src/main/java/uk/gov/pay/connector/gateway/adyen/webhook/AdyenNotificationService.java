@@ -48,6 +48,11 @@ public class AdyenNotificationService {
         if (!adyenNotificationValidator.isValidIpAddress(forwardedIpAddresses)) {
             return false;
         }
+        
+        LOGGER.atInfo()
+                .setMessage("Parsing Adyen notification")
+                .log();
+        
         try {
             MDC.put(PROVIDER, ADYEN.getName());
 

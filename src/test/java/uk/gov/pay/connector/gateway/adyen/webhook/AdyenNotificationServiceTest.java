@@ -90,6 +90,7 @@ class AdyenNotificationServiceTest {
         boolean result = adyenNotificationService.handleNotificationFor(payload, "5.6.7.8", null);
 
         assertTrue(result);
+        logs.assertContains("Parsing Adyen notification");
     }
 
     @Test
