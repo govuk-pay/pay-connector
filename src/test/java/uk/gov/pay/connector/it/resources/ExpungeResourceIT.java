@@ -165,6 +165,43 @@ public class ExpungeResourceIT {
     }
 
     @Test
+    void shouldNotExpungeAdyenChargeThatDoesNotHaveAllFees() throws JsonProcessingException {
+        var chargedId = secureRandomLong();
+        expungeableCharge1 = DatabaseFixtures.withDatabaseTestHelper(databaseTestHelper)
+                .aTestCharge()
+                .withChargeId(chargedId)
+                .withPaymentProvider("adyen")
+                .withCreatedDate(parse(ISO_INSTANT_MILLISECOND_PRECISION.format(now(UTC).minusDays(91))).toInstant())
+                .withTestAccount(defaultTestAccount)
+                .withExternalChargeId("external_charge_id")
+                .withTransactionId("gateway_transaction_id")
+                .withLanguage(ENGLISH)
+                .withEmail("test@test.test")
+                .withDescription("a description")
+                .withReference(ServicePaymentReference.of("a reference"))
+                .withAmount(2500)
+                .withReturnUrl("https://www.test.test/")
+                .withChargeStatus(ChargeStatus.CAPTURED)
+                .insert();
+        DatabaseFixtures.TestFee testFee = DatabaseFixtures.withDatabaseTestHelper(databaseTestHelper).aTestFee()
+                .withTestCharge(expungeableCharge1)
+                .withFeeDue(0L)
+                .withFeeCollected(0L);
+        testFee.insert();
+        insertChargeEvent(expungeableCharge1);
+        app.getLedgerStub().returnLedgerTransaction("external_charge_id", expungeableCharge1, null);
+        var charge = databaseTestHelper.containsChargeWithExternalId("external_charge_id");
+        assertThat(charge, is(true));
+        given().port(app.getLocalPort())
+                .contentType(JSON)
+                .post("/v1/tasks/expunge")
+                .then()
+                .statusCode(200);
+        var postCharge = databaseTestHelper.containsChargeWithExternalId("external_charge_id");
+        assertThat(postCharge, is(true));
+    }
+
+    @Test
     void shouldExpungeChargesMeetingCriteriaButNotThoseThatDont() throws JsonProcessingException {
         var chargedId = secureRandomLong();
 
@@ -330,8 +367,10 @@ public class ExpungeResourceIT {
     @Test
     void shouldExpungeRefundEligibleAndRelatedRecords() throws JsonProcessingException {
         String chargeExternalId = randomAlphanumeric(26);
-        RefundEntity refundToBeExpunged1 = createAndStubRefund(chargeExternalId, 91, REFUNDED, true);
-        RefundEntity refundToBeExpunged2 = createAndStubRefund(chargeExternalId, 91, REFUND_SUBMITTED, true);
+        RefundEntity refundToBeExpunged1 = createAndStubRefund(chargeExternalId, 91, REFUNDED, 
+                true, null);
+        RefundEntity refundToBeExpunged2 = createAndStubRefund(chargeExternalId, 91, REFUND_SUBMITTED, 
+                true, null);
 
         boolean containsRefund1 = databaseTestHelper.containsRefundWithExternalId(refundToBeExpunged1.getExternalId());
         assertThat(containsRefund1, is(true));
@@ -353,9 +392,12 @@ public class ExpungeResourceIT {
     @Test
     void shouldNotExpungeRefundsNotMeetingCriteria() throws JsonProcessingException {
         String chargeExternalId = randomAlphanumeric(26);
-        RefundEntity nonExpungeableRefund1 = createAndStubRefund(randomAlphanumeric(26), 1, REFUNDED, true);
-        RefundEntity nonExpungeableRefund2 = createAndStubRefund(randomAlphanumeric(26), 1, REFUND_SUBMITTED, true);
-        RefundEntity parityCheckFailedRefund = createAndStubRefund(chargeExternalId, 91, REFUNDED, false);
+        RefundEntity nonExpungeableRefund1 = createAndStubRefund(randomAlphanumeric(26), 1, REFUNDED, 
+                true, null);
+        RefundEntity nonExpungeableRefund2 = createAndStubRefund(randomAlphanumeric(26), 1, REFUND_SUBMITTED, 
+                true, null);
+        RefundEntity parityCheckFailedRefund = createAndStubRefund(chargeExternalId, 91, REFUNDED, 
+                false, null);
 
         var chargeToStub = DatabaseFixtures.withDatabaseTestHelper(databaseTestHelper)
                 .aTestCharge()
@@ -387,12 +429,32 @@ public class ExpungeResourceIT {
         assertThat(refundsHistoryList.size(), is(2));
     }
 
+    @Test
+    void shouldNotExpungeAdyenRefundThatHasNoFees() throws JsonProcessingException {
+        String chargeExternalId = randomAlphanumeric(26);
+        RefundEntity refundToBeExpunged1 = createAndStubRefund(chargeExternalId, 91, REFUNDED, 
+                true, "adyen");
+        
+        boolean containsRefund = databaseTestHelper.containsRefundWithExternalId(refundToBeExpunged1.getExternalId());
+        assertThat(containsRefund, is(true));
+
+        given().port(app.getLocalPort())
+                .contentType(JSON)
+                .post("/v1/tasks/expunge")
+                .then()
+                .statusCode(200);
+
+        containsRefund = databaseTestHelper.containsRefundWithExternalId(refundToBeExpunged1.getExternalId());
+        assertThat(containsRefund, is(true));
+    }
+
     private RefundEntity createAndStubRefund(String chargeExternalId, int createdBeforeDays, RefundStatus refundStatus,
-                                             boolean stubForMatchingLedgerTransaction) throws JsonProcessingException {
+                                             boolean stubForMatchingLedgerTransaction, String paymentProvider) throws JsonProcessingException {
         RefundEntity refundEntity = new RefundEntity(100L, userExternalId, userEmail, chargeExternalId);
         refundEntity.setGatewayTransactionId(randomAlphanumeric(20));
         refundEntity.setStatus(RefundStatus.CREATED);
         refundEntity.setCreatedDate(now(UTC).minusDays(createdBeforeDays));
+        refundEntity.setPaymentProvider(paymentProvider);
         refundDao.persist(refundEntity);
         refundEntity.setStatus(refundStatus);
         refundDao.merge(refundEntity);
