@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 import org.jspecify.annotations.NullMarked;
 import uk.gov.pay.connector.gateway.adyen.request.json.AdyenGooglePayPaymentMethod;
+import uk.gov.pay.connector.gateway.adyen.request.json.AdyenManualCaptureAdditionalData;
 import uk.gov.pay.connector.gateway.adyen.request.json.Amount;
 import uk.gov.pay.connector.gateway.adyen.response.json.AdyenBrowserInfo;
 
@@ -35,6 +36,16 @@ public record AdyenGooglePayAuthorisePayload(
 
         @JsonProperty("returnUrl")
         String returnUrl
-) implements GooglePayAuthoriseRequest, AdyenAuthoriseRequest  {
-    
+) implements GooglePayAuthoriseRequest, AdyenAuthoriseRequest {
+
+    @JsonProperty("additionalData")
+    public AdyenManualCaptureAdditionalData additionalData() {
+        return AdyenManualCaptureAdditionalData.INSTANCE;
+    }
+
+    @JsonProperty("channel")
+    public String channel() {
+        return "Web";
+    }
+
 }

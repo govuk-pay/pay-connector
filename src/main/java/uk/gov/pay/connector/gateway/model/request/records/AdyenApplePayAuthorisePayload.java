@@ -3,6 +3,7 @@ package uk.gov.pay.connector.gateway.model.request.records;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.jspecify.annotations.NullMarked;
 import uk.gov.pay.connector.gateway.adyen.request.json.AdyenApplePayPaymentMethod;
+import uk.gov.pay.connector.gateway.adyen.request.json.AdyenManualCaptureAdditionalData;
 import uk.gov.pay.connector.gateway.adyen.request.json.Amount;
 
 @NullMarked
@@ -25,4 +26,15 @@ public record AdyenApplePayAuthorisePayload(
         @JsonProperty("returnUrl")
         String returnUrl
 ) implements ApplePayAuthoriseRequest, AdyenAuthoriseRequest {
+
+    @JsonProperty("additionalData")
+    public AdyenManualCaptureAdditionalData additionalData() {
+        return AdyenManualCaptureAdditionalData.INSTANCE;
+    }
+
+    @JsonProperty("channel")
+    public String channel() {
+        return "Web";
+    }
+
 }

@@ -99,6 +99,8 @@ public class AdyenApplePayAuthorisePayloadIT {
                         .withRequestBody(matchingJsonPath("$.paymentMethod.type", equalTo("applepay")))
                         .withRequestBody(matchingJsonPath("$.paymentMethod.applePayToken", equalTo(PAYMENT_DATA)))
                         .withRequestBody(matchingJsonPath("$.returnUrl", equalTo("https://card.frontend.test/card_details/" + externalChargeId)))
+                        .withRequestBody(matchingJsonPath("$.additionalData.manualCapture", equalTo("true")))
+                        .withRequestBody(matchingJsonPath("$.channel", equalTo("Web")))
         );
 
         logs.assertContains("Authorisation with Apple Pay");

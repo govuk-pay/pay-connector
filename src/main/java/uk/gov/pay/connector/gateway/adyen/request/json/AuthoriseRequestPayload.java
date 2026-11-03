@@ -4,8 +4,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import uk.gov.pay.connector.gateway.adyen.response.json.AdyenBrowserInfo;
 
-import java.util.HashMap;
-
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record AuthoriseRequestPayload(
         @JsonProperty("amount")
@@ -27,7 +25,7 @@ public record AuthoriseRequestPayload(
         @JsonProperty("channel")
         String channel,
         @JsonProperty("additionalData")
-        HashMap<String,String> additionalData,
+        AdyenManualCaptureAdditionalData additionalData,
         @JsonProperty("browserInfo")
         AdyenBrowserInfo browserInfo,
         @JsonProperty("origin")
@@ -54,6 +52,7 @@ public record AuthoriseRequestPayload(
                 ", shopperInteraction=" + shopperInteraction +
                 ", store=" + store +
                 ", channel=" + channel +
+                ", additionalData=" + additionalData +
                 ", browserInfo=" + browserInfo +
                 ", origin=" + origin +
                 ", shopperReference=" + shopperReference +
