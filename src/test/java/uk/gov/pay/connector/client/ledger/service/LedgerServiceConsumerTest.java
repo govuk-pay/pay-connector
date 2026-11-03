@@ -5,7 +5,9 @@ import au.com.dius.pact.consumer.dsl.PactDslJsonBody;
 import au.com.dius.pact.consumer.dsl.PactDslWithProvider;
 import au.com.dius.pact.consumer.junit.PactProviderRule;
 import au.com.dius.pact.consumer.junit.PactVerification;
+import au.com.dius.pact.core.model.PactSpecVersion;
 import au.com.dius.pact.core.model.RequestResponsePact;
+import au.com.dius.pact.core.model.V4Pact;
 import au.com.dius.pact.core.model.annotations.Pact;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.core.Response;
@@ -46,7 +48,7 @@ public class LedgerServiceConsumerTest {
     public static final String CREDENTIAL_ID = "credential-external-id";
 
     @Rule
-    public PactProviderRule mockLedger = new PactProviderRule("ledger", this);
+    public PactProviderRule mockLedger = new PactProviderRule("ledger", PactSpecVersion.V4, this);
 
     @Mock
     ConnectorConfiguration configuration;
@@ -61,7 +63,7 @@ public class LedgerServiceConsumerTest {
     }
 
     @Pact(consumer = "connector")
-    public RequestResponsePact getRecurringPaymentTransaction(PactDslWithProvider builder) {
+    public V4Pact getRecurringPaymentTransaction(PactDslWithProvider builder) {
         return builder
                 .given("a recurring card payment exists for agreement",
                         Map.of("account_id", "3",
@@ -95,7 +97,7 @@ public class LedgerServiceConsumerTest {
                         .stringValue("authorisation_mode", "agreement")
                         .stringValue("agreement_id", AGREEMENT_ID)
                         .stringValue("agreement_payment_type", "recurring"))
-                .toPact();
+                .toPact(V4Pact.class);
     }
 
     @Test
@@ -109,7 +111,7 @@ public class LedgerServiceConsumerTest {
     }
 
     @Pact(consumer = "connector")
-    public RequestResponsePact getPaymentTransaction(PactDslWithProvider builder) {
+    public V4Pact getPaymentTransaction(PactDslWithProvider builder) {
         return builder
                 .given("a payment transaction exists",
                         Map.of("gateway_account_id", "3",
@@ -142,7 +144,7 @@ public class LedgerServiceConsumerTest {
                         .stringValue("transaction_id", TRANSACTION_ID)
                         .booleanValue("disputed", false)
                         .stringValue("authorisation_mode", "web"))
-                .toPact();
+                .toPact(V4Pact.class);
     }
 
     @Test
@@ -159,7 +161,7 @@ public class LedgerServiceConsumerTest {
     }
 
     @Pact(consumer = "connector")
-    public RequestResponsePact getRefundTransaction(PactDslWithProvider builder) {
+    public V4Pact getRefundTransaction(PactDslWithProvider builder) {
         return builder
                 .given("a refund transaction for a transaction exists",
                         Map.of("gateway_account_id", "3",
@@ -181,7 +183,7 @@ public class LedgerServiceConsumerTest {
                         .stringValue("transaction_type", "REFUND")
                         .stringValue("transaction_id", TRANSACTION_ID)
                         .stringValue("parent_transaction_id", "64pcdagc9c13vgi7n904aio3n9"))
-                .toPact();
+                .toPact(V4Pact.class);
     }
 
     @Test
@@ -198,7 +200,7 @@ public class LedgerServiceConsumerTest {
     }
 
     @Pact(consumer = "connector")
-    public RequestResponsePact getRefundsForPayment(PactDslWithProvider builder) {
+    public V4Pact getRefundsForPayment(PactDslWithProvider builder) {
         return builder
                 .given("refund and dispute transactions for a transaction exist",
                         Map.of("gateway_account_id", "3",
@@ -237,7 +239,7 @@ public class LedgerServiceConsumerTest {
 
                         .closeArray()
                 )
-                .toPact();
+                .toPact(V4Pact.class);
     }
 
     @Test
@@ -262,7 +264,7 @@ public class LedgerServiceConsumerTest {
     }
 
     @Pact(consumer = "connector")
-    public RequestResponsePact postEventSuccessful(PactDslWithProvider builder) {
+    public V4Pact postEventSuccessful(PactDslWithProvider builder) {
         return builder
                 .uponReceiving("an agreement created event")
                 .path("/v1/event")
@@ -284,7 +286,7 @@ public class LedgerServiceConsumerTest {
                         .closeObject())
                 .willRespondWith()
                 .status(202)
-                .toPact();
+                .toPact(V4Pact.class);
     }
 
     @Test
@@ -310,7 +312,7 @@ public class LedgerServiceConsumerTest {
     }
 
     @Pact(consumer = "connector")
-    public RequestResponsePact getPaymentTransactionByGatewayTransactionId(PactDslWithProvider builder) {
+    public V4Pact getPaymentTransactionByGatewayTransactionId(PactDslWithProvider builder) {
         return builder
                 .given("a transaction with a gateway transaction id exists",
                         Map.of("account_id", "123456",
@@ -345,7 +347,7 @@ public class LedgerServiceConsumerTest {
                                 .nullValue("capture_submit_time")
                                 .nullValue("captured_date"))
                         .booleanValue("delayed_capture", false))
-                .toPact();
+                .toPact(V4Pact.class);
     }
 
     @Test
