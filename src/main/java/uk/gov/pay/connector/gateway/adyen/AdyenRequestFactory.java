@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.pay.connector.app.ConnectorConfiguration;
 import uk.gov.pay.connector.common.model.domain.Address;
+import uk.gov.pay.connector.gateway.adyen.request.json.AdyenManualCaptureAdditionalData;
 import uk.gov.pay.connector.gateway.adyen.request.json.Amount;
 import uk.gov.pay.connector.gateway.adyen.request.json.Authorise3dsRequestPayload;
 import uk.gov.pay.connector.gateway.adyen.request.json.Authorise3dsRequestPayload.Details;
@@ -27,9 +28,6 @@ import uk.gov.pay.connector.gateway.util.ChargeFrontendUrlHelper;
 import uk.gov.pay.connector.northamericaregion.NorthAmericaRegion;
 import uk.gov.pay.connector.northamericaregion.NorthAmericanRegionMapper;
 import uk.gov.service.payments.commons.model.AgreementPaymentType;
-
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
@@ -89,7 +87,7 @@ public class AdyenRequestFactory {
                 getShopperInteraction(request),
                 adyenCredentialsHelper.getStore(request),
                 "Web",
-                new HashMap<>(Map.of("manualCapture", "true")),
+                AdyenManualCaptureAdditionalData.INSTANCE,
                 isMoto ? null : mapToBrowserInfo(authCardDetails),
                 isMoto ? null : configuration.getLinks().getFrontendUrl(),
                 isMoto ? null : request.getEmail(),
@@ -123,7 +121,7 @@ public class AdyenRequestFactory {
                 "ContAuth",
                 adyenCredentialsHelper.getStore(request),
                 "Web",
-                new HashMap<>(Map.of("manualCapture", "true")),
+                AdyenManualCaptureAdditionalData.INSTANCE,
                 null,
                 null,
                 null,

@@ -7,7 +7,6 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import uk.gov.pay.connector.extension.AppWithPostgresAndSqsExtension;
-import uk.gov.pay.connector.gateway.adyen.AdyenBrowserInfoFactory;
 import uk.gov.pay.connector.gateway.model.PayersCardType;
 import uk.gov.pay.connector.it.base.ITestBaseExtension;
 import uk.gov.pay.connector.wallets.WalletAuthoriseService;
@@ -126,6 +125,8 @@ public class AdyenGooglePayAuthorisePayloadIT {
                         .withRequestBody(matchingJsonPath("$.browserInfo.screenWidth", equalTo(String.valueOf(SCREEN_WIDTH))))
                         .withRequestBody(matchingJsonPath("$.browserInfo.timeZoneOffset", equalTo(String.valueOf(TIME_OFFSET))))
                         .withRequestBody(matchingJsonPath("$.browserInfo.javaEnabled", equalTo(String.valueOf(false))))
+                        .withRequestBody(matchingJsonPath("$.additionalData.manualCapture", equalTo("true")))
+                        .withRequestBody(matchingJsonPath("$.channel", equalTo("Web")))
         );
 
         logs.assertContains("Authorisation with Google Pay");
@@ -195,6 +196,8 @@ public class AdyenGooglePayAuthorisePayloadIT {
                         .withRequestBody(matchingJsonPath("$.browserInfo.screenWidth", equalTo(String.valueOf(DEFAULT_BROWSER_SCREEN_HEIGHT))))
                         .withRequestBody(matchingJsonPath("$.browserInfo.timeZoneOffset", equalTo(String.valueOf(DEFAULT_BROWSER_TZ))))
                         .withRequestBody(matchingJsonPath("$.browserInfo.javaEnabled", equalTo(String.valueOf(false))))
+                        .withRequestBody(matchingJsonPath("$.additionalData.manualCapture", equalTo("true")))
+                        .withRequestBody(matchingJsonPath("$.channel", equalTo("Web")))
         );
 
         logs.assertContains("Authorisation with Google Pay");

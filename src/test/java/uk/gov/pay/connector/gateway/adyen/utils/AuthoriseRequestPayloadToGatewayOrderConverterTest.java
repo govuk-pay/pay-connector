@@ -6,15 +6,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.pay.connector.gateway.GatewayOrder;
+import uk.gov.pay.connector.gateway.adyen.request.json.AdyenManualCaptureAdditionalData;
 import uk.gov.pay.connector.gateway.adyen.request.json.Amount;
 import uk.gov.pay.connector.gateway.adyen.request.json.AuthoriseRequestPayload;
 import uk.gov.pay.connector.gateway.adyen.request.json.BillingAddress;
 import uk.gov.pay.connector.gateway.adyen.request.json.PaymentMethod;
 import uk.gov.pay.connector.gateway.adyen.response.json.AdyenBrowserInfo;
 import uk.gov.pay.connector.util.JsonObjectMapper;
-
-import java.util.HashMap;
-import java.util.Map;
 
 import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -102,7 +100,7 @@ class AuthoriseRequestPayloadToGatewayOrderConverterTest {
                 "Ecommerce",
                 "store-id",
                 "Web",
-                new HashMap<>(Map.of("manualCapture", "true")),
+                AdyenManualCaptureAdditionalData.INSTANCE,
                 browserInfo,
                 "https://frontend.pay.service.gov.uk",
                 "test@example.com",
