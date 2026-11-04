@@ -416,6 +416,7 @@ public class ContractTest {
                 .withStatus(ChargeStatus.CREATED)
                 .withCreatedDate(Instant.now())
                 .withDelayedCapture(true)
+                .withIsMoto(true)
                 .withAuthorisationMode(AuthorisationMode.MOTO_API)
                 .build();
         setUpCharge(addChargeParams);
