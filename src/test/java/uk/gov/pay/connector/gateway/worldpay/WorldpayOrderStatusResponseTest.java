@@ -25,9 +25,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 import static uk.gov.pay.connector.gateway.worldpay.WorldpayOrderStatusResponse.WORLDPAY_RECURRING_AUTH_TOKEN_PAYMENT_TOKEN_ID_KEY;
+import static uk.gov.pay.connector.gateway.worldpay.WorldpayOrderStatusResponse.WORLDPAY_RECURRING_AUTH_TOKEN_SUPPLEMENTARY_ID_KEY;
 import static uk.gov.pay.connector.gateway.worldpay.WorldpayOrderStatusResponse.WORLDPAY_RECURRING_AUTH_TOKEN_TRANSACTION_IDENTIFIER_KEY;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.WORLDPAY_AUTHORISATION_CREATE_TOKEN_SUCCESS_RESPONSE_WITHOUT_TRANSACTION_IDENTIFIER;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.WORLDPAY_AUTHORISATION_CREATE_TOKEN_SUCCESS_RESPONSE_WITH_TRANSACTION_IDENTIFIER;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.WORLDPAY_AUTHORISATION_CREATE_TOKEN_SUCCESS_RESPONSE_WITH_TRANSACTION_IDENTIFIER_AND_SUPPLEMENTARY_ID;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.WORLDPAY_AUTHORISATION_FAILED_RESPONSE;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.WORLDPAY_AUTHORISATION_SUCCESS_RESPONSE;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.WORLDPAY_AUTHORISATION_SUCCESS_RESPONSE_WITH_INVALID_EXPIRY_YEAR;
@@ -78,6 +80,19 @@ class WorldpayOrderStatusResponseTest {
         Map<String, String> gatewayRecurringAuthToken = worldpayOrderStatusResponse.getGatewayRecurringAuthToken().get();
         assertThat(gatewayRecurringAuthToken, hasEntry(WORLDPAY_RECURRING_AUTH_TOKEN_PAYMENT_TOKEN_ID_KEY, "9961191959944156907"));
         assertThat(gatewayRecurringAuthToken, hasEntry(WORLDPAY_RECURRING_AUTH_TOKEN_TRANSACTION_IDENTIFIER_KEY, "1234567890"));
+    }
+
+    @Test
+    void should_get_recurring_payment_token_with_transaction_scheme_identifier_and_supplementary_id() throws Exception {
+        String response = load(WORLDPAY_AUTHORISATION_CREATE_TOKEN_SUCCESS_RESPONSE_WITH_TRANSACTION_IDENTIFIER_AND_SUPPLEMENTARY_ID);
+        WorldpayOrderStatusResponse worldpayOrderStatusResponse = XMLUnmarshaller.unmarshall(response, WorldpayOrderStatusResponse.class);
+
+        assertThat(worldpayOrderStatusResponse.getGatewayRecurringAuthToken().isPresent(), is(true));
+
+        Map<String, String> gatewayRecurringAuthToken = worldpayOrderStatusResponse.getGatewayRecurringAuthToken().get();
+        assertThat(gatewayRecurringAuthToken, hasEntry(WORLDPAY_RECURRING_AUTH_TOKEN_PAYMENT_TOKEN_ID_KEY, "9961191959944156907"));
+        assertThat(gatewayRecurringAuthToken, hasEntry(WORLDPAY_RECURRING_AUTH_TOKEN_TRANSACTION_IDENTIFIER_KEY, "1234567890"));
+        assertThat(gatewayRecurringAuthToken, hasEntry(WORLDPAY_RECURRING_AUTH_TOKEN_SUPPLEMENTARY_ID_KEY, "abcde12345"));
     }
 
     @Test

@@ -17,6 +17,7 @@ public class TestTemplateResourceLoader {
     public static final String WORLDPAY_EXEMPTION_REQUEST_REJECTED_AUTHORISED_RESPONSE = WORLDPAY_BASE_NAME + "/exemption-request-rejected-authorised-response.xml";
 
     public static final String WORLDPAY_AUTHORISATION_CREATE_TOKEN_SUCCESS_RESPONSE_WITH_TRANSACTION_IDENTIFIER = WORLDPAY_BASE_NAME + "/authorisation-create-token-success-response-with-transaction-identifier.xml";
+    public static final String WORLDPAY_AUTHORISATION_CREATE_TOKEN_SUCCESS_RESPONSE_WITH_TRANSACTION_IDENTIFIER_AND_SUPPLEMENTARY_ID  = WORLDPAY_BASE_NAME + "/authorisation-create-token-success-response-with-transaction-identifier-and-supplementary-id.xml";
 
     public static final String WORLDPAY_AUTHORISATION_CREATE_TOKEN_SUCCESS_RESPONSE_WITHOUT_TRANSACTION_IDENTIFIER = WORLDPAY_BASE_NAME + "/authorisation-create-token-success-response-without-transaction-identifier.xml";
     static final String WORLDPAY_AUTHORISATION_ERROR_RESPONSE = WORLDPAY_BASE_NAME + "/authorisation-error-response.xml";

@@ -16,6 +16,7 @@ import static jakarta.ws.rs.core.HttpHeaders.SET_COOKIE;
 import static jakarta.ws.rs.core.MediaType.TEXT_XML;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.WORLDPAY_3DS_RESPONSE;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.WORLDPAY_AUTHORISATION_CREATE_TOKEN_SUCCESS_RESPONSE_WITH_TRANSACTION_IDENTIFIER;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.WORLDPAY_AUTHORISATION_CREATE_TOKEN_SUCCESS_RESPONSE_WITH_TRANSACTION_IDENTIFIER_AND_SUPPLEMENTARY_ID;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.WORLDPAY_AUTHORISATION_FAILED_RESPONSE;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.WORLDPAY_AUTHORISATION_FAILED_USER_NON_PRESENT_NON_RETRIABLE_RESPONSE;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.WORLDPAY_AUTHORISATION_PARES_PARSE_ERROR_RESPONSE;
@@ -64,6 +65,11 @@ public class WorldpayMockClient {
 
     public void mockAuthorisationSuccessWithRecurringPaymentToken() {
         String authoriseResponse = load(WORLDPAY_AUTHORISATION_CREATE_TOKEN_SUCCESS_RESPONSE_WITH_TRANSACTION_IDENTIFIER);
+        paymentServiceResponse(authoriseResponse);
+    }
+
+    public void mockAuthorisationSuccessWithRecurringPaymentTokenAndSupplementaryId() {
+        String authoriseResponse = load(WORLDPAY_AUTHORISATION_CREATE_TOKEN_SUCCESS_RESPONSE_WITH_TRANSACTION_IDENTIFIER_AND_SUPPLEMENTARY_ID);
         paymentServiceResponse(authoriseResponse);
     }
     
