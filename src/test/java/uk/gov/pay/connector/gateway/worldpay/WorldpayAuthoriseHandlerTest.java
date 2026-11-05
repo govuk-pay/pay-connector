@@ -83,6 +83,7 @@ import static uk.gov.pay.connector.gateway.PaymentGatewayName.WORLDPAY;
 import static uk.gov.pay.connector.gateway.model.request.records.WorldpayMotoAuthorisePayloadFixture.aWorldpayMotoAuthorisePayloadFixture;
 import static uk.gov.pay.connector.gateway.worldpay.SendWorldpayExemptionRequest.DO_NOT_SEND_EXEMPTION_REQUEST;
 import static uk.gov.pay.connector.gateway.worldpay.WorldpayOrderStatusResponse.WORLDPAY_RECURRING_AUTH_TOKEN_PAYMENT_TOKEN_ID_KEY;
+import static uk.gov.pay.connector.gateway.worldpay.WorldpayOrderStatusResponse.WORLDPAY_RECURRING_AUTH_TOKEN_SUPPLEMENTARY_ID_KEY;
 import static uk.gov.pay.connector.gateway.worldpay.WorldpayOrderStatusResponse.WORLDPAY_RECURRING_AUTH_TOKEN_TRANSACTION_IDENTIFIER_KEY;
 import static uk.gov.pay.connector.gateway.worldpay.WorldpayPaymentProvider.WORLDPAY_MACHINE_COOKIE_NAME;
 import static uk.gov.pay.connector.gatewayaccount.model.GatewayAccount.CREDENTIALS_MERCHANT_CODE;
@@ -100,6 +101,7 @@ import static uk.gov.pay.connector.util.TestTemplateResourceLoader.WORLDPAY_AUTH
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.WORLDPAY_AUTHORISATION_SUCCESS_RESPONSE;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.WORLDPAY_VALID_AUTHORISE_RECURRING_WORLDPAY_REQUEST_WITHOUT_SCHEME_IDENTIFIER;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.WORLDPAY_VALID_AUTHORISE_RECURRING_WORLDPAY_REQUEST_WITH_SCHEME_IDENTIFIER;
+import static uk.gov.pay.connector.util.TestTemplateResourceLoader.WORLDPAY_VALID_AUTHORISE_RECURRING_WORLDPAY_REQUEST_WITH_SUPPLEMENTARY_ID;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.WORLDPAY_VALID_AUTHORISE_REQUEST_3DS_FLEX_NON_JS;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.WORLDPAY_VALID_AUTHORISE_WORLDPAY_REQUEST_EXCLUDING_3DS;
 import static uk.gov.pay.connector.util.TestTemplateResourceLoader.WORLDPAY_VALID_AUTHORISE_WORLDPAY_REQUEST_INCLUDING_3DS_WITHOUT_IP_ADDRESS;
@@ -730,6 +732,83 @@ class WorldpayAuthoriseHandlerTest {
                 .and(load(worldpayTemplate))
                 .areIdentical();
     }
+
+    @ParameterizedTest
+    @CsvSource(textBlock = """
+            RECURRING, templates/worldpay/valid-authorise-worldpay-recurring-request-with-two-scheme-identifiers-and-agreement-payment-type-recurring.xml
+            INSTALMENT, templates/worldpay/valid-authorise-worldpay-recurring-request-with-two-scheme-identifiers-and-agreement-payment-type-instalment.xml
+            UNSCHEDULED, templates/worldpay/valid-authorise-worldpay-recurring-request-with-two-scheme-identifiers-and-agreement-payment-type-unscheduled.xml
+            """)
+    void should_send_scheme_transaction_identifier_and_supplementary_id_for_recurring_payment_to_worldpay(AgreementPaymentType agreementPaymentType, String worldpayTemplate) throws Exception {
+        when(authorisationSuccessResponse.getEntity()).thenReturn(load(WORLDPAY_AUTHORISATION_SUCCESS_RESPONSE));
+        PaymentInstrumentEntity paymentInstrument = new PaymentInstrumentEntity.PaymentInstrumentEntityBuilder()
+                .withRecurringAuthToken(Map.of(
+                        WORLDPAY_RECURRING_AUTH_TOKEN_PAYMENT_TOKEN_ID_KEY, "test-payment-token-123456",
+                        WORLDPAY_RECURRING_AUTH_TOKEN_TRANSACTION_IDENTIFIER_KEY, "test-transaction-id-999999",
+                        WORLDPAY_RECURRING_AUTH_TOKEN_SUPPLEMENTARY_ID_KEY, "test-supplementary-id-12345"
+                ))
+                .build();
+
+        ChargeEntity chargeEntity = chargeEntityFixture
+                .withExternalId("test-chargeId-789")
+                .withAmount(500L)
+                .withDescription("This is the description")
+                .withTransactionId("test-transaction-id-123")
+                .withReference(ServicePaymentReference.of("service-payment-reference"))
+                .withAuthorisationMode(AuthorisationMode.AGREEMENT)
+                .withPaymentInstrument(paymentInstrument)
+                .withAgreementEntity(anAgreementEntity().withExternalId("test-agreement-123456").build())
+                .withAgreementPaymentType(agreementPaymentType)
+                .build();
+
+        when(authoriseClient.postRequestFor(any(URI.class), eq(WORLDPAY), eq("test"), any(GatewayOrder.class), anyMap()))
+                .thenReturn(authorisationSuccessResponse);
+
+        worldpayAuthoriseHandler.authoriseUserNotPresent(RecurringPaymentAuthorisationGatewayRequest.valueOf(chargeEntity));
+
+        ArgumentCaptor<GatewayOrder> gatewayOrderArgumentCaptor = ArgumentCaptor.forClass(GatewayOrder.class);
+        verify(authoriseClient).postRequestFor(eq(TEST_WORLDPAY_URL), eq(WORLDPAY), eq("test"), gatewayOrderArgumentCaptor.capture(), anyMap());
+
+        XmlAssertions.assertThat(gatewayOrderArgumentCaptor.getValue().payload())
+                .and(load(worldpayTemplate))
+                .areIdentical();
+    }
+
+    @Test
+    void should_send_supplementary_id_only_for_recurring_payment_to_worldpay() throws Exception {
+        when(authorisationSuccessResponse.getEntity()).thenReturn(load(WORLDPAY_AUTHORISATION_SUCCESS_RESPONSE));
+        PaymentInstrumentEntity paymentInstrument = new PaymentInstrumentEntity.PaymentInstrumentEntityBuilder()
+                .withRecurringAuthToken(Map.of(
+                        WORLDPAY_RECURRING_AUTH_TOKEN_PAYMENT_TOKEN_ID_KEY, "test-payment-token-123456",
+                        WORLDPAY_RECURRING_AUTH_TOKEN_SUPPLEMENTARY_ID_KEY, "test-supplementary-id-12345"
+                ))
+                .build();
+
+        ChargeEntity chargeEntity = chargeEntityFixture
+                .withExternalId("test-chargeId-789")
+                .withAmount(500L)
+                .withDescription("This is the description")
+                .withTransactionId("test-transaction-id-123")
+                .withReference(ServicePaymentReference.of("service-payment-reference"))
+                .withAuthorisationMode(AuthorisationMode.AGREEMENT)
+                .withPaymentInstrument(paymentInstrument)
+                .withAgreementEntity(anAgreementEntity().withExternalId("test-agreement-123456").build())
+                .withAgreementPaymentType(AgreementPaymentType.RECURRING)
+                .build();
+
+        when(authoriseClient.postRequestFor(any(URI.class), eq(WORLDPAY), eq("test"), any(GatewayOrder.class), anyMap()))
+                .thenReturn(authorisationSuccessResponse);
+
+        worldpayAuthoriseHandler.authoriseUserNotPresent(RecurringPaymentAuthorisationGatewayRequest.valueOf(chargeEntity));
+
+        ArgumentCaptor<GatewayOrder> gatewayOrderArgumentCaptor = ArgumentCaptor.forClass(GatewayOrder.class);
+        verify(authoriseClient).postRequestFor(eq(TEST_WORLDPAY_URL), eq(WORLDPAY), eq("test"), gatewayOrderArgumentCaptor.capture(), anyMap());
+
+        XmlAssertions.assertThat(gatewayOrderArgumentCaptor.getValue().payload())
+                .and(load(WORLDPAY_VALID_AUTHORISE_RECURRING_WORLDPAY_REQUEST_WITH_SUPPLEMENTARY_ID))
+                .areIdentical();
+    }
+
 
     @Test
     void should_not_send_email_and_IP_address_to_worldpay_when_a_MIT_recurring_payment_is_initiated() throws Exception {

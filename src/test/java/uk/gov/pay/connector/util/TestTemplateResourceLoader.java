@@ -40,6 +40,8 @@ public class TestTemplateResourceLoader {
     public static final String WORLDPAY_VALID_AUTHORISE_WORLDPAY_REQUEST_MIN_ADDRESS = WORLDPAY_BASE_NAME + "/valid-authorise-worldpay-request-min-address.xml";
 
     public static final String WORLDPAY_VALID_AUTHORISE_RECURRING_WORLDPAY_REQUEST_WITH_SCHEME_IDENTIFIER = WORLDPAY_BASE_NAME + "/valid-authorise-worldpay-recurring-request-with-scheme-identifier.xml";
+
+    public static final String WORLDPAY_VALID_AUTHORISE_RECURRING_WORLDPAY_REQUEST_WITH_SUPPLEMENTARY_ID  = WORLDPAY_BASE_NAME + "/valid-authorise-worldpay-recurring-request-with-supplemtary_id_only.xml";
     public static final String WORLDPAY_VALID_AUTHORISE_RECURRING_WORLDPAY_REQUEST_WITH_SCHEME_IDENTIFIER_WITH_RECURRING_AGREEMENT_PAYMENT_TYPE = WORLDPAY_BASE_NAME + "/valid-authorise-worldpay-recurring-request-with-scheme-identifier-and-agreement-payment-type-recurring.xml";
     public static final String WORLDPAY_VALID_AUTHORISE_RECURRING_WORLDPAY_REQUEST_WITH_SCHEME_IDENTIFIER_WITH_INSTALMENT_AGREEMENT_PAYMENT_TYPE = WORLDPAY_BASE_NAME + "/valid-authorise-worldpay-recurring-request-with-scheme-identifier-and-agreement-payment-type-instalment.xml";
     public static final String WORLDPAY_VALID_AUTHORISE_RECURRING_WORLDPAY_REQUEST_WITH_SCHEME_IDENTIFIER_WITH_UNSCHEDULED_AGREEMENT_PAYMENT_TYPE = WORLDPAY_BASE_NAME + "/valid-authorise-worldpay-recurring-request-with-scheme-identifier-and-agreement-payment-type-unscheduled.xml";

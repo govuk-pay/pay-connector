@@ -41,6 +41,7 @@ public class WorldpayOrderRequestBuilder extends OrderRequestBuilder {
         private boolean savePaymentInstrumentToAgreement;
         private String agreementId;
         private String schemeTransactionIdentifier;
+        private String supplementaryId;
         private String paymentTokenId;
         private AppleDecryptedPaymentData appleDecryptedPaymentData;
         private GooglePayAuthRequest googlePayPaymentData;
@@ -183,6 +184,14 @@ public class WorldpayOrderRequestBuilder extends OrderRequestBuilder {
 
         public void setSchemeTransactionIdentifier(String schemeTransactionIdentifier) {
             this.schemeTransactionIdentifier = schemeTransactionIdentifier;
+        }
+
+        public String getSupplementaryId() {
+            return supplementaryId;
+        }
+
+        public void setSupplementaryId(String supplementaryId) {
+            this.supplementaryId = supplementaryId;
         }
 
         public String getPaymentTokenId() {
@@ -364,6 +373,11 @@ public class WorldpayOrderRequestBuilder extends OrderRequestBuilder {
 
     public WorldpayOrderRequestBuilder withSchemeTransactionIdentifier(String schemeTransactionIdentifier) {
         worldpayTemplateData.setSchemeTransactionIdentifier(schemeTransactionIdentifier);
+        return this;
+    }
+
+    public WorldpayOrderRequestBuilder withSupplementaryId(String supplementaryId) {
+        worldpayTemplateData.setSupplementaryId(supplementaryId);
         return this;
     }
 
