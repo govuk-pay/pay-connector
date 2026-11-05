@@ -12,6 +12,7 @@ import java.util.Optional;
 import static uk.gov.pay.connector.gateway.worldpay.WorldpayOrderRequestBuilder.aWorldpayAuthoriseOrderRequestBuilder;
 import static uk.gov.pay.connector.gateway.worldpay.WorldpayOrderRequestBuilder.aWorldpayAuthoriseRecurringOrderRequestBuilder;
 import static uk.gov.pay.connector.gateway.worldpay.WorldpayOrderStatusResponse.WORLDPAY_RECURRING_AUTH_TOKEN_PAYMENT_TOKEN_ID_KEY;
+import static uk.gov.pay.connector.gateway.worldpay.WorldpayOrderStatusResponse.WORLDPAY_RECURRING_AUTH_TOKEN_SUPPLEMENTARY_ID_KEY;
 import static uk.gov.pay.connector.gateway.worldpay.WorldpayOrderStatusResponse.WORLDPAY_RECURRING_AUTH_TOKEN_TRANSACTION_IDENTIFIER_KEY;
 
 public interface WorldpayOrderBuilder {
@@ -71,6 +72,10 @@ public interface WorldpayOrderBuilder {
 
         if (recurringAuthToken.get(WORLDPAY_RECURRING_AUTH_TOKEN_TRANSACTION_IDENTIFIER_KEY) != null) {
             builder.withSchemeTransactionIdentifier(recurringAuthToken.get(WORLDPAY_RECURRING_AUTH_TOKEN_TRANSACTION_IDENTIFIER_KEY));
+        }
+        
+        if (recurringAuthToken.get(WORLDPAY_RECURRING_AUTH_TOKEN_SUPPLEMENTARY_ID_KEY) != null) {
+            builder.withSupplementaryId(recurringAuthToken.get(WORLDPAY_RECURRING_AUTH_TOKEN_SUPPLEMENTARY_ID_KEY));
         }
 
         return builder.build();

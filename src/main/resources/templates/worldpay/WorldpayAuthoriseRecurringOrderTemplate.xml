@@ -18,6 +18,9 @@
                     <#if schemeTransactionIdentifier??>
                         <schemeTransactionIdentifier>${schemeTransactionIdentifier}</schemeTransactionIdentifier>
                     </#if>
+                    <#if supplementaryId??>
+                        <supplementaryId>${supplementaryId}</supplementaryId>
+                    </#if>
                 </storedCredentials>
             </paymentDetails>
             <shopper>
