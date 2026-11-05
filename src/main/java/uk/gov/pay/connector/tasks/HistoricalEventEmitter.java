@@ -29,6 +29,7 @@ import uk.gov.pay.connector.events.model.charge.PaymentDetailsSubmittedByAPI;
 import uk.gov.pay.connector.events.model.charge.PaymentDetailsTakenFromPaymentInstrument;
 import uk.gov.pay.connector.events.model.charge.Requested3dsExemption;
 import uk.gov.pay.connector.events.model.refund.RefundEvent;
+import uk.gov.pay.connector.events.model.refund.RefundFeeIncurredEvent;
 import uk.gov.pay.connector.fee.model.Fee;
 import uk.gov.pay.connector.queue.statetransition.PaymentStateTransition;
 import uk.gov.pay.connector.queue.statetransition.RefundStateTransition;
@@ -41,6 +42,7 @@ import uk.gov.pay.connector.wallets.WalletType;
 import java.time.ZonedDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -270,23 +272,59 @@ public class HistoricalEventEmitter {
 
     @Transactional
     public void emitAndPersistEventForRefundHistoryEntry(RefundHistory refundHistory, boolean shouldForceEmission) {
-        Class<? extends RefundEvent> refundEventClass = RefundStateEventMap.calculateRefundEventClass(
-                refundHistory.getUserExternalId(), refundHistory.getStatus());
         Charge charge = chargeService.findCharge(refundHistory.getChargeExternalId())
                 .orElseThrow(() -> new ChargeNotFoundRuntimeException(refundHistory.getChargeExternalId()));
-        Event event = EventFactory.createRefundEvent(refundHistory, refundEventClass,
-                charge);
 
-        if (shouldForceEmission) {
-            emitRefundEvent(refundHistory, refundEventClass, event);
+        Class<? extends RefundEvent> refundEventClass = RefundStateEventMap.calculateRefundEventClass(
+                refundHistory.getUserExternalId(), 
+                refundHistory.getStatus()
+        );
+
+        Event event = EventFactory.createRefundEvent(refundHistory, refundEventClass, charge);
+
+        boolean emittedBefore = emittedEventDao.hasBeenEmittedBefore(event);
+
+        handleRefundEventEmission(refundHistory, refundEventClass, event, shouldForceEmission, emittedBefore);
+        handleRefundIncurredFeeEventEmission(refundHistory, charge, shouldForceEmission, emittedBefore);
+    }
+
+    private void handleRefundEventEmission(
+            RefundHistory history,
+            Class<? extends RefundEvent> refundEventClass,
+            Event event,
+            boolean forceEmission,
+            boolean emittedBefore
+    ) {
+        if (forceEmission || !emittedBefore) {
+            emitRefundEvent(history, refundEventClass, event);
         } else {
-            boolean emittedBefore = emittedEventDao.hasBeenEmittedBefore(event);
+            logger.info("Refund history event emitted before [refundExternalId={}] [refundHistoryId={}]",
+                    history.getExternalId(), history.getId());
+        }
+    }
 
-            if (emittedBefore) {
-                logger.info("Refund history event emitted before [refundExternalId={}] [refundHistoryId={}]", refundHistory.getExternalId(), refundHistory.getId());
-            } else {
-                emitRefundEvent(refundHistory, refundEventClass, event);
-            }
+    private void handleRefundIncurredFeeEventEmission(
+            RefundHistory history,
+            Charge charge,
+            boolean forceEmission,
+            boolean emittedBefore
+    ) {
+        if (!forceEmission || emittedBefore || !Objects.equals(charge.getPaymentGatewayName(), ADYEN.getName())) {
+            return;
+        }
+
+        List<Fee> fees = history.getFees().stream().map(Fee::from).toList();
+        if (!hasAllExpectedFeeRecordsForAdyen(fees)) {
+            return;
+        }
+
+        try {
+            eventService.emitAndRecordEvent(
+                    RefundFeeIncurredEvent.from(history),
+                    getDoNotRetryEmitUntilDate()
+            );
+        } catch (EventCreationException e) {
+            logger.warn("Failed to create refund fee incurred event [{}]", history.getExternalId(), e);
         }
     }
 
