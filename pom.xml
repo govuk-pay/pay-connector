@@ -324,7 +324,7 @@
         <dependency>
             <groupId>com.adyen</groupId>
             <artifactId>adyen-java-api-library</artifactId>
-            <version>43.1.0</version>
+            <version>43.3.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
