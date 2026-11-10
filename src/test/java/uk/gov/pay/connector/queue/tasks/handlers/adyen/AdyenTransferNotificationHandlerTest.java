@@ -103,6 +103,7 @@ class AdyenTransferNotificationHandlerTest {
 
         PayoutEvent event = eventArgumentCaptor.getAllValues().getFirst();
         assertEquals("PAYOUT_CREATED", event.getEventType());
+        assertLog("PAYOUT_CREATED");
     }
 
     @Test
@@ -170,6 +171,7 @@ class AdyenTransferNotificationHandlerTest {
 
         PayoutEvent event = eventArgumentCaptor.getAllValues().getFirst();
         assertEquals("PAYOUT_UPDATED", event.getEventType());
+        assertLog("PAYOUT_UPDATED");
     }
 
     @ParameterizedTest
@@ -198,6 +200,7 @@ class AdyenTransferNotificationHandlerTest {
 
         PayoutEvent event = eventArgumentCaptor.getAllValues().getFirst();
         assertEquals("PAYOUT_FAILED", event.getEventType());
+        assertLog("PAYOUT_FAILED");
     }
 
     @Test
@@ -225,6 +228,17 @@ class AdyenTransferNotificationHandlerTest {
                         .anyMatch(event -> event
                                 .getFormattedMessage()
                                 .equals("Ignoring unsupported transfer webhook as status is unrecognised or missing")),
+                is(true));
+    }
+
+    private void assertLog(String payoutEvent) {
+        verify(mockAppender, atLeastOnce()).doAppend(loggingEventArgumentCaptor.capture());
+        List<LoggingEvent> loggingEvents = loggingEventArgumentCaptor.getAllValues();
+        assertThat(loggingEvents
+                        .stream()
+                        .anyMatch(loggingEvent -> loggingEvent
+                                .getFormattedMessage()
+                                .equals("Payout emitted with type " + payoutEvent +" for Adyen payout")),
                 is(true));
     }
 }
