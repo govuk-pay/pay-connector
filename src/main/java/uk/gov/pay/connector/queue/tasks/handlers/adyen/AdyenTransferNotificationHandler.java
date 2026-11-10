@@ -105,6 +105,11 @@ public class AdyenTransferNotificationHandler {
                 case AUTHORISED, BOOKED -> PayoutUpdated.from(transferNotificationData, timestamp);
                 case REFUSED, FAILED, RETURNED -> PayoutFailed.from(transferNotificationData, timestamp);
             };
+            
+            LOGGER.atInfo().setMessage("Payout emitted with type {} for Adyen payout")
+                    .addArgument(payoutEvent.getEventType())
+                    .log();
+            
             payoutEmitterService.emitPayoutEvent(payoutEvent, transferNotificationData.balanceAccount().id());
         }
     }
