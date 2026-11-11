@@ -12,12 +12,14 @@ class WorldpayRefundEntityFactoryTest {
     private static final String USER_EXTERNAL_ID = "luser";
     public static final String EMAIL = "luser@email.test";
     public static final String CHARGE_EXTERNAL_ID = "abc";
+    public static final Long GATEWAY_ACCOUNT_ID = 1234566L;
+
 
     private final WorldpayRefundEntityFactory worldpayRefundEntityFactory = new WorldpayRefundEntityFactory();
 
     @Test
     void shouldCreateRefundEntity() {
-        var refundEntity = worldpayRefundEntityFactory.create(AMOUNT, USER_EXTERNAL_ID, EMAIL, CHARGE_EXTERNAL_ID);
+        var refundEntity = worldpayRefundEntityFactory.create(AMOUNT, USER_EXTERNAL_ID, EMAIL, CHARGE_EXTERNAL_ID, GATEWAY_ACCOUNT_ID);
 
         assertThat(refundEntity.getAmount(), is(AMOUNT));
         assertThat(refundEntity.getUserExternalId(), is(USER_EXTERNAL_ID));

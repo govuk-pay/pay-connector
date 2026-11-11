@@ -22,6 +22,7 @@ public class RefundEntityFixture {
     public static String userExternalId = "AA213FD51B3801043FBC";
     public static String userEmail = "test@example.com";
     private String externalId = "someExternalId";
+    private Long gatewayAccountId = 123456L;
     private String transactionId = "123456";
     private ZonedDateTime createdDate = ZonedDateTime.now(ZoneId.of("UTC"));
     private String chargeExternalId = "chargeExternalId";
@@ -39,6 +40,7 @@ public class RefundEntityFixture {
         refundEntity.setStatus(status);
         refundEntity.setExternalId(externalId);
         refundEntity.setUserExternalId(userExternalId);
+        refundEntity.setGatewayAccountId(gatewayAccountId);
         refundEntity.setCreatedDate(createdDate);
         refundEntity.setGatewayTransactionId(transactionId);
         refundEntity.setParityCheckDate(parityCheckDate);
@@ -90,6 +92,11 @@ public class RefundEntityFixture {
 
     public RefundEntityFixture withExternalId(String externalId) {
         this.externalId = externalId;
+        return this;
+    }
+
+    public RefundEntityFixture withGatewayAccountid(Long gatewayAccountId) {
+        this.gatewayAccountId = gatewayAccountId;
         return this;
     }
 

@@ -13,17 +13,19 @@ class DefaultRefundEntityFactoryTest {
     private static final String USER_EXTERNAL_ID = "luser";
     public static final String EMAIL = "luser@email.test";
     public static final String CHARGE_EXTERNAL_ID = "abc";
+    public static final Long GATEWAY_ACCOUNT_ID = 1234566L;
 
     private final DefaultRefundEntityFactory defaultRefundEntityFactory = new DefaultRefundEntityFactory();
 
     @Test
     void shouldCreateRefundEntity() {
-        var refundEntity = defaultRefundEntityFactory.create(AMOUNT, USER_EXTERNAL_ID, EMAIL, CHARGE_EXTERNAL_ID);
+        var refundEntity = defaultRefundEntityFactory.create(AMOUNT, USER_EXTERNAL_ID, EMAIL, CHARGE_EXTERNAL_ID, GATEWAY_ACCOUNT_ID);
         
         assertThat(refundEntity.getAmount(), is(AMOUNT));
         assertThat(refundEntity.getUserExternalId(), is(USER_EXTERNAL_ID));
         assertThat(refundEntity.getUserEmail(), is(EMAIL));
         assertThat(refundEntity.getChargeExternalId(), is(CHARGE_EXTERNAL_ID));
+        assertThat(refundEntity.getGatewayAccountId(), is(GATEWAY_ACCOUNT_ID));
         assertThat(refundEntity.getExternalId(), is(notNullValue()));
         assertThat(refundEntity.getGatewayTransactionId(), is(nullValue()));
     }

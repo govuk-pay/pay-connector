@@ -134,10 +134,10 @@ public class RefundServiceTest {
     @BeforeEach
     void setUp() {
         refundId = secureRandomLong();
-        refundEntity = aValidRefundEntity().withChargeExternalId(externalChargeId).withAmount(REFUND_AMOUNT).build();
+        refundEntity = aValidRefundEntity().withChargeExternalId(externalChargeId).withAmount(REFUND_AMOUNT).withGatewayAccountid(accountId).build();
         lenient().when(mockProviders.byName(any(PaymentGatewayName.class))).thenReturn(mockProvider);
         lenient().when(mockProvider.getRefundEntityFactory()).thenReturn(mockRefundEntityFactory);
-        lenient().when(mockRefundEntityFactory.create(eq(REFUND_AMOUNT), eq(userExternalId), isNull(), eq(externalChargeId))).thenReturn(refundEntity);
+        lenient().when(mockRefundEntityFactory.create(eq(REFUND_AMOUNT), eq(userExternalId), isNull(), eq(externalChargeId), eq(accountId))).thenReturn(refundEntity);
         lenient().when(mockProvider.getExternalChargeRefundAvailability(any(Charge.class), anyList())).thenReturn(EXTERNAL_AVAILABLE);
         refundService = new RefundService(
                 mockRefundDao, mockProviders, mockUserNotificationService, instantSource, mockStateTransitionService, mockLedgerService, mockGatewayAccountCredentialsService
@@ -268,6 +268,10 @@ public class RefundServiceTest {
         assertThat(refundEntity.getStatus(), is(CREATED));
         assertThat(refundEntity.getChargeExternalId(), is(externalChargeId));
         assertThat(refundEntity.getPaymentProvider(), is(WORLDPAY.getName()));
+        assertThat(refundEntity.getGatewayAccountId(), is(accountId));
+        
+        verify(mockRefundEntityFactory).create(
+                eq(REFUND_AMOUNT), eq(userExternalId), isNull(), eq(externalChargeId), eq(accountId));
     }
 
     @Test
@@ -388,7 +392,7 @@ public class RefundServiceTest {
         // when there is a corporate surcharge we expect the amount available for refund to include this
         long amountAvailableForRefund = chargeEntity.getAmount() + corporateSurcharge;
 
-        when(mockRefundEntityFactory.create(eq(amountAvailableForRefund), anyString(), isNull(), eq(externalChargeId))).thenReturn(refundEntity);
+        when(mockRefundEntityFactory.create(eq(amountAvailableForRefund), anyString(), isNull(), eq(externalChargeId), eq(accountId))).thenReturn(refundEntity);
 
         testSuccessfulRefund(chargeEntity, amountAvailableForRefund, amountAvailableForRefund);
     }
