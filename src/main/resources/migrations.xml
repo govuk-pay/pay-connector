@@ -2242,4 +2242,16 @@
         </sql>
     </changeSet>
 
+    <changeSet id="add gateway_account_id to refunds table" author="">
+        <addColumn tableName="refunds">
+            <column name="gateway_account_id" type="bigint">
+                <constraints
+                        foreignKeyName="fk__refunds_gateway_accounts"
+                        referencedTableName="gateway_accounts"
+                        referencedColumnNames="id"
+                        nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>
