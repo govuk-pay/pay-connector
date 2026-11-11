@@ -172,7 +172,7 @@ class AdyenNotificationServiceTest {
         assertThat(exception
                 .getResponse()
                 .getStatus(), is(500));
-        logs.assertContains("Unabled to parse Adyen notification - No recognised field in the payload to process Adyen notification");
+        logs.assertContains("Unable to parse Adyen notification - No recognised field in the payload to process Adyen notification");
     }
 
     @Test
