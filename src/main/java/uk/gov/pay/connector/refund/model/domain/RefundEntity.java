@@ -96,6 +96,9 @@ public class RefundEntity extends AbstractVersionedEntity {
     @Column(name = "payment_provider")
     private String paymentProvider;
 
+    @Column(name = "gateway_account_id")
+    private Long gatewayAccountId;
+
     @Column(name = "parity_check_status")
     @Enumerated(EnumType.STRING)
     private ParityCheckStatus parityCheckStatus;
@@ -118,6 +121,11 @@ public class RefundEntity extends AbstractVersionedEntity {
         this.userExternalId = userExternalId;
         this.userEmail = userEmail;
         this.chargeExternalId = chargeExternalId;
+    }
+
+    public RefundEntity(Long amount, String userExternalId, String userEmail, String chargeExternalId, long gatewayAccountId) {
+        this(amount, userExternalId, userEmail, chargeExternalId);
+        this.gatewayAccountId = gatewayAccountId;
     }
 
     public String getExternalId() {
@@ -163,6 +171,14 @@ public class RefundEntity extends AbstractVersionedEntity {
     public String getPaymentProvider() {return paymentProvider;}
     
     public void setPaymentProvider(String paymentProvider) {this.paymentProvider = paymentProvider;}
+
+    public Long getGatewayAccountId() {
+        return gatewayAccountId;
+    }
+
+    public void setGatewayAccountId(Long gatewayAccountId) {
+        this.gatewayAccountId = gatewayAccountId;
+    }
 
     public void setCreatedDate(ZonedDateTime createdDate) {
         this.createdDate = createdDate;

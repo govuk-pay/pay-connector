@@ -193,7 +193,7 @@ public class RefundService {
     @SuppressWarnings("WeakerAccess")
     public RefundEntity createRefundEntity(RefundRequest refundRequest, GatewayAccountEntity gatewayAccountEntity, Charge charge, RefundEntityFactory refundEntityFactory) {
         var refundEntity = refundEntityFactory.create(refundRequest.getAmount(),
-                refundRequest.getUserExternalId(), refundRequest.getUserEmail(), charge.getExternalId());
+                refundRequest.getUserExternalId(), refundRequest.getUserEmail(), charge.getExternalId(), gatewayAccountEntity.getId());
         refundEntity.setPaymentProvider(charge.getPaymentGatewayName());
         transitionRefundState(refundEntity, gatewayAccountEntity, RefundStatus.CREATED, charge, instantSource.instant());
         refundDao.persist(refundEntity);
