@@ -2254,4 +2254,12 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="add gateway_account_id to refunds_history table" author="">
+        <addColumn tableName="refunds_history">
+            <column name="gateway_account_id" type="bigint">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>
