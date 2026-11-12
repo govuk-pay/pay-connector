@@ -96,7 +96,7 @@ public class AdyenNotificationService {
             return false;
         } catch (UnparseableAdyenWebhookException e) {
             LOGGER.atWarn()
-                    .setMessage("Unabled to parse Adyen notification - {}")
+                    .setMessage("Unable to parse Adyen notification - {}")
                     .addArgument(e.getMessage())
                     .setCause(e)
                     .log();
