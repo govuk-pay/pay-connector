@@ -1068,12 +1068,18 @@ public class DatabaseFixtures {
         String chargeExternalId;
         private ParityCheckStatus parityCheckStatus;
         private ZonedDateTime parityCheckDate;
+        private Long gatewayAccountId;
 
         public TestRefund withTestCharge(TestCharge charge) {
             this.testCharge = charge;
             return this;
         }
-
+        
+        public TestRefund withGatewayAccountId(Long gatewayAccountId) {
+            this.gatewayAccountId = gatewayAccountId;
+            return this;
+        }
+        
         public TestRefund withAmount(long amount) {
             this.amount = amount;
             return this;
@@ -1134,7 +1140,7 @@ public class DatabaseFixtures {
                 throw new IllegalStateException("Test charge must be provided.");
             id = databaseTestHelper.addRefund(externalRefundId, amount, status, gatewayTransactionId,
                     createdDate, submittedByUserExternalId, userEmail,
-                    chargeExternalId == null ? testCharge.getExternalChargeId() : chargeExternalId, parityCheckStatus, parityCheckDate);
+                    chargeExternalId == null ? testCharge.getExternalChargeId() : chargeExternalId, parityCheckStatus, parityCheckDate, gatewayAccountId);
             return this;
         }
 

@@ -272,21 +272,21 @@ public class DatabaseTestHelper {
     public int addRefund(String externalId, long amount, RefundStatus status,
                          String gatewayTransactionId, ZonedDateTime createdDate, String submittedByUserExternalId,
                          String userEmail, String chargeExternalId) {
-        return addRefund(externalId, amount, status, gatewayTransactionId, createdDate, submittedByUserExternalId, userEmail, chargeExternalId, null, null);
+        return addRefund(externalId, amount, status, gatewayTransactionId, createdDate, submittedByUserExternalId, userEmail, chargeExternalId, null, null, null);
     }
 
     public int addRefund(String externalId, long amount, RefundStatus status,
                          String gatewayTransactionId, ZonedDateTime createdDate, String submittedByUserExternalId,
-                         String userEmail, String chargeExternalId, ParityCheckStatus parityCheckStatus, ZonedDateTime parityCheckDate) {
+                         String userEmail, String chargeExternalId, ParityCheckStatus parityCheckStatus, ZonedDateTime parityCheckDate, Long gatewayAccountId) {
         int refundId = secureRandomInt();
         jdbi.withHandle(handle ->
                 handle
                         .createUpdate("INSERT INTO refunds(id, external_id, amount, status, " +
                                 " gateway_transaction_id, created_date, user_external_id, user_email, charge_external_id," +
-                                " parity_check_date, parity_check_status) " +
+                                " parity_check_date, parity_check_status, gateway_account_id) " +
                                 "VALUES (:id, :external_id, :amount, :status, " +
                                 ":gateway_transaction_id, :created_date, :user_external_id, :user_email, :charge_external_id," +
-                                ":parity_check_date, :parity_check_status)")
+                                ":parity_check_date, :parity_check_status, :gateway_account_id)")
                         .bind("id", refundId)
                         .bind("external_id", externalId)
                         .bind("amount", amount)
@@ -298,6 +298,7 @@ public class DatabaseTestHelper {
                         .bind("charge_external_id", chargeExternalId)
                         .bind("parity_check_status", parityCheckStatus)
                         .bind("parity_check_date", parityCheckDate)
+                        .bind("gateway_account_id", gatewayAccountId)
                         .bind("version", 1)
                         .execute()
         );
@@ -465,7 +466,7 @@ public class DatabaseTestHelper {
     public List<Map<String, Object>> getRefund(long refundId) {
         List<Map<String, Object>> ret = jdbi.withHandle(h ->
                 h.createQuery("SELECT external_id, gateway_transaction_id, amount, status, created_date, user_external_id, user_email, charge_external_id," +
-                                " parity_check_status, parity_check_date, payment_provider " +
+                                " parity_check_status, parity_check_date, payment_provider, gateway_account_id " +
                                 "FROM refunds " +
                                 "WHERE id = :refund_id")
                         .bind("refund_id", refundId)

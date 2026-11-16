@@ -70,7 +70,8 @@ public class RefundDaoJpaIT {
                 .aTestRefund()
                 .withGatewayTransactionId(randomAlphanumeric(10))
                 .withChargeExternalId(testCharge.getExternalChargeId())
-                .withTestCharge(testCharge);
+                .withTestCharge(testCharge)
+                .withGatewayAccountId(testAccount.getAccountId());
 
         this.sandboxAccount = testAccount.insert();
         this.chargeTestRecord = testCharge.insert();
@@ -134,7 +135,7 @@ public class RefundDaoJpaIT {
 
     @Test
     void persist_shouldCreateARefund() {
-        RefundEntity refundEntity = new RefundEntity(100L, userExternalId, userEmail, chargeTestRecord.getExternalChargeId());
+        RefundEntity refundEntity = new RefundEntity(100L, userExternalId, userEmail, chargeTestRecord.getExternalChargeId(), sandboxAccount.getAccountId());
         refundEntity.setStatus(REFUND_SUBMITTED);
         refundEntity.setGatewayTransactionId(refundGatewayTransactionId);
         refundEntity.setChargeExternalId(chargeTestRecord.getExternalChargeId());
@@ -154,6 +155,7 @@ public class RefundDaoJpaIT {
         assertThat(refundByIdFound.getFirst(), hasEntry("user_email", userEmail));
         assertThat(refundByIdFound.getFirst(), hasEntry("charge_external_id", chargeTestRecord.getExternalChargeId()));
         assertThat(refundByIdFound.getFirst(), hasEntry("payment_provider", SANDBOX.getName()));
+        assertThat(refundByIdFound.getFirst(), hasEntry("gateway_account_id", sandboxAccount.accountId));
     }
 
     @Test
