@@ -27,6 +27,7 @@ import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.CREATED;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.ENTERING_CARD_DETAILS;
 import static uk.gov.pay.connector.it.base.AddChargeParameters.Builder.anAddChargeParameters;
 import static uk.gov.pay.connector.model.domain.AuthCardDetailsFixture.anAuthCardDetails;
+import static uk.gov.pay.connector.util.AddGatewayAccountParams.AddGatewayAccountParamsBuilder.anAddGatewayAccountParams;
 
 @ExtendWith(DropwizardExtensionsSupport.class)
 class AdyenCardResourceAuthoriseIT {
@@ -49,6 +50,7 @@ class AdyenCardResourceAuthoriseIT {
     final String timezoneOffset = "-60";
     final String shopperEmail = "email@fake.test";
     final String origin = "https://card.frontend.test";
+    final String gatewayAccountId = "42";
 
     @BeforeEach
     void setUp() {
@@ -100,7 +102,10 @@ class AdyenCardResourceAuthoriseIT {
     }
 
     @Test
-    void should_send_browser_info_origin_email_and_ip_to_adyen_for_web_payment() {
+    void should_send_browser_info_origin_email_and_ip_to_adyen_for_web_payment_when_enabled() {
+        app.getDatabaseTestHelper().enableSendPayerEmailToGateway(Long.parseLong(testBaseExtension.getAccountId()));
+        app.getDatabaseTestHelper().enableSendPayerIpAddressToGateway(Long.parseLong(testBaseExtension.getAccountId()));
+
         var chargeId = testBaseExtension.createNewCharge(ENTERING_CARD_DETAILS);
         var pspReferenceFromAdyen = "993617895215577D";
 

@@ -29,6 +29,8 @@ import uk.gov.pay.connector.gateway.GatewayException.GatewayErrorException;
 import uk.gov.pay.connector.gateway.GatewayException.GenericGatewayException;
 import uk.gov.pay.connector.gateway.adyen.AdyenRequestFactory;
 import uk.gov.pay.connector.gateway.model.ErrorType;
+import uk.gov.pay.connector.gateway.model.PayerEmailToGatewayHelper;
+import uk.gov.pay.connector.gateway.model.PayerIpAddressToGatewayHelper;
 import uk.gov.pay.connector.gateway.model.request.CancelGatewayRequest;
 import uk.gov.pay.connector.gateway.model.request.GatewayClientPostRequest;
 import uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntity;
@@ -105,7 +107,7 @@ class AdyenCancelHandlerTest {
         cancelHandler = new AdyenCancelHandler(
                 mockGatewayClient,
                 mockAdyenGatewayConfig,
-                new AdyenRequestFactory(mockConfiguration),
+                new AdyenRequestFactory(mockConfiguration, new PayerEmailToGatewayHelper(), new PayerIpAddressToGatewayHelper()),
                 new JsonObjectMapper(Jackson.newObjectMapper()));
     }
 

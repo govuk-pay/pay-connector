@@ -12,6 +12,8 @@ import uk.gov.pay.connector.gateway.adyen.request.Adyen3dsAuthorisationRequest;
 import uk.gov.pay.connector.gateway.adyen.response.json.AdditionalData;
 import uk.gov.pay.connector.gateway.adyen.response.json.AdyenError;
 import uk.gov.pay.connector.gateway.adyen.response.json.Authorise3dsResponseBody;
+import uk.gov.pay.connector.gateway.model.PayerEmailToGatewayHelper;
+import uk.gov.pay.connector.gateway.model.PayerIpAddressToGatewayHelper;
 import uk.gov.pay.connector.gateway.model.request.Auth3dsResponseGatewayRequest;
 import uk.gov.pay.connector.gateway.model.response.BaseAuthoriseResponse.AuthoriseStatus;
 import uk.gov.pay.connector.gateway.model.response.Gateway3DSAuthorisationResponse;
@@ -46,7 +48,7 @@ public class AdyenAuthorise3dsHandler {
                                     JsonObjectMapper jsonObjectMapper) {
         this.gatewayClient = gatewayClient;
         this.adyenGatewayConfig = connectorConfiguration.getAdyenGatewayConfig();
-        this.adyenRequestFactory = new AdyenRequestFactory(connectorConfiguration);
+        this.adyenRequestFactory = new AdyenRequestFactory(connectorConfiguration, new PayerEmailToGatewayHelper(), new PayerIpAddressToGatewayHelper());
         this.jsonObjectMapper = jsonObjectMapper;
     }
 

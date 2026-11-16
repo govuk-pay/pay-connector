@@ -25,6 +25,8 @@ import uk.gov.pay.connector.gateway.adyen.handler.AdyenDownloadReportHandler;
 import uk.gov.pay.connector.gateway.adyen.handler.AdyenRefundHandler;
 import uk.gov.pay.connector.gateway.adyen.utils.AdyenAuthoriseRequestToGatewayOrderConverter;
 import uk.gov.pay.connector.gateway.model.AuthCardDetails;
+import uk.gov.pay.connector.gateway.model.PayerEmailToGatewayHelper;
+import uk.gov.pay.connector.gateway.model.PayerIpAddressToGatewayHelper;
 import uk.gov.pay.connector.gateway.model.request.Auth3dsResponseGatewayRequest;
 import uk.gov.pay.connector.gateway.model.request.CancelGatewayRequest;
 import uk.gov.pay.connector.gateway.model.request.CaptureGatewayRequest;
@@ -78,7 +80,7 @@ public class AdyenPaymentProvider implements PaymentProvider {
         adyenAuthoriseHandler = new AdyenAuthoriseHandler(client, connectorConfiguration, adyenAuthoriseRequestToGatewayOrderConverter, jsonObjectMapper);
         adyenAuthorise3dsHandler = new AdyenAuthorise3dsHandler(client, connectorConfiguration, jsonObjectMapper);
         adyenCaptureHandler = new AdyenCaptureHandler(client, connectorConfiguration, jsonObjectMapper);
-        adyenCancelHandler = new AdyenCancelHandler(client, adyenGatewayConfig, new AdyenRequestFactory(connectorConfiguration), jsonObjectMapper);
+        adyenCancelHandler = new AdyenCancelHandler(client, adyenGatewayConfig, new AdyenRequestFactory(connectorConfiguration, new PayerEmailToGatewayHelper(), new PayerIpAddressToGatewayHelper()), jsonObjectMapper);
         adyenRefundHandler = new AdyenRefundHandler(client, connectorConfiguration, jsonObjectMapper);
         externalRefundAvailabilityCalculator = new DefaultExternalRefundAvailabilityCalculator();
         this.refundEntityFactory = refundEntityFactory;

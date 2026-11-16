@@ -1,7 +1,5 @@
 package uk.gov.pay.connector.gateway.adyen;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import uk.gov.pay.connector.app.ConnectorConfiguration;
 import uk.gov.pay.connector.common.model.domain.Address;
 import uk.gov.pay.connector.gateway.adyen.request.json.AdyenManualCaptureAdditionalData;
@@ -18,6 +16,8 @@ import uk.gov.pay.connector.gateway.adyen.response.json.AdyenBrowserInfo;
 import uk.gov.pay.connector.gateway.adyen.utils.AdyenCredentialsHelper;
 import uk.gov.pay.connector.gateway.adyen.utils.AdyenMerchantAccountHelper;
 import uk.gov.pay.connector.gateway.model.AuthCardDetails;
+import uk.gov.pay.connector.gateway.model.PayerEmailToGatewayHelper;
+import uk.gov.pay.connector.gateway.model.PayerIpAddressToGatewayHelper;
 import uk.gov.pay.connector.gateway.model.request.Auth3dsResponseGatewayRequest;
 import uk.gov.pay.connector.gateway.model.request.CancelGatewayRequest;
 import uk.gov.pay.connector.gateway.model.request.CaptureGatewayRequest;
@@ -37,14 +37,19 @@ public class AdyenRequestFactory {
     public static final String SHOPPER_REFERENCE_DELIMITER = "-";
 
     private final ConnectorConfiguration configuration;
+    private final PayerEmailToGatewayHelper  payerEmailToGatewayHelper;
+    private final PayerIpAddressToGatewayHelper payerIpAddressToGatewayHelper;
     private final AdyenMerchantAccountHelper adyenMerchantAccountHelper;
     private final AdyenCredentialsHelper adyenCredentialsHelper;
     private final ChargeFrontendUrlHelper chargeFrontendUrlHelper;
     private final AdyenBrowserInfoFactory adyenBrowserInfoFactory;
-    private final Logger LOGGER = LoggerFactory.getLogger(AdyenRequestFactory.class);
 
-    public AdyenRequestFactory(ConnectorConfiguration configuration) {
+    public AdyenRequestFactory(ConnectorConfiguration configuration,
+                               PayerEmailToGatewayHelper payerEmailToGatewayHelper,
+                               PayerIpAddressToGatewayHelper payerIpAddressToGatewayHelper) {
         this.configuration = configuration;
+        this.payerEmailToGatewayHelper = payerEmailToGatewayHelper;
+        this.payerIpAddressToGatewayHelper = payerIpAddressToGatewayHelper;
         this.adyenMerchantAccountHelper = new AdyenMerchantAccountHelper(configuration);
         this.adyenCredentialsHelper = new AdyenCredentialsHelper();
         this.chargeFrontendUrlHelper = new ChargeFrontendUrlHelper(configuration);
@@ -90,8 +95,8 @@ public class AdyenRequestFactory {
                 AdyenManualCaptureAdditionalData.INSTANCE,
                 isMoto ? null : mapToBrowserInfo(authCardDetails),
                 isMoto ? null : configuration.getLinks().getFrontendUrl(),
-                isMoto ? null : request.getEmail(),
-                isMoto ? null : authCardDetails.getIpAddress().orElse(null),
+                isMoto ? null : payerEmailToGatewayHelper.getEmail(request).orElse(null),
+                isMoto ? null : payerIpAddressToGatewayHelper.getIpAddress(request.getGatewayAccount(), authCardDetails).orElse(null),
                 shopperReference,
                 storePaymentMethod,
                 recurringProcessingModel
