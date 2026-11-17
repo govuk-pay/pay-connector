@@ -22,7 +22,7 @@ public class GooglePayAuthorisationGatewayRequest extends AuthorisationGatewayRe
         return (AdyenGooglePayAuthRequest) getGooglePayAuthorisationRequest();
     }
 
-    private GooglePayAuthorisationRequest getGooglePayAuthorisationRequest() {
+    public GooglePayAuthorisationRequest getGooglePayAuthorisationRequest() {
         return googlePayAuthorisationRequest;
     }
 

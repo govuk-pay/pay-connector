@@ -15,6 +15,7 @@ import java.util.StringJoiner;
 import static net.logstash.logback.argument.StructuredArguments.kv;
 import static uk.gov.pay.connector.gateway.util.AuthorisationRequestSummaryStructuredLogging.BILLING_ADDRESS;
 import static uk.gov.pay.connector.gateway.util.AuthorisationRequestSummaryStructuredLogging.EMAIL;
+import static uk.gov.pay.connector.gateway.util.AuthorisationRequestSummaryStructuredLogging.IP_ADDRESS;
 import static uk.gov.service.payments.logging.LoggingKeys.WALLET;
 
 public class AdyenAuthoriseRequestLogGenerator {
@@ -53,7 +54,19 @@ public class AdyenAuthoriseRequestLogGenerator {
         structuredArguments.add(kv(WALLET, WalletType.GOOGLE_PAY));
 
         structuredArguments.add(kv(BILLING_ADDRESS, false));
-        structuredArguments.add(kv(EMAIL, false));
+
+        if (adyenGooglePayAuthorisePayload.shopperIP() != null) {
+            stringJoiner.add("with remote IP " + adyenGooglePayAuthorisePayload.shopperIP());
+            structuredArguments.add(kv(IP_ADDRESS, adyenGooglePayAuthorisePayload.shopperIP()));
+        }
+
+        if (adyenGooglePayAuthorisePayload.shopperEmail() != null) {
+            stringJoiner.add("with email address");
+            structuredArguments.add(kv(EMAIL, true));
+        } else {
+            stringJoiner.add("without email address");
+            structuredArguments.add(kv(EMAIL, false));
+        }
 
         return new AuthorisationRequestLog(stringJoiner.toString(), List.copyOf(structuredArguments));
     }

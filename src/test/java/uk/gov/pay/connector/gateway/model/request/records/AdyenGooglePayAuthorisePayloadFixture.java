@@ -18,7 +18,10 @@ public class AdyenGooglePayAuthorisePayloadFixture {
     private Amount amount = new Amount("GBP", 10_00L);
     private AdyenGooglePayPaymentMethod paymentMethod = new AdyenGooglePayPaymentMethod("token");
     private AdyenBrowserInfo browserInfo = new AdyenBrowserInfoFactory().create(googlePayAuthRequest.getPaymentInfo());
-    private String returnUrl = "http://frontend.test/card_details/abcdefghijklmnopqrstuvwxyz";
+    private String returnUrl = "https://frontend.test/card_details/abcdefghijklmnopqrstuvwxyz";
+    private String origin = "https://frontend.test/";
+    private String shopperEmail = "test@test.test";
+    private String shopperIP = "203.0.113.1";
 
     public static AdyenGooglePayAuthorisePayloadFixture anAdyenGooglePayAuthorisePayloadFixture() {
         return new AdyenGooglePayAuthorisePayloadFixture();
@@ -58,8 +61,24 @@ public class AdyenGooglePayAuthorisePayloadFixture {
         this.returnUrl = returnUrl;
         return this;
     }
-    
+
+    public AdyenGooglePayAuthorisePayloadFixture withOrigin(String origin) {
+        this.origin = origin;
+        return this;
+    }
+
+    public AdyenGooglePayAuthorisePayloadFixture withShopperEmail(String shopperEmail) {
+        this.shopperEmail = shopperEmail;
+        return this;
+    }
+
+    public AdyenGooglePayAuthorisePayloadFixture withShopperIP(String shopperIP) {
+        this.shopperIP = shopperIP;
+        return this;
+    }
+
     public AdyenGooglePayAuthorisePayload build() {
-        return new AdyenGooglePayAuthorisePayload(merchantAccount, store, reference, amount, paymentMethod, browserInfo, returnUrl);
+        return new AdyenGooglePayAuthorisePayload(merchantAccount, store, reference, amount, paymentMethod, browserInfo,
+                returnUrl, origin, shopperEmail, shopperIP);
     }
 }
