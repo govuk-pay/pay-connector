@@ -16,7 +16,7 @@ public class GooglePayAuthoriseRequestFactory {
     public GooglePayAuthoriseRequestFactory(AdyenGooglePayAuthorisePayloadFactory adyenGooglePayAuthorisePayloadFactory) {
         this.adyenGooglePayAuthorisePayloadFactory = adyenGooglePayAuthorisePayloadFactory;
     }
-    
+
     public Optional<? extends AdyenGooglePayAuthorisePayload> create(GooglePayAuthorisationGatewayRequest request) {
         if (PaymentGatewayName.ADYEN.getName().equals(request.getGatewayAccount().getGatewayName())) {
             return Optional.of(adyenGooglePayAuthorisePayloadFactory.create(request));

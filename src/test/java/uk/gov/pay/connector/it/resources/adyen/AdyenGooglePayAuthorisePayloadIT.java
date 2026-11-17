@@ -14,6 +14,7 @@ import uk.gov.pay.connector.wallets.WalletAuthoriseService;
 import java.util.List;
 import java.util.Map;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.absent;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -63,17 +64,18 @@ public class AdyenGooglePayAuthorisePayloadIT {
     private static final int SCREEN_WIDTH = 1512;
     private static final int TIME_OFFSET = -60;
 
-
-
     @Test
     void shouldSendCorrectRequestToAdyenReturnCorrectResponseAndLog() throws JsonProcessingException {
+        app.getDatabaseTestHelper().enableSendPayerEmailToGateway(Long.parseLong(testBaseExtension.getAccountId()));
+        app.getDatabaseTestHelper().enableSendPayerIpAddressToGateway(Long.parseLong(testBaseExtension.getAccountId()));
+
         String externalChargeId = testBaseExtension.addCharge(anAddChargeParameters()
                 .withChargeStatus(ENTERING_CARD_DETAILS)
                 .withDescription(DESCRIPTION)
                 .withAmount(AMOUNT)
                 .build()
         );
-        
+
         app.getAdyenCheckoutMockClient().mockAuthorisationSuccess(externalChargeId);
 
         String requestBody = objectMapper.writeValueAsString(Map.of(
@@ -127,9 +129,12 @@ public class AdyenGooglePayAuthorisePayloadIT {
                         .withRequestBody(matchingJsonPath("$.browserInfo.javaEnabled", equalTo(String.valueOf(false))))
                         .withRequestBody(matchingJsonPath("$.additionalData.manualCapture", equalTo("true")))
                         .withRequestBody(matchingJsonPath("$.channel", equalTo("Web")))
+                        .withRequestBody(matchingJsonPath("$.origin", equalTo("https://card.frontend.test")))
+                        .withRequestBody(matchingJsonPath("$.shopperEmail", equalTo(EMAIL)))
+                        .withRequestBody(matchingJsonPath("$.shopperIP", equalTo(IP_ADDRESS)))
         );
 
-        logs.assertContains("Authorisation with Google Pay");
+        logs.assertContains("Authorisation with Google Pay and with remote IP " + IP_ADDRESS + " and with email address");
         assertThat(logs.getEvents().stream().findFirst().isPresent(), Matchers.is(true));
         List<String> structuredLogging = logs.getEvents().stream()
                 .filter(loggingEvent -> loggingEvent.getMessage().contains("Authorisation with Google Pay"))
@@ -140,14 +145,15 @@ public class AdyenGooglePayAuthorisePayloadIT {
                 "provider=adyen",
                 "gateway_request_record=true",
                 "billing_address=false",
-                "email_address=false",
-                "wallet=GOOGLE_PAY"
+                "email_address=true",
+                "wallet=GOOGLE_PAY",
+                "remote_ip_address=" + IP_ADDRESS
         ));
         
     }
 
     @Test
-    void shouldSendCorrectRequestToAdyenReturnCorrectResponseAndLogWithDefaultValuesFromFrontend() throws JsonProcessingException {
+    void shouldSendCorrectRequestToAdyenReturnCorrectResponseAndLogWithMinimalProvidedValues() throws JsonProcessingException {
         String externalChargeId = testBaseExtension.addCharge(anAddChargeParameters()
                 .withChargeStatus(ENTERING_CARD_DETAILS)
                 .withDescription(DESCRIPTION)
@@ -198,9 +204,12 @@ public class AdyenGooglePayAuthorisePayloadIT {
                         .withRequestBody(matchingJsonPath("$.browserInfo.javaEnabled", equalTo(String.valueOf(false))))
                         .withRequestBody(matchingJsonPath("$.additionalData.manualCapture", equalTo("true")))
                         .withRequestBody(matchingJsonPath("$.channel", equalTo("Web")))
+                        .withRequestBody(matchingJsonPath("$.origin", equalTo("https://card.frontend.test")))
+                        .withRequestBody(matchingJsonPath("$.shopperEmail", absent()))
+                        .withRequestBody(matchingJsonPath("$.shopperIP", absent()))
         );
 
-        logs.assertContains("Authorisation with Google Pay");
+        logs.assertContains("Authorisation with Google Pay and without email address");
         assertThat(logs.getEvents().stream().findFirst().isPresent(), Matchers.is(true));
         List<String> structuredLogging = logs.getEvents().stream()
                 .filter(loggingEvent -> loggingEvent.getMessage().contains("Authorisation with Google Pay"))

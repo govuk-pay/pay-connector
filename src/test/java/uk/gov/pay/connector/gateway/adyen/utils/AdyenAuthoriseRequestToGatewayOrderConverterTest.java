@@ -28,6 +28,9 @@ class AdyenAuthoriseRequestToGatewayOrderConverterTest {
     private static final String APPLE_PAY_TOKEN = "apple_pay_token";    
     private static final String GOOGLE_PAY_TOKEN = "google_pay_token";
     private static final String RETURN_URL = "https://return_url.test/";
+    private static final String ORIGIN = "https://frontend.test";
+    private static final String SHOPPER_EMAIL = "test@test.test";
+    private static final String SHOPPER_IP = "203.0.113.1";
     private static final String TEXT_HTML = "text/html";
 
     private final AdyenAuthoriseRequestToGatewayOrderConverter adyenAuthoriseRequestToGatewayOrderConverter = 
@@ -67,7 +70,10 @@ class AdyenAuthoriseRequestToGatewayOrderConverterTest {
                 new Amount(AMOUNT_CURRENCY, AMOUNT_VALUE),
                 new AdyenGooglePayPaymentMethod(GOOGLE_PAY_TOKEN),
                 new AdyenBrowserInfoFactory().create(aGooglePayPaymentInfo().withAcceptHeader(TEXT_HTML).build()),
-                RETURN_URL);
+                RETURN_URL,
+                ORIGIN,
+                SHOPPER_EMAIL,
+                SHOPPER_IP);
 
         GatewayOrder gatewayOrder = adyenAuthoriseRequestToGatewayOrderConverter.convert(request);
 
@@ -82,6 +88,9 @@ class AdyenAuthoriseRequestToGatewayOrderConverterTest {
                 .assertThat("$.paymentMethod.googlePayToken", is(GOOGLE_PAY_TOKEN))
                 .assertThat("$.paymentMethod.type", is("googlepay"))
                 .assertThat("$.returnUrl", is(RETURN_URL))
-                .assertThat("$.browserInfo.acceptHeader", is(TEXT_HTML));
+                .assertThat("$.browserInfo.acceptHeader", is(TEXT_HTML))
+                .assertThat("$.origin", is(ORIGIN))
+                .assertThat("$.shopperEmail", is(SHOPPER_EMAIL))
+                .assertThat("$.shopperIP", is(SHOPPER_IP));
     }
 }
