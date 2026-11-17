@@ -15,6 +15,8 @@ import uk.gov.pay.connector.gateway.adyen.response.AdyenCaptureResponse;
 import uk.gov.pay.connector.gateway.adyen.response.json.AdyenError;
 import uk.gov.pay.connector.gateway.adyen.response.json.CaptureResponseBody;
 import uk.gov.pay.connector.gateway.adyen.utils.AdyenRequestUtil;
+import uk.gov.pay.connector.gateway.model.PayerEmailToGatewayHelper;
+import uk.gov.pay.connector.gateway.model.PayerIpAddressToGatewayHelper;
 import uk.gov.pay.connector.gateway.model.request.CaptureGatewayRequest;
 import uk.gov.pay.connector.util.JsonObjectMapper;
 
@@ -41,7 +43,7 @@ public class AdyenCaptureHandler implements CaptureHandler {
         this.gatewayClient = gatewayClient;
         this.adyenGatewayConfig = connectorConfig.getAdyenGatewayConfig();
         this.jsonObjectMapper = jsonObjectMapper;
-        this.adyenRequestFactory = new AdyenRequestFactory(connectorConfig);
+        this.adyenRequestFactory = new AdyenRequestFactory(connectorConfig, new PayerEmailToGatewayHelper(), new PayerIpAddressToGatewayHelper());
     }
 
     @Override

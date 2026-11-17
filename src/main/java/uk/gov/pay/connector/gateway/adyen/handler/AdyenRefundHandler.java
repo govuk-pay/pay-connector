@@ -14,6 +14,8 @@ import uk.gov.pay.connector.gateway.adyen.response.AdyenRefundResponse;
 import uk.gov.pay.connector.gateway.adyen.response.json.AdyenError;
 import uk.gov.pay.connector.gateway.adyen.response.json.RefundResponseBody;
 import uk.gov.pay.connector.gateway.model.GatewayError;
+import uk.gov.pay.connector.gateway.model.PayerEmailToGatewayHelper;
+import uk.gov.pay.connector.gateway.model.PayerIpAddressToGatewayHelper;
 import uk.gov.pay.connector.gateway.model.request.RefundGatewayRequest;
 import uk.gov.pay.connector.gateway.model.response.GatewayRefundResponse;
 import uk.gov.pay.connector.util.JsonObjectMapper;
@@ -45,7 +47,7 @@ public class AdyenRefundHandler implements RefundHandler {
         this.gatewayClient = client;
         this.adyenGatewayConfig = configuration.getAdyenGatewayConfig();
         this.jsonObjectMapper = jsonObjectMapper;
-        this.adyenRequestFactory = new AdyenRequestFactory(configuration);
+        this.adyenRequestFactory = new AdyenRequestFactory(configuration, new PayerEmailToGatewayHelper(), new PayerIpAddressToGatewayHelper());
     }
 
     public GatewayRefundResponse refund(RefundGatewayRequest request) {

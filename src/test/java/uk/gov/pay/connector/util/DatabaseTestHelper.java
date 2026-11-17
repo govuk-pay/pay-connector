@@ -856,6 +856,22 @@ public class DatabaseTestHelper {
         );
     }
 
+    public void enableSendPayerEmailToGateway(long accountId) {
+        jdbi.withHandle(handle ->
+                handle.createUpdate("UPDATE gateway_accounts set send_payer_email_to_gateway=true WHERE id=:gatewayAccountId")
+                        .bind("gatewayAccountId", accountId)
+                        .execute()
+        );
+    }
+
+    public void enableSendPayerIpAddressToGateway(long accountId) {
+        jdbi.withHandle(handle ->
+                handle.createUpdate("UPDATE gateway_accounts set send_payer_ip_address_to_gateway=true WHERE id=:gatewayAccountId")
+                        .bind("gatewayAccountId", accountId)
+                        .execute()
+        );
+    }
+
     public void setDisabled(long accountId) {
         jdbi.withHandle(handle ->
                 handle.createUpdate("UPDATE gateway_accounts set disabled=true WHERE id=:gatewayAccountId")

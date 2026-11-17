@@ -14,6 +14,8 @@ import uk.gov.pay.connector.gateway.adyen.response.AdyenAuthoriseResponse;
 import uk.gov.pay.connector.gateway.adyen.response.json.AuthoriseResponseBody;
 import uk.gov.pay.connector.gateway.adyen.utils.AdyenAuthoriseRequestToGatewayOrderConverter;
 import uk.gov.pay.connector.gateway.adyen.utils.AuthoriseRequestPayloadToGatewayOrderConverter;
+import uk.gov.pay.connector.gateway.model.PayerEmailToGatewayHelper;
+import uk.gov.pay.connector.gateway.model.PayerIpAddressToGatewayHelper;
 import uk.gov.pay.connector.gateway.model.request.CardAuthorisationGatewayRequest;
 import uk.gov.pay.connector.gateway.model.request.RecurringPaymentAuthorisationGatewayRequest;
 import uk.gov.pay.connector.gateway.model.request.records.AdyenAuthoriseRequest;
@@ -45,7 +47,7 @@ public class AdyenAuthoriseHandler {
         this.gatewayClient = gatewayClient;
         this.adyenGatewayConfig = connectorConfig.getAdyenGatewayConfig();
         this.jsonObjectMapper = jsonObjectMapper;
-        this.adyenRequestFactory = new AdyenRequestFactory(connectorConfig);
+        this.adyenRequestFactory = new AdyenRequestFactory(connectorConfig, new PayerEmailToGatewayHelper(), new PayerIpAddressToGatewayHelper());
         this.authoriseRequestPayloadToGatewayOrderConverter = new AuthoriseRequestPayloadToGatewayOrderConverter(jsonObjectMapper);
         this.adyenAuthoriseRequestToGatewayOrderConverter = adyenAuthoriseRequestToGatewayOrderConverter;
     }

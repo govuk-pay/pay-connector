@@ -18,6 +18,8 @@ import uk.gov.pay.connector.common.model.domain.Address;
 import uk.gov.pay.connector.gateway.adyen.request.json.BillingAddress;
 import uk.gov.pay.connector.gateway.adyen.request.json.RefundRequestPayload;
 import uk.gov.pay.connector.gateway.model.Auth3dsResult;
+import uk.gov.pay.connector.gateway.model.PayerEmailToGatewayHelper;
+import uk.gov.pay.connector.gateway.model.PayerIpAddressToGatewayHelper;
 import uk.gov.pay.connector.gateway.model.request.Auth3dsResponseGatewayRequest;
 import uk.gov.pay.connector.gateway.model.request.CancelGatewayRequest;
 import uk.gov.pay.connector.gateway.model.request.RecurringPaymentAuthorisationGatewayRequest;
@@ -33,6 +35,7 @@ import uk.gov.service.payments.commons.model.AgreementPaymentType;
 import uk.gov.service.payments.commons.model.CardExpiryDate;
 
 import java.util.Map;
+import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -77,7 +80,9 @@ class AdyenRequestFactoryTest {
             null);
     private final ConnectorConfiguration mockConfig = mock(ConnectorConfiguration.class);
     private final LinksConfig mockedLinksConfig = mock(LinksConfig.class);
-    private final AdyenRequestFactory adyenRequestFactory = new AdyenRequestFactory(mockConfig);
+    private final PayerEmailToGatewayHelper mockPayerEmailToGatewayHelper = mock(PayerEmailToGatewayHelper.class);
+    private final PayerIpAddressToGatewayHelper mockPayerIpAddressToGatewayHelper = mock(PayerIpAddressToGatewayHelper.class);
+    private final AdyenRequestFactory adyenRequestFactory = new AdyenRequestFactory(mockConfig, mockPayerEmailToGatewayHelper, mockPayerIpAddressToGatewayHelper);
     public static final AdyenCredentials ADYEN_CREDENTIALS = new AdyenCredentials(
             "legal_entity_id",
             "store_id",
@@ -352,24 +357,32 @@ class AdyenRequestFactoryTest {
                 gatewayAccountEntity, gatewayAccountCredentialsEntity);
     }
 
-
     @Test
     void should_include_browser_info_origin_shopper_email_and_ip_for_web_payment() {
+        var gatewayAccountEntity = aGatewayAccountEntity().build();
+        var authCardDetails = anAuthCardDetails()
+                .withAcceptHeader(acceptHeader)
+                .withUserAgentHeader(userAgent)
+                .withIpAddress(shopperIp)
+                .withJsNavigatorLanguage(language)
+                .withJsScreenColorDepth(colorDepth)
+                .withJsScreenHeight(screenHeight)
+                .withJsScreenWidth(screenWidth)
+                .withJsTimezoneOffsetMins(timezoneOffset)
+                .withJsEnabled(true)
+                .build();
+
         var authoriseRequest = aCardAuthorisationGatewayRequest()
-                .withAuthCardDetails(anAuthCardDetails()
-                        .withAcceptHeader(acceptHeader)
-                        .withUserAgentHeader(userAgent)
-                        .withIpAddress(shopperIp)
-                        .withJsNavigatorLanguage(language)
-                        .withJsScreenColorDepth(colorDepth)
-                        .withJsScreenHeight(screenHeight)
-                        .withJsScreenWidth(screenWidth)
-                        .withJsTimezoneOffsetMins(timezoneOffset)
-                        .withJsEnabled(true)
-                        .build())
+                .withAuthCardDetails(authCardDetails)
                 .withCredentials(ADYEN_CREDENTIALS)
+                .withGatewayAccount(gatewayAccountEntity)
                 .withEmail(shopperEmail)
                 .build();
+
+        given(mockPayerEmailToGatewayHelper.getEmail(authoriseRequest)).willReturn(Optional.of(shopperEmail));
+        given(mockPayerIpAddressToGatewayHelper.getIpAddress(gatewayAccountEntity, authCardDetails))
+                .willReturn(Optional.of(shopperIp));
+
         var request = adyenRequestFactory.createPaymentRequest(authoriseRequest);
 
         assertThat(request.browserInfo().acceptHeader(), is(acceptHeader));
@@ -384,13 +397,52 @@ class AdyenRequestFactoryTest {
     }
 
     @Test
-    void should_not_include_browser_info_origin_shopper_email_and_ip_for_moto_payment() {
-        var authoriseRequest = aCardAuthorisationGatewayRequest().withMoto(true)
-                .withAuthCardDetails(anAuthCardDetails()
-                        .build())
+    void should_not_include_shopper_email_and_ip_for_web_payment_when_not_available() {
+        var gatewayAccountEntity = aGatewayAccountEntity().build();
+        var authCardDetails = anAuthCardDetails()
+                .withAcceptHeader(acceptHeader)
+                .withUserAgentHeader(userAgent)
+                .withIpAddress(shopperIp)
+                .withJsNavigatorLanguage(language)
+                .withJsScreenColorDepth(colorDepth)
+                .withJsScreenHeight(screenHeight)
+                .withJsScreenWidth(screenWidth)
+                .withJsTimezoneOffsetMins(timezoneOffset)
+                .withJsEnabled(true)
+                .build();
+
+        var authoriseRequest = aCardAuthorisationGatewayRequest()
+                .withAuthCardDetails(authCardDetails)
                 .withCredentials(ADYEN_CREDENTIALS)
+                .withGatewayAccount(gatewayAccountEntity)
+                .withEmail(shopperEmail)
+                .build();
+
+        given(mockPayerEmailToGatewayHelper.getEmail(authoriseRequest)).willReturn(Optional.empty());
+        given(mockPayerIpAddressToGatewayHelper.getIpAddress(gatewayAccountEntity, authCardDetails))
+                .willReturn(Optional.empty());
+
+        var request = adyenRequestFactory.createPaymentRequest(authoriseRequest);
+
+        assertThat(request.shopperEmail(), is(nullValue()));
+        assertThat(request.shopperIP(), is(nullValue()));
+    }
+
+    @Test
+    void should_not_include_browser_info_origin_shopper_email_and_ip_for_moto_payment() {
+        var gatewayAccountEntity = aGatewayAccountEntity().build();
+        var authCardDetails = anAuthCardDetails().build();
+
+        var authoriseRequest = aCardAuthorisationGatewayRequest().withMoto(true)
+                .withAuthCardDetails(authCardDetails)
+                .withCredentials(ADYEN_CREDENTIALS)
+                .withGatewayAccount(gatewayAccountEntity)
                 .withEmail("test@example.com")
                 .build();
+
+        given(mockPayerEmailToGatewayHelper.getEmail(authoriseRequest)).willReturn(Optional.of(shopperEmail));
+        given(mockPayerIpAddressToGatewayHelper.getIpAddress(gatewayAccountEntity, authCardDetails))
+                .willReturn(Optional.of(shopperIp));
 
         var request = adyenRequestFactory.createPaymentRequest(authoriseRequest);
 
