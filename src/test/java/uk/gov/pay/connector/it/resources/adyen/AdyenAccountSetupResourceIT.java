@@ -352,7 +352,7 @@ public class AdyenAccountSetupResourceIT {
                 .patch(format("/v1/api/service/%s/account/%s/adyen-setup/%s", serviceId, LIVE, "credential-id"))
                 .then()
                 .statusCode(SC_UNPROCESSABLE_CONTENT)
-                .body("message", contains("The paths field must be one of: [organisation_details, legal_terms, vat_number, bank_details, responsible_person, reason_for_taking_payments]"));
+                .body("message", contains("The paths field must be one of: [organisation_details, legal_terms, vat_number, bank_details, responsible_person, reason_for_taking_payments, size_of_organisation]"));
     }
 
     @Test

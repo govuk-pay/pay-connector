@@ -76,6 +76,9 @@ public class AdyenAccountSetupResource {
                                                        },
                                                        "reason_for_taking_payments": {
                                                          "status": "COMPLETED"
+                                                       },
+                                                       "size_of_organisation": {
+                                                         "status": "COMPLETED"
                                                        }
                                                      }
                                             }
@@ -102,7 +105,7 @@ public class AdyenAccountSetupResource {
     @Operation(
             summary = "Update Adyen account setup tasks for a given service ID, account type and credential ID",
             description = "Support patching following paths: <br>" +
-                    "bank_account, responsible_person, vat_number, company_number, director, government_entity_document, organisation_details",
+                    "bank_account, responsible_person, vat_number, company_number, director, government_entity_document, organisation_details, size_of_organisation, reason_for_taking_payments, legal_terms",
             requestBody = @RequestBody(
                     content = @Content(
                             schema = @Schema(implementation = AdyenSetupPatchRequest.class),

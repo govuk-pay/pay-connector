@@ -4,6 +4,7 @@ public enum AdyenAccountSetupTask {
     ORGANISATION_DETAILS("organisation_details"),
     LEGAL_TERMS("legal_terms"),
     BANK_DETAILS("bank_details"),
+    SIZE_OF_ORGANISATION("size_of_organisation"),
     RESPONSIBLE_PERSON("responsible_person"),
     DIRECTOR("director"),
     REASON_FOR_TAKING_PAYMENTS("reason_for_taking_payments");

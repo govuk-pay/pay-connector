@@ -1488,6 +1488,8 @@ paths:
                     status: COMPLETED
                   reason_for_taking_payments:
                     status: COMPLETED
+                  size_of_organisation:
+                    status: COMPLETED
               schema:
                 $ref: "#/components/schemas/AdyenAccountSetupResponse"
           description: OK
@@ -1499,7 +1501,8 @@ paths:
       - Gateway accounts
     patch:
       description: "Support patching following paths: <br>bank_account, responsible_person,\
-        \ vat_number, company_number, director, government_entity_document, organisation_details"
+        \ vat_number, company_number, director, government_entity_document, organisation_details,\
+        \ size_of_organisation, reason_for_taking_payments, legal_terms"
       operationId: patchAdyenAccountSetup
       parameters:
       - description: Service ID
