@@ -15,6 +15,8 @@ import uk.gov.pay.connector.charge.model.domain.ChargeEntityFixture;
 import uk.gov.pay.connector.charge.service.ChargeService;
 import uk.gov.pay.connector.fee.dao.FeeDao;
 import uk.gov.pay.connector.fee.model.Fee;
+import uk.gov.pay.connector.gatewayaccount.dao.GatewayAccountDao;
+import uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntity;
 import uk.gov.pay.connector.model.domain.RefundEntityFixture;
 import uk.gov.pay.connector.refund.dao.RefundDao;
 import uk.gov.pay.connector.refund.model.domain.RefundEntity;
@@ -27,6 +29,7 @@ import java.util.Optional;
 
 import static java.time.ZoneOffset.UTC;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -62,6 +65,10 @@ class RefundExpungeServiceTest {
     private ParityCheckService mockParityCheckService;
     @Mock
     private FeeDao mockFeeDao;
+    @Mock
+    GatewayAccountDao mockGatewayAccountDao;
+    @Mock
+    GatewayAccountEntity mockGatewayAccountEntity;
 
     @RegisterExtension
     LogCapturer logs = LogCapturer.create().captureForType(RefundExpungeService.class);
@@ -71,7 +78,7 @@ class RefundExpungeServiceTest {
         when(mockConnectorConfiguration.getExpungeConfig()).thenReturn(mockExpungeConfig);
 
         refundExpungeService = new RefundExpungeService(mockConnectorConfiguration, mockParityCheckService,
-                mockRefundService, mockChargeService, mockRefundDao, mockFeeDao);
+                mockRefundService, mockChargeService, mockRefundDao, mockFeeDao, mockGatewayAccountDao);
     }
 
     @Test
@@ -206,17 +213,66 @@ class RefundExpungeServiceTest {
     @Test
     void expunge_shouldNotExpunge_IfIsLiveAdyenRefundWithNoFees() {
         initialMocking();
-
+        
+        Long gatewayAccountId = 123L;
+        
+        when(mockGatewayAccountEntity.isAdyenTestAccount()).thenReturn(false);
+        when(mockGatewayAccountDao.findById(gatewayAccountId)).thenReturn(Optional.of(mockGatewayAccountEntity));
+        
         RefundEntity refundEntity = RefundEntityFixture.aValidRefundEntity()
                 .withStatus(REFUNDED)
                 .withCreatedDate(ZonedDateTime.now(UTC).minusDays(20))
                 .withPaymentProvider("adyen")
+                .withGatewayAccountid(gatewayAccountId)
                 .build();
         shouldNotExpunge(refundEntity);
 
         logs.forLevel(INFO).assertDoesNotContain("Refund cannot be expunged because parity check with ledger failed");
         logs.forLevel(INFO).assertContains("Refund not expunged because " +
                 "it is an Adyen refund and some fees are yet to be processed.");
+    }
+
+    @Test
+    void expunge_shouldNotExpunge_IfGatewayAccountIdIsNull() {
+        initialMocking();
+
+        RefundEntity refundEntity = RefundEntityFixture.aValidRefundEntity()
+                .withStatus(REFUNDED)
+                .withGatewayAccountid(null)
+                .withCreatedDate(ZonedDateTime.now(UTC).minusDays(20))
+                .withPaymentProvider("adyen")
+                .build();
+        shouldNotExpunge(refundEntity);
+
+        verify(mockGatewayAccountDao, never()).findById(anyLong());
+        logs.forLevel(INFO).assertContains("Refund cannot be expunged because Gateway account id is null");
+        logs.forLevel(INFO).assertDoesNotContain("Refund not expunged because " +
+                "it is an Adyen refund and some fees are yet to be processed.");
+    }
+
+    @Test
+    void expunge_shouldExpungeTestAdyenRefundWithNoFees() {
+        initialMocking();
+
+        Long gatewayAccountId = 123L;
+
+        GatewayAccountEntity testGatewayAccount = mockGatewayAccountEntity;
+
+        when(testGatewayAccount.isAdyenTestAccount()).thenReturn(true);
+
+        when(mockGatewayAccountDao.findById(gatewayAccountId))
+                .thenReturn(Optional.of(testGatewayAccount));
+        
+        RefundEntity refundEntity = RefundEntityFixture.aValidRefundEntity()
+                .withStatus(REFUNDED)
+                .withGatewayAccountid(gatewayAccountId)
+                .withCreatedDate(ZonedDateTime.now(UTC).minusDays(20))
+                .withPaymentProvider("adyen")
+                .build();
+        shouldExpunge(refundEntity);
+
+        verify(mockGatewayAccountDao).findById(gatewayAccountId);
+        logs.forLevel(WARN).assertContains("Adyen TEST refund has no fees associated with it");
     }
     
     @Test
