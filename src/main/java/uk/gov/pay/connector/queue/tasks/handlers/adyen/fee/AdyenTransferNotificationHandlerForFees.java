@@ -218,6 +218,8 @@ public class AdyenTransferNotificationHandlerForFees {
 
             if (hasAllExpectedFeeRecordsForAdyen(feeList)) {
                 emitFeeEventForPayment(chargeEntity);
+            } else {
+                LOGGER.atInfo().setMessage("Waiting for all expected fees for Adyen transfer before emitting to Ledger").log();
             }
         } else {
             LOGGER.atInfo()
