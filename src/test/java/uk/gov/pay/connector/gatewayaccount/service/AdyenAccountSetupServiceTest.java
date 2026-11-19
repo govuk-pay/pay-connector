@@ -40,6 +40,7 @@ import static uk.gov.pay.connector.gatewayaccount.model.AdyenAccountSetupTask.LE
 import static uk.gov.pay.connector.gatewayaccount.model.AdyenAccountSetupTask.ORGANISATION_DETAILS;
 import static uk.gov.pay.connector.gatewayaccount.model.AdyenAccountSetupTask.REASON_FOR_TAKING_PAYMENTS;
 import static uk.gov.pay.connector.gatewayaccount.model.AdyenAccountSetupTask.RESPONSIBLE_PERSON;
+import static uk.gov.pay.connector.gatewayaccount.model.AdyenAccountSetupTask.SIZE_OF_ORGANISATION;
 import static uk.gov.pay.connector.gatewayaccount.model.AdyenAccountSetupTaskEntityFixture.anAdyenAccountSetupTaskEntityFixture;
 import static uk.gov.pay.connector.gatewayaccount.model.AdyenAccountSetupTaskEntityFixture.anAdyenAccountSetupTaskEntityListWithAllTasksCompleted;
 import static uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntityFixture.aGatewayAccountEntity;
@@ -146,6 +147,7 @@ class AdyenAccountSetupServiceTest {
             assertThat(tasksWithStatus.tasks().get(RESPONSIBLE_PERSON.getValue()).get(STATUS_KEY), is(NOT_STARTED));
             assertThat(tasksWithStatus.tasks().get(DIRECTOR.getValue()).get(STATUS_KEY), is(NOT_STARTED));
             assertThat(tasksWithStatus.tasks().get(REASON_FOR_TAKING_PAYMENTS.getValue()).get(STATUS_KEY), is(NOT_STARTED));
+            assertThat(tasksWithStatus.tasks().get(SIZE_OF_ORGANISATION.getValue()).get(STATUS_KEY), is(NOT_STARTED));
         }
     }
 

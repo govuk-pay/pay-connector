@@ -12,7 +12,7 @@ public class AdyenBrowserInfoFactory {
     public static final String DEFAULT_BROWSER_ACCEPT_HEADER = "text/html";
     public static final int DEFAULT_BROWSER_COLOR_DEPTH = 1;
     public static final boolean DEFAULT_BROWSER_JAVA_SCRIPT_ENABLED = false;
-    public static final String DEFAULT_BROWSER_LANGUAGE = "en_GB";
+    public static final String DEFAULT_BROWSER_LANGUAGE = "en-GB";
     public static final int DEFAULT_BROWSER_SCREEN_HEIGHT = 0;
     public static final int DEFAULT_BROWSER_SCREEN_WIDTH = 0;
     public static final int DEFAULT_BROWSER_TZ = 0;
