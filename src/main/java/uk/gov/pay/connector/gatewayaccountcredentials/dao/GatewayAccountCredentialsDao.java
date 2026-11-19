@@ -63,4 +63,17 @@ public class GatewayAccountCredentialsDao extends JpaDao<GatewayAccountCredentia
                 .setParameter(2, value)
                 .getResultList().stream().findFirst();
     }
+    
+    public Optional<GatewayAccountCredentialsEntity> findByPaymentProviderAndCredentialsKeyValue(String paymentProvider,
+                                                                                                 String key, String value) {
+        String query = "SELECT * FROM gateway_account_credentials " +
+                "WHERE payment_provider = ?1 AND credentials->>?2 = ?3";
+
+        return entityManager.get()
+                .createNativeQuery(query, GatewayAccountCredentialsEntity.class)
+                .setParameter(1, paymentProvider)
+                .setParameter(1, key)
+                .setParameter(2, value)
+                .getResultList().stream().findFirst();
+    }
 }

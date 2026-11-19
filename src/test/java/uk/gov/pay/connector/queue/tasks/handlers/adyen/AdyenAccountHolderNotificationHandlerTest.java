@@ -31,7 +31,7 @@ class AdyenAccountHolderNotificationHandlerTest {
     LogCapturer logs = LogCapturer.create().captureForType(AdyenAccountHolderNotificationHandler.class);
     @Mock
     private AdyenWebhookDeserialiser adyenWebhookDeserialiser;
-    
+
     private AdyenAccountHolderNotificationHandler adyenAccountHolderNotificationHandler;
 
     @BeforeEach
@@ -42,7 +42,7 @@ class AdyenAccountHolderNotificationHandlerTest {
     @Test
     void shouldThrowExceptionWhenDataIsNull() {
         String payload = "{}";
-        
+
         when(adyenWebhookDeserialiser.deserialiseAccountHolderPayload(any())).thenReturn(new AccountHolderNotificationRequest());
 
         AdyenNotificationException exception = assertThrows(AdyenNotificationException.class,
@@ -55,7 +55,7 @@ class AdyenAccountHolderNotificationHandlerTest {
     @Test
     void shouldLogMessageAndDataObject() {
         String payload = "{}";
-        
+
         var request = new AccountHolderNotificationRequest();
         request.setEnvironment("test");
         request.setTimestamp(OffsetDateTime.now());
@@ -66,7 +66,7 @@ class AdyenAccountHolderNotificationHandlerTest {
         accountHolder.setDescription("Bruce Wayne");
         data.setAccountHolder(accountHolder);
         request.setData(data);
-        
+
         when(adyenWebhookDeserialiser.deserialiseAccountHolderPayload(any())).thenReturn(request);
         adyenAccountHolderNotificationHandler.process(payload);
 
