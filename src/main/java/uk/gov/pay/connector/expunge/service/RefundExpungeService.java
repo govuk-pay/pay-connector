@@ -95,6 +95,7 @@ public class RefundExpungeService {
     private void parityCheckAndExpunge(RefundEntity refundEntity) {
         ZonedDateTime lastParityCheckDate = refundEntity.getParityCheckDate();
         String refundExternalId = refundEntity.getExternalId();
+        Boolean shouldSkipExpungeForMissingGatewayAccountWithNoFees = false;
 
         if (chargeExistsForRefund(refundEntity)) {
             skipExpunge(refundExternalId,
@@ -109,33 +110,38 @@ public class RefundExpungeService {
         
         if (Objects.equals(refundEntity.getPaymentProvider(), ADYEN.getName())
                 && isMissingRequiredFeesForAdyen(refundEntity)) {
-            
+
             Long gatewayAccountId = refundEntity.getGatewayAccountId();
-            
+
             if (gatewayAccountId == null) {
-                skipExpunge(refundExternalId, "Refund cannot be expunged because Gateway account id is null");
-                return;
-            }
-            
-            Optional<GatewayAccountEntity> gatewayAccount = gatewayAccountDao.findById(gatewayAccountId);
-            if (gatewayAccount.isPresent() && gatewayAccount.get().isAdyenTestAccount()) {
-                logger.info("Adyen TEST refund has no fees associated with it {}", kv(REFUND_EXTERNAL_ID, refundExternalId));
-            }
-            
-            else {
-                skipExpunge(refundExternalId, "Refund not expunged because " +
-                        "it is an Adyen refund and some fees are yet to be processed.");
-                return;
+                shouldSkipExpungeForMissingGatewayAccountWithNoFees = true;
+            } else {
+                boolean isAdyenTestAccount = gatewayAccountDao.findById(gatewayAccountId)
+                        .map(GatewayAccountEntity::isAdyenTestAccount)
+                        .orElse(false);
+                if (isAdyenTestAccount) {
+                    logger.info("Adyen TEST refund has no fees associated with it {}", kv(REFUND_EXTERNAL_ID, refundExternalId));
+                } else {
+                    skipExpunge(refundExternalId, "Refund not expunged because " +
+                            "it is an Adyen refund and some fees are yet to be processed.");
+                    return;
+                }
             }
         }
+            
 
-        if (parityCheckService.parityCheckRefundForExpunger(refundEntity)) {
-            expungeRefund(refundEntity);
-            logger.info("Refund expunged from connector {}", kv(REFUND_EXTERNAL_ID, refundExternalId));
+        if (!parityCheckService.parityCheckRefundForExpunger(refundEntity)) {
+            logParityCheckFailure(lastParityCheckDate, refundExternalId);
             return;
         }
-
-        logParityCheckFailure(lastParityCheckDate, refundExternalId);
+        
+        if (shouldSkipExpungeForMissingGatewayAccountWithNoFees) {
+            skipExpunge(refundExternalId, "Refund has no fees associated with it and cannot be expunged because Gateway account id is null");
+            return;
+        }
+        
+        expungeRefund(refundEntity);
+        logger.info("Refund has been expunged from Connector {}", kv(REFUND_EXTERNAL_ID, refundExternalId));
     }
 
     private static boolean isMissingRequiredFeesForAdyen(RefundEntity refundEntity) {

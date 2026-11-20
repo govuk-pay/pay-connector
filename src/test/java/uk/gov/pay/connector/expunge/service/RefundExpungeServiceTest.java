@@ -242,10 +242,18 @@ class RefundExpungeServiceTest {
                 .withCreatedDate(ZonedDateTime.now(UTC).minusDays(20))
                 .withPaymentProvider("adyen")
                 .build();
-        shouldNotExpunge(refundEntity);
+        when(mockRefundDao.findRefundToExpunge(minimumAgeOfRefundInDays, defaultExcludeRefundsParityCheckedWithInDays))
+                .thenReturn(Optional.of(refundEntity));
+        when(mockChargeService.findChargeByExternalId(refundEntity.getChargeExternalId())).thenThrow(ChargeNotFoundRuntimeException.class);
+        when(mockParityCheckService.parityCheckRefundForExpunger(refundEntity)).thenReturn(true);
+        
+        refundExpungeService.expunge(1);
 
         verify(mockGatewayAccountDao, never()).findById(anyLong());
-        logs.forLevel(INFO).assertContains("Refund cannot be expunged because Gateway account id is null");
+        verify(mockParityCheckService).parityCheckRefundForExpunger(refundEntity);
+        verify(mockRefundService).updateRefundParityStatus(refundEntity.getExternalId(), SKIPPED);
+        verify(mockRefundDao, never()).expungeRefund(any());
+        logs.forLevel(INFO).assertContains("Refund has no fees associated with it and cannot be expunged because Gateway account id is null");
         logs.forLevel(INFO).assertDoesNotContain("Refund not expunged because " +
                 "it is an Adyen refund and some fees are yet to be processed.");
     }
