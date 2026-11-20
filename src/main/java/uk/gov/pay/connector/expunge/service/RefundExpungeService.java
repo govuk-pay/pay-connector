@@ -122,7 +122,7 @@ public class RefundExpungeService {
                 if (isAdyenTestAccount) {
                     logger.info("Adyen TEST refund has no fees associated with it {}", kv(REFUND_EXTERNAL_ID, refundExternalId));
                 } else {
-                    skipExpunge(refundExternalId, "Refund not expunged because " +
+                    skipExpunge(refundExternalId, "LIVE Refund not expunged because " +
                             "it is an Adyen refund and some fees are yet to be processed.");
                     return;
                 }
