@@ -11,6 +11,8 @@ import uk.gov.pay.connector.app.config.ExpungeConfig;
 import uk.gov.pay.connector.charge.exception.ChargeNotFoundRuntimeException;
 import uk.gov.pay.connector.charge.service.ChargeService;
 import uk.gov.pay.connector.fee.dao.FeeDao;
+import uk.gov.pay.connector.gatewayaccount.dao.GatewayAccountDao;
+import uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntity;
 import uk.gov.pay.connector.refund.dao.RefundDao;
 import uk.gov.pay.connector.refund.model.domain.RefundEntity;
 import uk.gov.pay.connector.refund.model.domain.RefundStatus;
@@ -42,18 +44,20 @@ public class RefundExpungeService {
     private final ChargeService chargeService;
     private final RefundDao refundDao;
     private final FeeDao feeDao;
+    private  final GatewayAccountDao gatewayAccountDao;
 
     @Inject
     public RefundExpungeService(ConnectorConfiguration connectorConfiguration,
                                 ParityCheckService parityCheckService,
                                 RefundService refundService, ChargeService chargeService, RefundDao refundDao,
-                                FeeDao feeDao) {
+                                FeeDao feeDao, GatewayAccountDao gatewayAccountDao) {
         expungeConfig = connectorConfiguration.getExpungeConfig();
         this.parityCheckService = parityCheckService;
         this.refundService = refundService;
         this.chargeService = chargeService;
         this.refundDao = refundDao;
         this.feeDao = feeDao;
+        this.gatewayAccountDao = gatewayAccountDao;
     }
 
     public void expunge(Integer noOfRefundsToExpunge) {
@@ -91,6 +95,7 @@ public class RefundExpungeService {
     private void parityCheckAndExpunge(RefundEntity refundEntity) {
         ZonedDateTime lastParityCheckDate = refundEntity.getParityCheckDate();
         String refundExternalId = refundEntity.getExternalId();
+        Boolean shouldSkipExpungeForMissingGatewayAccountWithNoFees = false;
 
         if (chargeExistsForRefund(refundEntity)) {
             skipExpunge(refundExternalId,
@@ -105,18 +110,38 @@ public class RefundExpungeService {
         
         if (Objects.equals(refundEntity.getPaymentProvider(), ADYEN.getName())
                 && isMissingRequiredFeesForAdyen(refundEntity)) {
-            skipExpunge(refundExternalId, "Refund not expunged because " +
-                    "it is an Adyen refund and some fees are yet to be processed.");
+
+            Long gatewayAccountId = refundEntity.getGatewayAccountId();
+
+            if (gatewayAccountId == null) {
+                shouldSkipExpungeForMissingGatewayAccountWithNoFees = true;
+            } else {
+                boolean isAdyenTestAccount = gatewayAccountDao.findById(gatewayAccountId)
+                        .map(GatewayAccountEntity::isAdyenTestAccount)
+                        .orElse(false);
+                if (isAdyenTestAccount) {
+                    logger.info("Adyen TEST refund has no fees associated with it {}", kv(REFUND_EXTERNAL_ID, refundExternalId));
+                } else {
+                    skipExpunge(refundExternalId, "LIVE Refund not expunged because " +
+                            "it is an Adyen refund and some fees are yet to be processed.");
+                    return;
+                }
+            }
+        }
+            
+
+        if (!parityCheckService.parityCheckRefundForExpunger(refundEntity)) {
+            logParityCheckFailure(lastParityCheckDate, refundExternalId);
             return;
         }
-
-        if (parityCheckService.parityCheckRefundForExpunger(refundEntity)) {
-            expungeRefund(refundEntity);
-            logger.info("Refund expunged from connector {}", kv(REFUND_EXTERNAL_ID, refundExternalId));
+        
+        if (shouldSkipExpungeForMissingGatewayAccountWithNoFees) {
+            skipExpunge(refundExternalId, "Refund has no fees associated with it and cannot be expunged because Gateway account id is null");
             return;
         }
-
-        logParityCheckFailure(lastParityCheckDate, refundExternalId);
+        
+        expungeRefund(refundEntity);
+        logger.info("Refund has been expunged from Connector {}", kv(REFUND_EXTERNAL_ID, refundExternalId));
     }
 
     private static boolean isMissingRequiredFeesForAdyen(RefundEntity refundEntity) {
