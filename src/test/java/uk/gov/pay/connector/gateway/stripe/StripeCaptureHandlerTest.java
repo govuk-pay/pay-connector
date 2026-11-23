@@ -378,6 +378,43 @@ class StripeCaptureHandlerTest {
     }
 
     @Test
+    void shouldCaptureWithRadarAnd3dsFeesAndCorporateSurchargeAndTransferCorrectAmountToConnectAccount() throws Exception {
+        mockStripeCaptureAndTransfer();
+
+        int chargeCreatedDate = 1629936000; //26Aug2021
+
+        when(stripeGatewayConfig.getFeePercentage()).thenReturn(0.50);
+        when(stripeGatewayConfig.getRadarFeeInPence()).thenReturn(5);
+        when(stripeGatewayConfig.getThreeDsFeeInPence()).thenReturn(10);
+
+        ChargeEntity chargeEntity = aValidChargeEntity()
+                .withGatewayAccountEntity(gatewayAccount)
+                .withTransactionId(transactionId)
+                .withAmount(10000L)
+                .withCreatedDate(Instant.ofEpochSecond(chargeCreatedDate))
+                .withCorporateSurcharge(500L)
+                .withGatewayAccountCredentialsEntity(aGatewayAccountCredentialsEntity()
+                        .withCredentials(Map.of("stripe_account_id", "stripe_account_id"))
+                        .withPaymentProvider(STRIPE.getName())
+                        .build())
+                .withEvents(List.of(aChargeEventEntity().withStatus(AUTHORISATION_3DS_REQUIRED).build(),
+                        aChargeEventEntity().withStatus(CREATED).build()))
+                .build();
+
+        captureGatewayRequest = CaptureGatewayRequest.valueOf(chargeEntity);
+
+        CaptureResponse captureResponse = stripeCaptureHandler.capture(captureGatewayRequest);
+
+        ArgumentCaptor<StripeTransferOutRequest> transferRequestCaptor = ArgumentCaptor.forClass(StripeTransferOutRequest.class);
+        verify(gatewayClient).postRequestFor(transferRequestCaptor.capture());
+        ArgumentCaptor<StripePaymentIntentCaptureRequest> captureRequestCaptor = ArgumentCaptor.forClass(StripePaymentIntentCaptureRequest.class);
+        verify(gatewayClient).postRequestFor(captureRequestCaptor.capture());
+
+        assertThat(transferRequestCaptor.getValue().getGatewayOrder().payload(), containsString("amount=10385"));
+        assertTrue(captureResponse.isSuccessful());
+    }
+
+    @Test
     void shouldCaptureWithRadarAndNo3dsFeesAndTransferCorrectAmountToConnectAccount() throws Exception {
         mockStripeCaptureAndTransfer();
 

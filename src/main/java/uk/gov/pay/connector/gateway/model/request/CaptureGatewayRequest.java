@@ -47,6 +47,10 @@ public class CaptureGatewayRequest implements GatewayRequest {
     public boolean isCaptureRetry() {
         return charge.getEvents().stream().anyMatch(event -> event.getStatus() == ChargeStatus.CAPTURE_APPROVED_RETRY);
     }
+    
+    public Long getTotalAmount() {
+        return CorporateCardSurchargeCalculator.getTotalAmountFor(charge);
+    }
 
     @Override
     public GatewayAccountEntity getGatewayAccount() {

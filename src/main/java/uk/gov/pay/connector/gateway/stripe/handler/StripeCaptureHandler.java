@@ -3,6 +3,7 @@ package uk.gov.pay.connector.gateway.stripe.handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.pay.connector.app.StripeGatewayConfig;
+import uk.gov.pay.connector.charge.util.CorporateCardSurchargeCalculator;
 import uk.gov.pay.connector.charge.util.StripeFeeCalculator;
 import uk.gov.pay.connector.fee.model.Fee;
 import uk.gov.pay.connector.gateway.CaptureHandler;
@@ -123,7 +124,7 @@ public class StripeCaptureHandler implements CaptureHandler {
                 String.format("Fee not found on Stripe charge %s when attempting to capture payment", capturedCharge.getId())));
         List<Fee> feeList = generateFeeList(request, stripeFee);
         Long processingFee = StripeFeeCalculator.getTotalFeeAmount(feeList);
-        Long netTransferAmount = request.getAmount() - processingFee;
+        Long netTransferAmount = request.getTotalAmount() - processingFee;
 
         if (checkForExistingTransfer) {
             StripeSearchTransfersRequest searchTransfersRequest = new StripeSearchTransfersRequest(
