@@ -2,20 +2,26 @@ package uk.gov.pay.connector.queue.tasks.handlers.adyen;
 
 import com.adyen.model.configurationwebhooks.AccountHolder;
 import com.adyen.model.configurationwebhooks.AccountHolderCapability;
+import com.adyen.model.configurationwebhooks.AccountHolderCapability.VerificationStatusEnum;
 import com.adyen.model.configurationwebhooks.AccountHolderNotificationData;
 import com.adyen.model.configurationwebhooks.AccountHolderNotificationRequest;
 import io.github.netmikey.logunit.api.LogCapturer;
+import org.hamcrest.core.Is;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.event.KeyValuePair;
 import uk.gov.pay.connector.gateway.adyen.webhook.AdyenWebhookDeserialiser;
 import uk.gov.pay.connector.gateway.exception.AdyenNotificationException;
 import uk.gov.pay.connector.gatewayaccount.dao.AdyenAccountCapabilitiesDao;
+import uk.gov.pay.connector.gatewayaccount.model.AdyenAccountCapabilitiesEntity;
 import uk.gov.pay.connector.gatewayaccount.model.AdyenCredentials;
 import uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntity;
 import uk.gov.pay.connector.gatewayaccountcredentials.dao.GatewayAccountCredentialsDao;
@@ -32,6 +38,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
@@ -43,29 +50,32 @@ class AdyenAccountHolderNotificationHandlerTest {
 
     @RegisterExtension
     LogCapturer logs = LogCapturer.create().captureForType(AdyenAccountHolderNotificationHandler.class);
-    
+
     @Mock
-    private AdyenWebhookDeserialiser adyenWebhookDeserialiser;
-    
+    private AdyenWebhookDeserialiser mockAdyenWebhookDeserialiser;
+
     @Mock
-    private GatewayAccountCredentialsDao gatewayAccountCredentialsDao;
-    
+    private GatewayAccountCredentialsDao mockGatewayAccountCredentialsDao;
+
     @Mock
-    private AdyenAccountCapabilitiesDao adyenAccountCapabilitiesDao;
-    
+    private AdyenAccountCapabilitiesDao mockAdyenAccountCapabilitiesDao;
+
     private AdyenAccountHolderNotificationHandler adyenAccountHolderNotificationHandler;
+
+    private AccountHolderNotificationRequest accountHolderNotificationRequest;
+
+    private final String payload = "{}";
 
     @BeforeEach
     void setUp() {
-        adyenAccountHolderNotificationHandler = new AdyenAccountHolderNotificationHandler(adyenWebhookDeserialiser, 
-                gatewayAccountCredentialsDao, adyenAccountCapabilitiesDao);
+        adyenAccountHolderNotificationHandler = new AdyenAccountHolderNotificationHandler(mockAdyenWebhookDeserialiser,
+                mockGatewayAccountCredentialsDao, mockAdyenAccountCapabilitiesDao);
     }
 
     @Test
     void shouldThrowAdyenNotificationExceptionWhenDataIsNull() {
-        String payload = "{}";
-        
-        when(adyenWebhookDeserialiser.deserialiseAccountHolderPayload(any())).thenReturn(new AccountHolderNotificationRequest());
+
+        when(mockAdyenWebhookDeserialiser.deserialiseAccountHolderPayload(any())).thenReturn(new AccountHolderNotificationRequest());
 
         AdyenNotificationException exception = assertThrows(AdyenNotificationException.class,
                 () -> adyenAccountHolderNotificationHandler.process(payload)
@@ -76,13 +86,12 @@ class AdyenAccountHolderNotificationHandlerTest {
 
     @Test
     void shouldThrowAdyenNotificationExceptionWhenAccountHolderIsNull() {
-        String payload = "{}";
 
-        var request = createAdyenAccountHolderNotificationRequest();
+        accountHolderNotificationRequest = createAdyenAccountHolderNotificationRequest();
         var data = new AccountHolderNotificationData();
-        request.setData(data);
+        accountHolderNotificationRequest.setData(data);
 
-        when(adyenWebhookDeserialiser.deserialiseAccountHolderPayload(any())).thenReturn(request);
+        when(mockAdyenWebhookDeserialiser.deserialiseAccountHolderPayload(any())).thenReturn(accountHolderNotificationRequest);
 
         AdyenNotificationException exception = assertThrows(AdyenNotificationException.class,
                 () -> adyenAccountHolderNotificationHandler.process(payload)
@@ -93,18 +102,15 @@ class AdyenAccountHolderNotificationHandlerTest {
 
     @Test
     void shouldThrowAdyenNotificationExceptionWhenAccountHolderIdIsNull() {
-        String payload = "{}";
 
-        var request = createAdyenAccountHolderNotificationRequest();
+        accountHolderNotificationRequest = createAdyenAccountHolderNotificationRequest();
         var data = new AccountHolderNotificationData();
         var accountHolder = new AccountHolder();
-        accountHolder.setLegalEntityId("LE00000000000000000001");
-        accountHolder.setDescription("Bruce Wayne");
         data.setAccountHolder(accountHolder);
-        request.setData(data);
+        accountHolderNotificationRequest.setData(data);
 
-        when(adyenWebhookDeserialiser.deserialiseAccountHolderPayload(any())).thenReturn(request);
-        
+        when(mockAdyenWebhookDeserialiser.deserialiseAccountHolderPayload(any())).thenReturn(accountHolderNotificationRequest);
+
         AdyenNotificationException exception = assertThrows(AdyenNotificationException.class,
                 () -> adyenAccountHolderNotificationHandler.process(payload)
         );
@@ -114,18 +120,15 @@ class AdyenAccountHolderNotificationHandlerTest {
 
     @Test
     void shouldThrowAdyenNotificationExceptionWhenAccountHolderIdIsBlank() {
-        String payload = "{}";
 
-        var request = createAdyenAccountHolderNotificationRequest();
+        accountHolderNotificationRequest = createAdyenAccountHolderNotificationRequest();
         var data = new AccountHolderNotificationData();
         var accountHolder = new AccountHolder();
         accountHolder.setId("");
-        accountHolder.setLegalEntityId("LE00000000000000000001");
-        accountHolder.setDescription("Bruce Wayne");
         data.setAccountHolder(accountHolder);
-        request.setData(data);
+        accountHolderNotificationRequest.setData(data);
 
-        when(adyenWebhookDeserialiser.deserialiseAccountHolderPayload(any())).thenReturn(request);
+        when(mockAdyenWebhookDeserialiser.deserialiseAccountHolderPayload(any())).thenReturn(accountHolderNotificationRequest);
 
         AdyenNotificationException exception = assertThrows(AdyenNotificationException.class,
                 () -> adyenAccountHolderNotificationHandler.process(payload)
@@ -136,67 +139,56 @@ class AdyenAccountHolderNotificationHandlerTest {
 
     @Test
     void shouldThrowAdyenNotificationExceptionWhenGatewayAccountCredentialsIsEmpty() {
-        String payload = "{}";
 
-        Map<String, AccountHolderCapability> capabilities = createAccountCapabilities();
+        setupAdyenWebhookRequest(null);
 
-        var request = createAdyenAccountHolderNotificationRequest();
-        var data = new AccountHolderNotificationData();
-        var accountHolder = new AccountHolder();
-        accountHolder.setId("someId");
-        accountHolder.setLegalEntityId("LE00000000000000000001");
-        accountHolder.setDescription("Bruce Wayne");
-        data.setAccountHolder(accountHolder);
-        data.getAccountHolder().setCapabilities(capabilities);
-        request.setData(data);
-        
-        when(adyenWebhookDeserialiser.deserialiseAccountHolderPayload(any())).thenReturn(request);
-        when(gatewayAccountCredentialsDao.findByPaymentProviderAndCredentialsKeyValue(any(), any(), any()))
+        when(mockAdyenWebhookDeserialiser.deserialiseAccountHolderPayload(any())).thenReturn(accountHolderNotificationRequest);
+        when(mockGatewayAccountCredentialsDao.findByPaymentProviderAndCredentialsKeyValue(any(), any(), any()))
                 .thenReturn(Optional.empty());
 
         AdyenNotificationException exception = assertThrows(AdyenNotificationException.class,
                 () -> adyenAccountHolderNotificationHandler.process(payload)
         );
 
-        verify(gatewayAccountCredentialsDao).findByPaymentProviderAndCredentialsKeyValue(any(), any(), any());
+        verify(mockGatewayAccountCredentialsDao).findByPaymentProviderAndCredentialsKeyValue(any(), any(), any());
 
         assertThat(exception.getMessage(), is("No Adyen gateway account credentials found for account holder webhook"));
     }
-    
-    @Test
-    void shouldProcessAccountHolderWebhookWithCapabilities() {
-        String payload = "{}";
 
-        Map<String, AccountHolderCapability> capabilities = createAccountCapabilities();
+    @ParameterizedTest
+    @CsvSource({
+            "true,VALID,true",
+            "false,INVALID,false"
+    })
+    void shouldProcessAccountHolderWebhookWithCapabilities(Boolean allowed, VerificationStatusEnum verificationStatus,
+                                                           Boolean capabilityReady) {
 
-        var request = createAdyenAccountHolderNotificationRequest();
-        var data = new AccountHolderNotificationData();
-        var accountHolder = new AccountHolder();
-        accountHolder.setId("someId");
-        accountHolder.setLegalEntityId("LE00000000000000000001");
-        accountHolder.setDescription("Bruce Wayne");
-        data.setAccountHolder(accountHolder);
-        data.getAccountHolder().setCapabilities(capabilities);
-        request.setData(data);
+        Map<String, AccountHolderCapability> capabilities = createAccountCapabilities(allowed, verificationStatus);
 
-        GatewayAccountEntity gatewayAccount = new GatewayAccountEntity(TEST);
-        var adyenGatewayAccountCredentialsEntity = new GatewayAccountCredentialsEntity(gatewayAccount, ADYEN.getName(),
-                Map.of( "legal_entity_id", "LEM0000000000000001",
-                        "store_id", "ST00000000000000000000001",
-                        "account_holder_id", "AH3227C223222H5J4DCLW9VBV",
-                        "balance_account_id", "BA0000000000000000000001"), ACTIVE);
-        gatewayAccount.setGatewayAccountCredentials(List.of(adyenGatewayAccountCredentialsEntity));
-        
-        when(adyenWebhookDeserialiser.deserialiseAccountHolderPayload(any())).thenReturn(request);
-        when(gatewayAccountCredentialsDao.findByPaymentProviderAndCredentialsKeyValue(ADYEN.getName(), 
+        var accountHolder = setupAdyenWebhookRequest(capabilities);
+
+        var adyenGatewayAccountCredentialsEntity = setupGatewayAccountEntity();
+
+        when(mockAdyenWebhookDeserialiser.deserialiseAccountHolderPayload(any())).thenReturn(accountHolderNotificationRequest);
+        when(mockGatewayAccountCredentialsDao.findByPaymentProviderAndCredentialsKeyValue(ADYEN.getName(),
                 AdyenCredentials.ADYEN_ACCOUNT_HOLDER_ID,
                 accountHolder.getId())).thenReturn(Optional.of(adyenGatewayAccountCredentialsEntity));
 
         adyenAccountHolderNotificationHandler.process(payload);
 
-        verify(gatewayAccountCredentialsDao).findByPaymentProviderAndCredentialsKeyValue(ADYEN.getName(),
+        verify(mockGatewayAccountCredentialsDao).findByPaymentProviderAndCredentialsKeyValue(ADYEN.getName(),
                 AdyenCredentials.ADYEN_ACCOUNT_HOLDER_ID,
                 accountHolder.getId());
+        ArgumentCaptor<AdyenAccountCapabilitiesEntity> entityArgumentCaptor = ArgumentCaptor.forClass(AdyenAccountCapabilitiesEntity.class);
+        verify(mockAdyenAccountCapabilitiesDao).persist(entityArgumentCaptor.capture());
+
+        AdyenAccountCapabilitiesEntity entity = entityArgumentCaptor.getValue();
+
+        assertThat(entity.isSendToBalanceAccount(), Is.is(capabilityReady));
+        assertThat(entity.isReceiveFromPlatformAccount(), Is.is(capabilityReady));
+        assertThat(entity.isReceivePayments(), Is.is(capabilityReady));
+        assertThat(entity.isSendToTransferInstrument(), Is.is(capabilityReady));
+        assertThat(entity.isReceiveFromBalanceAccount(), Is.is(capabilityReady));
 
         logs.assertContains("Received a balancePlatform.accountHolder.updated event for Adyen legal entity LE00000000000000000001");
         List<KeyValuePair> pairs = logs.getEvents().getFirst().getKeyValuePairs();
@@ -204,13 +196,61 @@ class AdyenAccountHolderNotificationHandlerTest {
         assertThat(pairs.getFirst().value.toString(), containsString("someId"));
     }
 
-    private static Map<String, AccountHolderCapability> createAccountCapabilities() {
-        var sendToBalanceAccountCapability = new AccountHolderCapability();
-        sendToBalanceAccountCapability.setVerificationStatus(VALID);
-        sendToBalanceAccountCapability.setAllowed(true);
+    @Test
+    void shouldProcessAccountHolderWebhookWithNoCapabilities() {
+
+        var accountHolder = setupAdyenWebhookRequest(null);
+
+        var adyenGatewayAccountCredentialsEntity = setupGatewayAccountEntity();
+
+        when(mockAdyenWebhookDeserialiser.deserialiseAccountHolderPayload(any())).thenReturn(accountHolderNotificationRequest);
+        when(mockGatewayAccountCredentialsDao.findByPaymentProviderAndCredentialsKeyValue(ADYEN.getName(),
+                AdyenCredentials.ADYEN_ACCOUNT_HOLDER_ID,
+                accountHolder.getId())).thenReturn(Optional.of(adyenGatewayAccountCredentialsEntity));
+
+        adyenAccountHolderNotificationHandler.process(payload);
+
+        verify(mockAdyenAccountCapabilitiesDao, never()).persist(any());
+
+        logs.assertContains("Ignoring balancePlatform.accountHolder.updated event with no capabilities");
+    }
+
+    @Test
+    void shouldProcessAccountHolderWebhookWithUnexpectedCapabilities() {    
+
+        var accountCapability = new AccountHolderCapability();
+        accountCapability.setVerificationStatus(VALID);
+        accountCapability.setAllowed(true);
+
+        var capabilities = Map.of(
+                "someUnexpectedCapability", accountCapability
+        );
+
+        var accountHolder = setupAdyenWebhookRequest(capabilities);
+
+        var adyenGatewayAccountCredentialsEntity = setupGatewayAccountEntity();
+
+        when(mockAdyenWebhookDeserialiser.deserialiseAccountHolderPayload(any())).thenReturn(accountHolderNotificationRequest);
+        when(mockGatewayAccountCredentialsDao.findByPaymentProviderAndCredentialsKeyValue(ADYEN.getName(),
+                AdyenCredentials.ADYEN_ACCOUNT_HOLDER_ID,
+                accountHolder.getId())).thenReturn(Optional.of(adyenGatewayAccountCredentialsEntity));
+
+        adyenAccountHolderNotificationHandler.process(payload);
+
+        logs.assertContains("Received capability not supported");
+    }
+
+    private static Map<String, AccountHolderCapability> createAccountCapabilities(Boolean allowed, VerificationStatusEnum verificationStatus) {
+        var accountCapability = new AccountHolderCapability();
+        accountCapability.setVerificationStatus(verificationStatus);
+        accountCapability.setAllowed(allowed);
 
         return Map.of(
-                "sendToBalanceAccount", sendToBalanceAccountCapability
+                "receiveFromPlatformPayments", accountCapability,
+                "receiveFromBalanceAccount", accountCapability,
+                "sendToBalanceAccount", accountCapability,
+                "sendToTransferInstrument", accountCapability,
+                "receivePayments", accountCapability
         );
     }
 
@@ -220,6 +260,30 @@ class AdyenAccountHolderNotificationHandlerTest {
         request.setTimestamp(OffsetDateTime.now());
         request.setType(AccountHolderNotificationRequest.TypeEnum.BALANCEPLATFORM_ACCOUNTHOLDER_UPDATED);
         return request;
+    }
+
+    private @NonNull GatewayAccountCredentialsEntity setupGatewayAccountEntity() {
+        GatewayAccountEntity gatewayAccountEntity = new GatewayAccountEntity(TEST);
+        var adyenGatewayAccountCredentialsEntity = new GatewayAccountCredentialsEntity(gatewayAccountEntity, ADYEN.getName(),
+                Map.of("legal_entity_id", "LEM0000000000000001",
+                        "store_id", "ST00000000000000000000001",
+                        "account_holder_id", "AH3227C223222H5J4DCLW9VBV",
+                        "balance_account_id", "BA0000000000000000000001"), ACTIVE);
+        gatewayAccountEntity.setGatewayAccountCredentials(List.of(adyenGatewayAccountCredentialsEntity));
+        return adyenGatewayAccountCredentialsEntity;
+    }
+
+    private @NonNull AccountHolder setupAdyenWebhookRequest(Map<String, AccountHolderCapability> capabilities) {
+        accountHolderNotificationRequest = createAdyenAccountHolderNotificationRequest();
+        var data = new AccountHolderNotificationData();
+        var accountHolder = new AccountHolder();
+        accountHolder.setId("someId");
+        accountHolder.setLegalEntityId("LE00000000000000000001");
+        accountHolder.setDescription("Bruce Wayne");
+        data.setAccountHolder(accountHolder);
+        data.getAccountHolder().setCapabilities(capabilities);
+        accountHolderNotificationRequest.setData(data);
+        return accountHolder;
     }
 }
 
