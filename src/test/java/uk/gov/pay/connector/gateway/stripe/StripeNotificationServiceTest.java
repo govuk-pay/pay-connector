@@ -140,7 +140,7 @@ class StripeNotificationServiceTest {
 
     private void setUpCharge() {
         when(mockCharge.getExternalId()).thenReturn(externalId);
-        when(mockCharge.getStatus()).thenReturn(AUTHORISATION_3DS_REQUIRED.getValue());
+        lenient().when(mockCharge.getStatus()).thenReturn(AUTHORISATION_3DS_REQUIRED.getValue());
     }
 
     private void setUpChargeServiceToReturnCharge() {
@@ -353,6 +353,38 @@ class StripeNotificationServiceTest {
         assertTrue(result);
         verify(mockCard3dsResponseAuthService).process3DSecureAuthorisationWithoutLocking(externalId,
                 getAuth3dsResult(Auth3dsResult.Auth3dsResultOutcome.AUTHORISED, "2.0.1"));
+    }
+
+    @Test
+    void shouldUpdateChargeWithCorporateSurcharge_WhenNotificationIsForPaymentIntentAmountCapturableUpdated() {
+        setUpCharge();
+        final String payload = sampleStripeNotification(STRIPE_NOTIFICATION_PAYMENT_INTENT,
+                "pi_123", PAYMENT_INTENT_AMOUNT_CAPTURABLE_UPDATED);
+        when(mockCharge.getAmount()).thenReturn(500L);
+        when(mockCharge.getCorporateSurcharge()).thenReturn(Optional.of(500L));
+        when(mockChargeService.findByProviderAndTransactionId(STRIPE.getName(), "pi_123")).thenReturn(Optional.of(mockCharge));
+
+        final boolean result = notificationService.handleNotificationFor(payload, signPayload(payload), FORWARDED_IP_ADDRESSES);
+
+        assertTrue(result);
+        verify(mockCard3dsResponseAuthService).process3DSecureAuthorisationWithoutLocking(externalId,
+                getAuth3dsResult(Auth3dsResult.Auth3dsResultOutcome.AUTHORISED, "2.0.1"));
+    }
+
+    @Test
+    void shouldLogAmountNotSameAsOriginal_WhenNotificationIsForPaymentIntentAmountCapturableUpdated() {
+        setUpCharge();
+        final String payload = sampleStripeNotification(STRIPE_NOTIFICATION_PAYMENT_INTENT,
+                "pi_123", PAYMENT_INTENT_AMOUNT_CAPTURABLE_UPDATED);
+        when(mockCharge.getAmount()).thenReturn(1000L);
+        when(mockCharge.getCorporateSurcharge()).thenReturn(Optional.of(500L));
+        when(mockChargeService.findByProviderAndTransactionId(STRIPE.getName(), "pi_123")).thenReturn(Optional.of(mockCharge));
+
+        final boolean result = notificationService.handleNotificationFor(payload, signPayload(payload), FORWARDED_IP_ADDRESSES);
+
+        assertTrue(result);
+        assertThat(stripeNotificationServiceLogs.size(), is(3));
+        stripeNotificationServiceLogs.assertContains("does not have amount capturable equal to original charge");
     }
 
     @Test

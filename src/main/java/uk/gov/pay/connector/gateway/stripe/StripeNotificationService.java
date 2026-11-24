@@ -14,6 +14,7 @@ import uk.gov.pay.connector.app.StripeGatewayConfig;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntity;
 import uk.gov.pay.connector.charge.model.domain.ChargeStatus;
 import uk.gov.pay.connector.charge.service.ChargeService;
+import uk.gov.pay.connector.charge.util.CorporateCardSurchargeCalculator;
 import uk.gov.pay.connector.common.exception.OperationAlreadyInProgressRuntimeException;
 import uk.gov.pay.connector.events.model.payout.PayoutEvent;
 import uk.gov.pay.connector.gateway.PaymentGatewayName;
@@ -256,7 +257,7 @@ public class StripeNotificationService {
             ChargeEntity charge = maybeCharge.get();
 
             if (PAYMENT_INTENT_AMOUNT_CAPTURABLE_UPDATED.getType().equals(notification.getType()) &&
-                    !paymentIntent.getAmountCapturable().equals(charge.getAmount())) {
+                    !paymentIntent.getAmountCapturable().equals(CorporateCardSurchargeCalculator.getTotalAmountFor(charge))) {
                 logger.error("{} notification for payment intent [{}] does not have amount capturable equal to original charge {}",
                         PAYMENT_GATEWAY_NAME, paymentIntent.getId(), charge.getExternalId());
                 return;
