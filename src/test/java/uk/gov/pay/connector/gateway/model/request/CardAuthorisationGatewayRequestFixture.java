@@ -2,6 +2,7 @@ package uk.gov.pay.connector.gateway.model.request;
 
 import uk.gov.pay.connector.agreement.model.AgreementEntity;
 import uk.gov.pay.connector.charge.model.ServicePaymentReference;
+import uk.gov.pay.connector.gateway.PaymentGatewayName;
 import uk.gov.pay.connector.gateway.model.AuthCardDetails;
 import uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntity;
 import uk.gov.pay.connector.gatewayaccount.model.GatewayCredentials;
@@ -15,6 +16,7 @@ import static uk.gov.pay.connector.model.domain.AuthCardDetailsFixture.anAuthCar
 
 public class CardAuthorisationGatewayRequestFixture {
     private String gatewayTransactionId = "gateway_transaction_id";
+    private PaymentGatewayName paymentGatewayName = PaymentGatewayName.SANDBOX;
     private String email = "email@example.com";
     private SupportedLanguage language = SupportedLanguage.ENGLISH;
     private boolean moto = false;
@@ -108,10 +110,16 @@ public class CardAuthorisationGatewayRequestFixture {
         this.agreement = agreement;
         return this;
     }
-    
+
+    public CardAuthorisationGatewayRequestFixture withPaymentGatewayName(PaymentGatewayName paymentGatewayName) {
+        this.paymentGatewayName = paymentGatewayName;
+        return this;
+    }
+
     public CardAuthorisationGatewayRequest build() {
         return new CardAuthorisationGatewayRequest(
                 gatewayTransactionId,
+                paymentGatewayName,
                 email,
                 language,
                 moto,

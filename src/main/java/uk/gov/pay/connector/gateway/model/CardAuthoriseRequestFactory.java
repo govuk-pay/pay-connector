@@ -1,12 +1,13 @@
 package uk.gov.pay.connector.gateway.model;
 
 import jakarta.inject.Inject;
-import uk.gov.pay.connector.gateway.PaymentGatewayName;
 import uk.gov.pay.connector.gateway.model.request.CardAuthorisationGatewayRequest;
 import uk.gov.pay.connector.gateway.model.request.records.CardAuthoriseRequest;
 import uk.gov.pay.connector.gateway.worldpay.WorldpayCardAuthoriseRequestFactory;
 
 import java.util.Optional;
+
+import static uk.gov.pay.connector.gateway.PaymentGatewayName.WORLDPAY;
 
 public class CardAuthoriseRequestFactory {
 
@@ -18,7 +19,7 @@ public class CardAuthoriseRequestFactory {
     }
 
     public Optional<? extends CardAuthoriseRequest> create(CardAuthorisationGatewayRequest request) {
-        if (PaymentGatewayName.WORLDPAY.getName().equals(request.getGatewayAccount().getGatewayName())) {
+        if (request.getPaymentGatewayName() == WORLDPAY) {
             return worldpayCardAuthoriseRequestFactory.create(request);
         }
 

@@ -1,18 +1,17 @@
 package uk.gov.pay.connector.gateway;
 
+import jakarta.inject.Inject;
 import uk.gov.pay.connector.gateway.adyen.AdyenPaymentProvider;
 import uk.gov.pay.connector.gateway.sandbox.SandboxPaymentProvider;
 import uk.gov.pay.connector.gateway.stripe.StripePaymentProvider;
 import uk.gov.pay.connector.gateway.worldpay.WorldpayPaymentProvider;
 
-import jakarta.inject.Inject;
+import java.util.EnumMap;
 import java.util.Map;
-
-import static com.google.common.collect.Maps.newHashMap;
 
 public class PaymentProviders {
 
-    private final Map<PaymentGatewayName, PaymentProvider> paymentProviders = newHashMap();
+    private final Map<PaymentGatewayName, PaymentProvider> paymentProviders = new EnumMap<>(PaymentGatewayName.class);
     
     @Inject
     public PaymentProviders(AdyenPaymentProvider adyenPaymentProvider,

@@ -3,6 +3,7 @@ package uk.gov.pay.connector.gateway.model.request;
 import uk.gov.pay.connector.agreement.model.AgreementEntity;
 import uk.gov.pay.connector.charge.model.ServicePaymentReference;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntity;
+import uk.gov.pay.connector.gateway.PaymentGatewayName;
 import uk.gov.pay.connector.gateway.model.AuthCardDetails;
 import uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntity;
 import uk.gov.pay.connector.gatewayaccount.model.GatewayCredentials;
@@ -19,6 +20,7 @@ public class CardAuthorisationGatewayRequest extends AuthorisationGatewayRequest
     }
 
      CardAuthorisationGatewayRequest(String gatewayTransactionId,
+                                     PaymentGatewayName paymentGatewayName,
                                      String email,
                                      SupportedLanguage language,
                                      boolean moto,
@@ -33,7 +35,9 @@ public class CardAuthorisationGatewayRequest extends AuthorisationGatewayRequest
                                      AgreementPaymentType agreementPaymentType,
                                      AgreementEntity agreement,
                                      AuthCardDetails authCardDetails) {
-        super(gatewayTransactionId, email, language, moto, amount, description, reference, govUkPayPaymentId, credentials, gatewayAccount, authorisationMode, savePaymentInstrumentToAgreement, agreementPaymentType, agreement);
+        super(gatewayTransactionId, paymentGatewayName, email, language, moto, amount, description, reference,
+                govUkPayPaymentId, credentials, gatewayAccount, authorisationMode,
+                savePaymentInstrumentToAgreement,agreementPaymentType, agreement);
         this.authCardDetails = authCardDetails;
     }
 
@@ -43,6 +47,7 @@ public class CardAuthorisationGatewayRequest extends AuthorisationGatewayRequest
     
     private CardAuthorisationGatewayRequest(CardAuthorisationGatewayRequest other, AuthCardDetails authCardDetails, String gatewayTransactionId) {
         super(gatewayTransactionId,
+                other.getPaymentGatewayName(),
                 other.getEmail(),
                 other.getLanguage(),
                 other.isMoto(),

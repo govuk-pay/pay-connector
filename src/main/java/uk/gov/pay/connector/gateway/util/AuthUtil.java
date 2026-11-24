@@ -1,5 +1,7 @@
 package uk.gov.pay.connector.gateway.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import uk.gov.pay.connector.app.StripeAuthTokens;
 import uk.gov.pay.connector.app.StripeGatewayConfig;
 import uk.gov.pay.connector.gatewayaccount.model.GatewayCredentials;
@@ -18,6 +20,9 @@ import static jakarta.ws.rs.core.HttpHeaders.AUTHORIZATION;
 import static java.lang.String.format;
 
 public class AuthUtil {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthUtil.class);
+
     private static final String STRIPE_VERSION_HEADER = "Stripe-Version";
     private static final String STRIPE_API_VERSION = "2019-05-16";
 
@@ -83,10 +88,11 @@ public class AuthUtil {
     }
 
     private static WorldpayCredentials castGatewayCredentialsToWorldpayCredentials(GatewayCredentials credentials) {
-        if (!(credentials instanceof WorldpayCredentials)) {
+        if (!(credentials instanceof WorldpayCredentials worldpayCredentials)) {
+            LOGGER.error("Expected provided GatewayCredentials to be of type WorldpayCredentials");
             throw new IllegalArgumentException("Expected provided GatewayCredentials to be of type WorldpayCredentials");
         }
-        return (WorldpayCredentials) credentials;
+        return worldpayCredentials;
     }
 
     public static Map<String, String> getWorldpayCredentialsCheckAuthHeader(WorldpayValidatableCredentials worldpayValidatableCredentials) {

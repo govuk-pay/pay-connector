@@ -11,20 +11,16 @@ import uk.gov.pay.connector.gateway.PaymentGatewayName;
 import uk.gov.pay.connector.gateway.model.CardAuthoriseRequestFactory;
 import uk.gov.pay.connector.gateway.model.request.CardAuthorisationGatewayRequest;
 import uk.gov.pay.connector.gateway.worldpay.WorldpayCardAuthoriseRequestFactory;
-import uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntity;
-import uk.gov.pay.connector.gatewayaccountcredentials.model.GatewayAccountCredentialsEntity;
 
-import java.util.List;
 import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.params.provider.EnumSource.Mode.EXCLUDE;
 import static org.mockito.BDDMockito.given;
+import static uk.gov.pay.connector.gateway.PaymentGatewayName.WORLDPAY;
 import static uk.gov.pay.connector.gateway.model.request.CardAuthorisationGatewayRequestFixture.aCardAuthorisationGatewayRequest;
 import static uk.gov.pay.connector.gateway.model.request.records.WorldpayMotoAuthorisePayloadFixture.aWorldpayMotoAuthorisePayloadFixture;
-import static uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntityFixture.aGatewayAccountEntity;
-import static uk.gov.pay.connector.gatewayaccountcredentials.model.GatewayAccountCredentialsEntityFixture.aGatewayAccountCredentialsEntity;
 
 @ExtendWith(MockitoExtension.class)
 class CardAuthoriseRequestFactoryTest {
@@ -41,16 +37,8 @@ class CardAuthoriseRequestFactoryTest {
 
     @Test
     void shouldBuildWorldpayAuthoriseRequestIfWorldpay() {
-        GatewayAccountCredentialsEntity gatewayAccountCredentialsEntity = aGatewayAccountCredentialsEntity()
-                .withPaymentProvider(PaymentGatewayName.WORLDPAY.getName())
-                .build();
-
-        GatewayAccountEntity gatewayAccountEntity = aGatewayAccountEntity()
-                .withGatewayAccountCredentials(List.of(gatewayAccountCredentialsEntity))
-                .build();
-
         CardAuthorisationGatewayRequest cardAuthorisationGatewayRequest = aCardAuthorisationGatewayRequest()
-                .withGatewayAccount(gatewayAccountEntity)
+                .withPaymentGatewayName(WORLDPAY)
                 .build();
 
         WorldpayCardAuthoriseRequest worldpayAuthoriseRequest = aWorldpayMotoAuthorisePayloadFixture().build();
@@ -67,16 +55,8 @@ class CardAuthoriseRequestFactoryTest {
     @ParameterizedTest
     @EnumSource(value = PaymentGatewayName.class,  mode = EXCLUDE, names = { "WORLDPAY" })
     void shouldBuildNothingIfNotWorldpay(PaymentGatewayName paymentGatewayName) {
-        GatewayAccountCredentialsEntity gatewayAccountCredentialsEntity = aGatewayAccountCredentialsEntity()
-                .withPaymentProvider(paymentGatewayName.getName())
-                .build();
-
-        GatewayAccountEntity gatewayAccountEntity = aGatewayAccountEntity()
-                .withGatewayAccountCredentials(List.of(gatewayAccountCredentialsEntity))
-                .build();
-
         CardAuthorisationGatewayRequest cardAuthorisationGatewayRequest = aCardAuthorisationGatewayRequest()
-                .withGatewayAccount(gatewayAccountEntity)
+                .withPaymentGatewayName(paymentGatewayName)
                 .build();
 
         Optional<? extends CardAuthoriseRequest> authoriseRequest = cardAuthoriseRequestFactory.create(cardAuthorisationGatewayRequest);
