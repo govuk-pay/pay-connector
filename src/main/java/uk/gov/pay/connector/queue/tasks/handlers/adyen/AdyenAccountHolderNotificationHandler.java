@@ -1,5 +1,6 @@
 package uk.gov.pay.connector.queue.tasks.handlers.adyen;
 
+import com.adyen.model.configurationwebhooks.AccountHolderCapability;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,9 +9,11 @@ import uk.gov.pay.connector.gateway.exception.AdyenNotificationException;
 import uk.gov.pay.connector.gatewayaccount.dao.AdyenAccountCapabilitiesDao;
 import uk.gov.pay.connector.gatewayaccount.model.AdyenAccountCapabilitiesEntity;
 import uk.gov.pay.connector.gatewayaccount.model.AdyenCredentials;
-import uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntity;
 import uk.gov.pay.connector.gatewayaccountcredentials.dao.GatewayAccountCredentialsDao;
+import uk.gov.pay.connector.gatewayaccountcredentials.model.GatewayAccountCredentialsEntity;
 
+import static com.adyen.model.configurationwebhooks.AccountHolderCapability.VerificationStatusEnum.VALID;
+import static java.lang.Boolean.TRUE;
 import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
 
 public class AdyenAccountHolderNotificationHandler {
@@ -50,20 +53,47 @@ public class AdyenAccountHolderNotificationHandler {
             throw new AdyenNotificationException("Adyen account holder notification is missing account holder id");
         }
 
-        var gatewayAccount = getGatewayAccount(accountHolder.getId());
-
-        var maybeAdyenAccountCapabilities = adyenAccountCapabilitiesDao.findByGatewayAccountId(gatewayAccount.getId());
-
-        var adyenAccountCapabilities = maybeAdyenAccountCapabilities.orElseGet(AdyenAccountCapabilitiesEntity::new);
-
         LOGGER.atInfo()
                 .setMessage("Received a balancePlatform.accountHolder.updated event for Adyen legal entity {}")
                 .addArgument(accountHolderNotificationData.getAccountHolder().getLegalEntityId())
                 .addKeyValue("account_holder_id", accountHolder.getId())
                 .log();
+
+        var gatewayAccountCredentials = getGatewayAccountCredentials(accountHolder.getId());
+        var gatewayAccount = gatewayAccountCredentials.getGatewayAccountEntity();
+
+        var adyenAccountCapabilities = adyenAccountCapabilitiesDao.findByGatewayAccountId(gatewayAccount.getId())
+                .orElseGet(AdyenAccountCapabilitiesEntity::new);
+        
+        var webhookCapabilities = accountHolder.getCapabilities();
+
+        if (webhookCapabilities != null) {
+            adyenAccountCapabilities.setGatewayAccount(gatewayAccount);
+            adyenAccountCapabilities.setGatewayAccountCredential(gatewayAccountCredentials);
+
+            webhookCapabilities.forEach((capabilityName, capability) -> {
+                boolean isValidAndAllowed = isIsValidAndAllowed(capability);
+
+                switch (capabilityName) {
+                    case "receiveFromPlatformPayments" -> adyenAccountCapabilities.setReceiveFromPlatformAccount(isValidAndAllowed);
+                    case "receiveFromBalanceAccount" -> adyenAccountCapabilities.setReceiveFromBalanceAccount(isValidAndAllowed);
+                    case "sendToBalanceAccount" -> adyenAccountCapabilities.setSendToBalanceAccount(isValidAndAllowed);
+                    case "sendToTransferInstrument" -> adyenAccountCapabilities.setSendToTransferInstrument(isValidAndAllowed);
+                    case "receivePayments" -> adyenAccountCapabilities.setReceivePayments(isValidAndAllowed);
+                    default -> LOGGER.atInfo().setMessage("Received capability not supported").log();
+                }
+            });
+
+            adyenAccountCapabilitiesDao.persist(adyenAccountCapabilities);
+        }
+        else {
+            LOGGER.atInfo()
+                    .setMessage("Ignoring balancePlatform.accountHolder.updated event with no capabilities")
+                    .log();
+        }
     }
 
-    private GatewayAccountEntity getGatewayAccount(String accountHolderId) {
+    private GatewayAccountCredentialsEntity getGatewayAccountCredentials(String accountHolderId) {
         var gatewayAccountCredentials = gatewayAccountCredentialsDao
                 .findByPaymentProviderAndCredentialsKeyValue(
                         ADYEN.getName(),
@@ -79,6 +109,11 @@ public class AdyenAccountHolderNotificationHandler {
             throw new AdyenNotificationException("No Adyen gateway account credentials found for account holder webhook");
         }
 
-        return gatewayAccountCredentials.get().getGatewayAccountEntity();
+        return gatewayAccountCredentials.get();
+    }
+
+    private static boolean isIsValidAndAllowed(AccountHolderCapability capability) {
+        return VALID.equals(capability.getVerificationStatus())
+                && TRUE.equals(capability.getAllowed());
     }
 }
