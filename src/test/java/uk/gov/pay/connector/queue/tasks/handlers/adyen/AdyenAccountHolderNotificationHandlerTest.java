@@ -180,7 +180,7 @@ class AdyenAccountHolderNotificationHandlerTest {
                 AdyenCredentials.ADYEN_ACCOUNT_HOLDER_ID,
                 accountHolder.getId());
         ArgumentCaptor<AdyenAccountCapabilitiesEntity> entityArgumentCaptor = ArgumentCaptor.forClass(AdyenAccountCapabilitiesEntity.class);
-        verify(mockAdyenAccountCapabilitiesDao).persist(entityArgumentCaptor.capture());
+        verify(mockAdyenAccountCapabilitiesDao).merge(entityArgumentCaptor.capture());
 
         AdyenAccountCapabilitiesEntity entity = entityArgumentCaptor.getValue();
 

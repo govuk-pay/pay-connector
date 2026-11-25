@@ -84,7 +84,7 @@ public class AdyenAccountHolderNotificationHandler {
                 }
             });
 
-            adyenAccountCapabilitiesDao.persist(adyenAccountCapabilities);
+            adyenAccountCapabilitiesDao.merge(adyenAccountCapabilities);
         }
         else {
             LOGGER.atInfo()
