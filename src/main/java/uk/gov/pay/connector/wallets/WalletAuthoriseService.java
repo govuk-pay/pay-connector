@@ -251,7 +251,7 @@ public class WalletAuthoriseService {
                     paymentProvider.authoriseApplePay(
                             adyenApplePayAuthoriseRequest, 
                             authorisationGatewayRequest.getGatewayAccount().getGatewayAccountType());
-            case null, default -> getPaymentProviderFor(chargeEntity).authoriseApplePay(authorisationGatewayRequest);
+            case null, default -> paymentProvider.authoriseApplePay(authorisationGatewayRequest);
         };
         
         return new RequestAndResponse(applePayAuthoriseRequest, response);
@@ -276,7 +276,7 @@ public class WalletAuthoriseService {
                             adyenGooglePayAuthorisePayload,
                             authorisationGatewayRequest.getGatewayAccount().getGatewayAccountType()
                     );
-            case null, default ->  getPaymentProviderFor(chargeEntity).authoriseGooglePay(authorisationGatewayRequest);
+            case null, default ->  paymentProvider.authoriseGooglePay(authorisationGatewayRequest);
         };
 
         return new RequestAndResponse(googlePayAuthoriseRequest, response);

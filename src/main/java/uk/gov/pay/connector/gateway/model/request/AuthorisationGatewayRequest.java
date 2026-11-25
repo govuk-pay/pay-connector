@@ -5,6 +5,7 @@ import uk.gov.pay.connector.charge.model.ServicePaymentReference;
 import uk.gov.pay.connector.charge.model.domain.ChargeEntity;
 import uk.gov.pay.connector.charge.util.CorporateCardSurchargeCalculator;
 import uk.gov.pay.connector.gateway.GatewayOperation;
+import uk.gov.pay.connector.gateway.PaymentGatewayName;
 import uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntity;
 import uk.gov.pay.connector.gatewayaccount.model.GatewayCredentials;
 import uk.gov.pay.connector.gatewayaccountcredentials.model.GatewayAccountCredentialsEntity;
@@ -16,6 +17,7 @@ import java.util.Optional;
 
 public abstract class AuthorisationGatewayRequest implements GatewayRequest {
     private final String gatewayTransactionId;
+    private final PaymentGatewayName paymentGatewayName;
     private final String email;
     private final SupportedLanguage language;
     private final boolean moto;
@@ -34,6 +36,7 @@ public abstract class AuthorisationGatewayRequest implements GatewayRequest {
         // NOTE: we don't store the ChargeEntity as we want to discourage code that deals with this request from
         // updating the charge in the database.
         this.gatewayTransactionId = charge.getGatewayTransactionId();
+        this.paymentGatewayName = charge.getPaymentGatewayName();
         this.email = charge.getEmail();
         this.language = charge.getLanguage();
         this.moto = charge.isMoto();
@@ -52,6 +55,7 @@ public abstract class AuthorisationGatewayRequest implements GatewayRequest {
     }
 
     public AuthorisationGatewayRequest(String gatewayTransactionId,
+                                       PaymentGatewayName paymentGatewayName,
                                        String email,
                                        SupportedLanguage language,
                                        boolean moto,
@@ -66,6 +70,7 @@ public abstract class AuthorisationGatewayRequest implements GatewayRequest {
                                        AgreementPaymentType agreementPaymentType,
                                        AgreementEntity agreement) {
         this.gatewayTransactionId = gatewayTransactionId;
+        this.paymentGatewayName = paymentGatewayName;
         this.email = email;
         this.language = language;
         this.moto = moto;
@@ -148,5 +153,9 @@ public abstract class AuthorisationGatewayRequest implements GatewayRequest {
     @Override
     public boolean isForRecurringPayment() {
         return agreement.isPresent();
+    }
+
+    public PaymentGatewayName getPaymentGatewayName() {
+        return paymentGatewayName;
     }
 }

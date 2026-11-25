@@ -15,21 +15,16 @@ import uk.gov.pay.connector.gateway.model.request.records.AdyenGooglePayAuthoris
 import uk.gov.pay.connector.gateway.model.request.records.AdyenGooglePayAuthorisePayloadFixture;
 import uk.gov.pay.connector.gateway.model.request.records.GooglePayAuthoriseRequest;
 import uk.gov.pay.connector.gatewayaccount.model.AdyenCredentials;
-import uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntity;
-import uk.gov.pay.connector.gatewayaccountcredentials.model.GatewayAccountCredentialsEntity;
 import uk.gov.pay.connector.model.domain.googlepay.GooglePayAuthRequestFixture;
 import uk.gov.pay.connector.wallets.googlepay.GooglePayAuthorisationGatewayRequest;
 import uk.gov.pay.connector.wallets.googlepay.api.GooglePayAuthRequest;
 
-import java.util.List;
 import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.params.provider.EnumSource.Mode.EXCLUDE;
 import static org.mockito.BDDMockito.given;
-import static uk.gov.pay.connector.gatewayaccount.model.GatewayAccountEntityFixture.aGatewayAccountEntity;
-import static uk.gov.pay.connector.gatewayaccountcredentials.model.GatewayAccountCredentialsEntityFixture.aGatewayAccountCredentialsEntity;
 
 @ExtendWith(MockitoExtension.class)
 class GooglePayAuthoriseRequestFactoryTest {
@@ -53,16 +48,8 @@ class GooglePayAuthoriseRequestFactoryTest {
 
     @Test
     void shouldBuildAydenAuthoriseRequestIfAdyen() {
-        GatewayAccountCredentialsEntity gatewayAccountCredentialsEntity = aGatewayAccountCredentialsEntity()
-                .withPaymentProvider(PaymentGatewayName.ADYEN.getName())
-                .build();
-
-        GatewayAccountEntity gatewayAccountEntity = aGatewayAccountEntity()
-                .withGatewayAccountCredentials(List.of(gatewayAccountCredentialsEntity))
-                .build();
-
         ChargeEntity chargeEntity = ChargeEntityFixture.aValidChargeEntity()
-                .withGatewayAccountEntity(gatewayAccountEntity)
+                .withPaymentProvider(PaymentGatewayName.ADYEN.getName())
                 .build();
 
         GooglePayAuthRequest googlePayAuthRequest = GooglePayAuthRequestFixture.aGooglePayAuthRequest().build();
@@ -82,16 +69,8 @@ class GooglePayAuthoriseRequestFactoryTest {
     @ParameterizedTest
     @EnumSource(value = PaymentGatewayName.class,  mode = EXCLUDE, names = { "ADYEN" })
     void shouldBuildNothingIfNotAdyen(PaymentGatewayName paymentGatewayName) {
-        GatewayAccountCredentialsEntity gatewayAccountCredentialsEntity = aGatewayAccountCredentialsEntity()
-                .withPaymentProvider(paymentGatewayName.getName())
-                .build();
-
-        GatewayAccountEntity gatewayAccountEntity = aGatewayAccountEntity()
-                .withGatewayAccountCredentials(List.of(gatewayAccountCredentialsEntity))
-                .build();
-
         ChargeEntity chargeEntity = ChargeEntityFixture.aValidChargeEntity()
-                .withGatewayAccountEntity(gatewayAccountEntity)
+                .withPaymentProvider(paymentGatewayName.getName())
                 .build();
 
         GooglePayAuthRequest googlePayAuthRequest = GooglePayAuthRequestFixture.aGooglePayAuthRequest().build();

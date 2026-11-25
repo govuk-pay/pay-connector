@@ -8,7 +8,7 @@ import uk.gov.pay.connector.gatewayaccount.model.AdyenCredentials;
 public class AdyenCredentialsHelper {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(AdyenCredentialsHelper.class);
-    
+
     public String getStore(GatewayRequest gatewayRequest) {
         AdyenCredentials adyenCredentials = getAdyenCredentials(gatewayRequest);
         if (adyenCredentials.storeId() != null) {
@@ -25,6 +25,7 @@ public class AdyenCredentialsHelper {
             return adyenCredentials;
         }
 
+        LOGGER.error("Expected provided GatewayCredentials to be of type AdyenCredentials");
         throw new IllegalArgumentException("Expected provided GatewayCredentials to be of type AdyenCredentials");
     }
 
