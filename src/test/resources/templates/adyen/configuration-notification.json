@@ -6,6 +6,87 @@
       "legalEntityId": "LE00000000000000000001",
       "reference": "YOUR_REFERENCE-2412C",
       "capabilities": {
+        "receiveFromPlatformPayments": {
+          "enabled": true,
+          "requested": true,
+          "allowed": true,
+          "problems": [
+            {
+              "entity": {
+                "id": "LE00000000000000000001",
+                "type": "BankAccount"
+              },
+              "verificationErrors": [
+                {
+                  "code": "2_8037",
+                  "message": "'bankStatement' was missing.",
+                  "remediatingActions": [
+                    {
+                      "code": "1_703",
+                      "message": "Upload a bank statement"
+                    }
+                  ],
+                  "type": "dataMissing"
+                }
+              ]
+            }
+          ],
+          "verificationStatus": "valid"
+        },
+        "receiveFromBalanceAccount": {
+          "enabled": true,
+          "requested": true,
+          "allowed": true,
+          "problems": [
+            {
+              "entity": {
+                "id": "LE00000000000000000001",
+                "type": "BankAccount"
+              },
+              "verificationErrors": [
+                {
+                  "code": "2_8037",
+                  "message": "'bankStatement' was missing.",
+                  "remediatingActions": [
+                    {
+                      "code": "1_703",
+                      "message": "Upload a bank statement"
+                    }
+                  ],
+                  "type": "dataMissing"
+                }
+              ]
+            }
+          ],
+          "verificationStatus": "valid"
+        },
+        "sendToBalanceAccount": {
+          "enabled": true,
+          "requested": true,
+          "allowed": true,
+          "problems": [
+            {
+              "entity": {
+                "id": "LE00000000000000000001",
+                "type": "BankAccount"
+              },
+              "verificationErrors": [
+                {
+                  "code": "2_8037",
+                  "message": "'bankStatement' was missing.",
+                  "remediatingActions": [
+                    {
+                      "code": "1_703",
+                      "message": "Upload a bank statement"
+                    }
+                  ],
+                  "type": "dataMissing"
+                }
+              ]
+            }
+          ],
+          "verificationStatus": "{{sendToBalanceAccount_verificationStatus}}"
+        },
         "sendToTransferInstrument": {
           "enabled": true,
           "requested": true,
@@ -32,9 +113,36 @@
             }
           ],
           "verificationStatus": "invalid"
+        },
+        "receivePayments": {
+          "enabled": true,
+          "requested": true,
+          "allowed": true,
+          "problems": [
+            {
+              "entity": {
+                "id": "LE00000000000000000001",
+                "type": "BankAccount"
+              },
+              "verificationErrors": [
+                {
+                  "code": "2_8037",
+                  "message": "'bankStatement' was missing.",
+                  "remediatingActions": [
+                    {
+                      "code": "1_703",
+                      "message": "Upload a bank statement"
+                    }
+                  ],
+                  "type": "dataMissing"
+                }
+              ]
+            }
+          ],
+          "verificationStatus": "{{receivePayments_verificationStatus}}"
         }
       },
-      "id": "AH00000000000000000001",
+      "id": "{{accountHolderId}}",
       "status": "active"
     }
   },

@@ -1289,6 +1289,14 @@ public class DatabaseTestHelper {
         );
     }
 
+    public List<Map<String, Object>> getAdyenAccountCapabilities(Long gatewayAccountId) {
+        return jdbi.withHandle(handle ->
+                handle.createQuery("SELECT * FROM gateway_accounts_adyen_capabilities where gateway_account_id = :gatewayAccountId")
+                        .bind("gatewayAccountId", gatewayAccountId)
+                        .mapToMap()
+                        .list());
+    }
+
     public void insertIdempotency(String key, Long gatewayAccountId, String resourceExternalId, Map<String, Object> requestBody) {
         PGobject requestBodyJson = mapToJsonPGobject(requestBody);
 
