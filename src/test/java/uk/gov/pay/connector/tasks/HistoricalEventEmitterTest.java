@@ -118,7 +118,7 @@ class HistoricalEventEmitterTest {
         when(refundDao.getRefundHistoryByRefundExternalId(chargeEntity.getExternalId())).thenReturn(list);
         when(emittedEventDao.hasBeenEmittedBefore(any())).thenReturn(false);
 
-        adyenFeeCalculator.when(() -> AdyenFeeCalculator.hasAllExpectedFeeRecordsForAdyen(feeList)).thenReturn(true);
+        adyenFeeCalculator.when(() -> AdyenFeeCalculator.hasAllExpectedFeeRecordsForAdyen(feeList, chargeEntity.getAmount())).thenReturn(true);
 
         emittedEventsBackfillService.backfillEvent(emittedEventEntity);
 

@@ -16,9 +16,11 @@ import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasNoJsonPath;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.CAPTURED;
 import static uk.gov.pay.connector.charge.model.domain.FeeSubType.FIXED;
+import static uk.gov.pay.connector.charge.model.domain.FeeType.ADYEN_SELLER_SPLIT;
 import static uk.gov.pay.connector.charge.model.domain.FeeType.RADAR;
 import static uk.gov.pay.connector.charge.model.domain.FeeType.THREE_D_S;
 import static uk.gov.pay.connector.charge.model.domain.FeeType.TRANSACTION;
@@ -28,6 +30,7 @@ class FeeIncurredEventTest {
     private Instant radarFeeCreatedDate;
     private Instant transactionFeeCreatedDate;
     private Instant threeDsFeeCreatedDate;
+    private Instant sellerSplitFeeCreatedDate;
 
     @BeforeEach
     void setUp() {
@@ -39,6 +42,7 @@ class FeeIncurredEventTest {
         radarFeeCreatedDate = Instant.parse("2021-10-01T10:00:00Z");
         transactionFeeCreatedDate = Instant.parse("2021-11-01T11:00:00Z");
         threeDsFeeCreatedDate = Instant.parse("2021-12-01T12:00:00Z");
+        sellerSplitFeeCreatedDate = Instant.parse("2021-12-01T12:00:00Z");
     }
 
     @Test
@@ -46,9 +50,11 @@ class FeeIncurredEventTest {
         FeeEntity radarFee = new FeeEntity(chargeEntity, radarFeeCreatedDate, 100L, RADAR);
         FeeEntity transactionFee = new FeeEntity(chargeEntity, transactionFeeCreatedDate, 200L, TRANSACTION);
         FeeEntity threeDsFee = new FeeEntity(chargeEntity, threeDsFeeCreatedDate, 300L, THREE_D_S);
+        FeeEntity sellerSplit = new FeeEntity(chargeEntity,sellerSplitFeeCreatedDate, 300L, ADYEN_SELLER_SPLIT);
         chargeEntity.addFee(radarFee);
         chargeEntity.addFee(transactionFee);
         chargeEntity.addFee(threeDsFee);
+        chargeEntity.addFee(sellerSplit);
         String actual = FeeIncurredEvent.from(chargeEntity).toJsonString();
 
         assertThat(actual, hasJsonPath("$.timestamp", equalTo("2021-10-01T10:00:00.000000Z")));
@@ -66,6 +72,7 @@ class FeeIncurredEventTest {
         assertThat(actual, hasJsonPath("$.event_details.fee_breakdown[2].fee_type", equalTo("three_ds")));
         assertThat(actual, hasJsonPath("$.event_details.fee_breakdown[2].amount", equalTo(300)));
         assertThat(actual, hasNoJsonPath("$.event_details.fee_breakdown[1].fee_sub_type"));
+        assertThat(actual, hasJsonPath("$.event_details.fee_breakdown[1].fee_type", not(equalTo("seller_split"))));
     }
 
     @Test

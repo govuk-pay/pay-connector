@@ -11,7 +11,8 @@ public enum FeeType {
     THREE_D_S("three_ds"),
     TRANSACTION("transaction"),
     FRAUD_PROTECTION("fraud_protection"),
-    GATEWAY("gateway");
+    GATEWAY("gateway"),
+    ADYEN_SELLER_SPLIT("seller_split");
 
     FeeType(String name) {
         this.name = name;

@@ -5,5 +5,6 @@ public enum AdyenFeeTransferType {
     VARIABLE_COMMISSION,
     INTERCHANGE,
     SCHEME_FEE,
+    BALANCE_ACCOUNT,
     UNSUPPORTED
 }

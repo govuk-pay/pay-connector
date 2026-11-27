@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static uk.gov.pay.connector.charge.model.domain.FeeType.ADYEN_SELLER_SPLIT;
 import static uk.gov.pay.connector.charge.util.AdyenFeeCalculator.hasAllExpectedFeeRecordsForAdyen;
 import static uk.gov.pay.connector.common.model.api.ExternalChargeState.EXTERNAL_SUCCESS;
 import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
@@ -28,6 +29,7 @@ public class ChargeFeeCalculator {
 
 
         return Optional.of(fees.stream()
+                .filter(feeEntity -> !ADYEN_SELLER_SPLIT.equals(feeEntity.getFeeType()))
                 .collect(Collectors.toMap(
                         fee -> new FeeKey(fee.getFeeType(), fee.getFeeSubType()),
                         FeeEntity::getAmountCollected,
@@ -51,7 +53,7 @@ public class ChargeFeeCalculator {
     public static boolean hasRequiredFeesForAdyen(ChargeEntity charge) {
         if (ADYEN.getName().equals(charge.getPaymentProvider()) && charge.getChargeStatus().toExternal() == EXTERNAL_SUCCESS) {
             List<Fee> mappedFees = charge.getFees().stream().map(Fee::from).toList();
-            return hasAllExpectedFeeRecordsForAdyen(mappedFees);
+            return hasAllExpectedFeeRecordsForAdyen(mappedFees, charge.getAmount());
         }
         return true;
     }

@@ -16,6 +16,7 @@ import static uk.gov.pay.connector.charge.model.domain.FeeSubType.FIXED;
 import static uk.gov.pay.connector.charge.model.domain.FeeSubType.INTERCHANGE;
 import static uk.gov.pay.connector.charge.model.domain.FeeSubType.SCHEME_FEE;
 import static uk.gov.pay.connector.charge.model.domain.FeeSubType.VARIABLE;
+import static uk.gov.pay.connector.charge.model.domain.FeeType.ADYEN_SELLER_SPLIT;
 import static uk.gov.pay.connector.charge.model.domain.FeeType.FRAUD_PROTECTION;
 import static uk.gov.pay.connector.charge.model.domain.FeeType.GATEWAY;
 import static uk.gov.pay.connector.charge.model.domain.FeeType.TRANSACTION;
@@ -45,6 +46,7 @@ public class AdyenFeeCalculator {
             case VARIABLE_COMMISSION -> List.of(Fee.of(TRANSACTION, feeAmount, VARIABLE));
             case INTERCHANGE -> List.of(Fee.of(TRANSACTION, feeAmount, INTERCHANGE));
             case SCHEME_FEE -> List.of(Fee.of(TRANSACTION, feeAmount, SCHEME_FEE));
+            case BALANCE_ACCOUNT -> List.of(Fee.of(ADYEN_SELLER_SPLIT, feeAmount, null));
             case UNSUPPORTED -> throw new IllegalArgumentException("Cannot calculate fees for " + adyenFeeTransferType);
         };
     }
@@ -73,7 +75,7 @@ public class AdyenFeeCalculator {
         return feeList;
     }
 
-    public static boolean hasAllExpectedFeeRecordsForAdyen(List<Fee> fees) {
+    public static boolean hasAllExpectedFeeRecordsForAdyen(List<Fee> fees, Long chargeAmount) {
         if (fees == null || fees.isEmpty()) {
             return false;
         }
@@ -91,8 +93,13 @@ public class AdyenFeeCalculator {
                 transactionFeeSubTypes.add(fee.feeSubType());
             }
         }
+        return foundFeeTypes.containsAll(REQUIRED_ADYEN_FEE_TYPES) //false
+                && (isCorrectFeeSum(fees, chargeAmount) || hasValidTransactionFeeSubTypes(transactionFeeSubTypes));
+    }
 
-        return foundFeeTypes.containsAll(REQUIRED_ADYEN_FEE_TYPES) && hasValidTransactionFeeSubTypes(transactionFeeSubTypes);
+    public static boolean isCorrectFeeSum(List<Fee> fees, Long chargeAmount) {
+        var feeTotal = fees.stream().mapToLong(Fee::amount).sum();
+        return feeTotal == chargeAmount;
     }
 
     private static boolean hasValidTransactionFeeSubTypes(Set<FeeSubType> transactionFeeSubTypes) {

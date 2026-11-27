@@ -224,7 +224,7 @@ public class HistoricalEventEmitter {
         switch (charge.getPaymentGatewayName()) {
             case ADYEN:
                 List<Fee> mappedFees = charge.getFees().stream().map(Fee::from).toList();
-                if (hasAllExpectedFeeRecordsForAdyen(mappedFees)) {
+                if (hasAllExpectedFeeRecordsForAdyen(mappedFees, charge.getAmount())) {
                     emitFeeIncurredEvent(charge, forceEmission);
                 }
             case STRIPE:
@@ -314,7 +314,7 @@ public class HistoricalEventEmitter {
         }
 
         List<Fee> fees = history.getFees().stream().map(Fee::from).toList();
-        if (!hasAllExpectedFeeRecordsForAdyen(fees)) {
+        if (!hasAllExpectedFeeRecordsForAdyen(fees, charge.getAmount())) {
             return;
         }
 

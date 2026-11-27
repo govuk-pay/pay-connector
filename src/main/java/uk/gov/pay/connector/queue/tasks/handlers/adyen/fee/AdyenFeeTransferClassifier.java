@@ -1,6 +1,7 @@
 package uk.gov.pay.connector.queue.tasks.handlers.adyen.fee;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
+import static uk.gov.pay.connector.queue.tasks.handlers.adyen.fee.AdyenFeeTransferType.BALANCE_ACCOUNT;
 import static uk.gov.pay.connector.queue.tasks.handlers.adyen.fee.AdyenFeeTransferType.FIXED_COMMISSION;
 import static uk.gov.pay.connector.queue.tasks.handlers.adyen.fee.AdyenFeeTransferType.INTERCHANGE;
 import static uk.gov.pay.connector.queue.tasks.handlers.adyen.fee.AdyenFeeTransferType.SCHEME_FEE;
@@ -20,6 +21,7 @@ public final class AdyenFeeTransferClassifier {
             case "Commission" -> classifyCommission(description);
             case "Interchange" -> INTERCHANGE;
             case "SchemeFee" -> SCHEME_FEE;
+            case "BalanceAccount" -> BALANCE_ACCOUNT;
             default -> UNSUPPORTED;
         };
     }
