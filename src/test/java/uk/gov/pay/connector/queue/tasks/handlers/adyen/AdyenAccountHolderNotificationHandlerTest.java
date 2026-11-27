@@ -194,6 +194,19 @@ class AdyenAccountHolderNotificationHandlerTest {
         List<KeyValuePair> pairs = logs.getEvents().getFirst().getKeyValuePairs();
         assertThat(pairs.getFirst().key, is("account_holder_id"));
         assertThat(pairs.getFirst().value.toString(), containsString("someId"));
+
+        List<String> expectedCapabilities = List.of(
+                "receiveFromPlatformPayments",
+                "receiveFromBalanceAccount",
+                "sendToBalanceAccount",
+                "sendToTransferInstrument",
+                "receivePayments"
+        );
+
+        expectedCapabilities.forEach(capability -> logs.assertContains(
+                "Updated \"%s\" account capability to value \"%s\" for Adyen legal entity LE00000000000000000001"
+                        .formatted(capability, capabilityReady)
+        ));
     }
 
     @Test
@@ -238,6 +251,7 @@ class AdyenAccountHolderNotificationHandlerTest {
         adyenAccountHolderNotificationHandler.process(payload);
 
         logs.assertContains("Received capability not supported");
+        logs.assertDoesNotContain("account capability to value");
     }
 
     private static Map<String, AccountHolderCapability> createAccountCapabilities(Boolean allowed, VerificationStatusEnum verificationStatus) {
