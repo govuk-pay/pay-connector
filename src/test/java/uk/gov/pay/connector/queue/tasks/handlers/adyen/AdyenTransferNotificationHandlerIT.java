@@ -104,6 +104,28 @@ class AdyenTransferNotificationHandlerIT {
         assertFeeDetails(gatewayFeeRecord, expectedFeeType, 73, is(expectedFeeSubType));
     }
 
+    @ParameterizedTest
+    @CsvSource({
+            "BalanceAccount, Some desc, seller_split, null",
+            "Interchange, Some desc, transaction,interchange",
+            "SchemeFee, Some desc, transaction,scheme_fee"
+    })
+    void shouldProcessFeesWhenNonFixedFeesAreMissingNotifications(String platformPaymentType, String description,
+                                               String expectedFeeType,
+                                               String expectedFeeSubType) {
+        String payload = createPaymentFeeTransferNotification(testCharge, platformPaymentType, description);
+
+        adyenTransferNotificationHandler.process(payload);
+
+        List<Map<String, Object>> feesForCharge = app.getDatabaseTestHelper().getFeesByChargeId(testCharge.getChargeId());
+
+        assertThat(feesForCharge.size(), is(1));
+
+        Map<String, Object> gatewayFeeRecord = getFeeRecord(feesForCharge, expectedFeeType);
+        var expectedSubType = expectedFeeSubType.equals("null") ? null : expectedFeeSubType;
+        assertFeeDetails(gatewayFeeRecord, expectedFeeType, 73, is(expectedSubType));
+    }
+
     @Test
     void shouldSaveFeesWhenProcessingMultipleTransferNotificationsConcurrently() throws InterruptedException {
         DatabaseFixtures.TestCharge charge = app.getDatabaseFixtures()

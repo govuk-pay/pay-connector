@@ -21,13 +21,11 @@ import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.CAPTURED;
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.CREATED;
 import static uk.gov.pay.connector.charge.model.domain.FeeSubType.FIXED;
 import static uk.gov.pay.connector.charge.model.domain.FeeSubType.SCHEME_FEE;
-import static uk.gov.pay.connector.charge.model.domain.FeeType.FRAUD_PROTECTION;
-import static uk.gov.pay.connector.charge.model.domain.FeeType.GATEWAY;
+import static uk.gov.pay.connector.charge.model.domain.FeeType.ADYEN_SELLER_SPLIT;
 import static uk.gov.pay.connector.charge.model.domain.FeeType.RADAR;
 import static uk.gov.pay.connector.charge.model.domain.FeeType.THREE_D_S;
 import static uk.gov.pay.connector.charge.model.domain.FeeType.TRANSACTION;
 import static uk.gov.pay.connector.fee.model.Fee.of;
-import static uk.gov.pay.connector.gateway.PaymentGatewayName.ADYEN;
 import static uk.gov.pay.connector.util.ChargeFeeCalculator.calculateFeeAmount;
 import static uk.gov.pay.connector.util.ChargeFeeCalculator.calculateNetAmount;
 
@@ -58,6 +56,22 @@ class ChargeFeeCalculatorTest {
 
         assertThat(netAmount).isPresent();
         assertThat(netAmount).hasValue(140L);
+    }
+
+    @Test
+    void calculateFeeAmountShouldSumUpFeesIgnoringAdyenSellerSplitFee() {
+        ChargeEntity charge = ChargeEntityFixture.aValidChargeEntity()
+                .withAmount(150L)
+                .withFee(of(TRANSACTION, 100L, FIXED))
+                .withFee(of(TRANSACTION, 10L, SCHEME_FEE))
+                .withFee(of(ADYEN_SELLER_SPLIT, 40L, null))
+                .withStatus(CAPTURED)
+                .build();
+
+        Optional<Long> netAmount = calculateFeeAmount(charge);
+
+        assertThat(netAmount).isPresent();
+        assertThat(netAmount).hasValue(110L);
     }
 
     @Test
@@ -111,14 +125,5 @@ class ChargeFeeCalculatorTest {
                 Arguments.of("Successful payment includes Corporate Surcharge", CAPTURED, 250L, 1120L),
                 Arguments.of("non-successful payment returns negative fee total", AUTHORISATION_REJECTED, 250L, -130L)
         );
-    }
-
-    private static ChargeEntityFixture adyenCharge() {
-        return ChargeEntityFixture.aValidChargeEntity()
-                .withPaymentProvider(ADYEN.getName())
-                .withAmount(1000L)
-                .withFee(of(GATEWAY, 5L))
-                .withFee(of(FRAUD_PROTECTION, 1L))
-                .withStatus(CAPTURED);
     }
 }

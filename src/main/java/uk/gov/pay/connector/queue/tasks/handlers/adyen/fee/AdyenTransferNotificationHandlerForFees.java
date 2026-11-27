@@ -114,7 +114,7 @@ public class AdyenTransferNotificationHandlerForFees {
 
         if (adyenFeeTransferType == UNSUPPORTED) {
             LOGGER.atInfo()
-                    .setMessage("Skipping transfer notification for fees as it is not one of Commission, Interchange or SchemeFee payment type")
+                    .setMessage("Skipping transfer notification for fees as it is not one of Commission, Interchange or SchemeFee or BalanceAccount payment type")
                     .log();
             return;
         }
@@ -216,7 +216,7 @@ public class AdyenTransferNotificationHandlerForFees {
                     .map(feeEntity -> new Fee(feeEntity.getFeeType(), feeEntity.getAmountCollected(), feeEntity.getFeeSubType()))
                     .toList();
 
-            if (hasAllExpectedFeeRecordsForAdyen(feeList)) {
+            if (hasAllExpectedFeeRecordsForAdyen(feeList, chargeEntity.getAmount())) {
                 emitFeeEventForPayment(chargeEntity);
             } else {
                 LOGGER.atInfo().setMessage("Waiting for all expected fees for Adyen transfer before emitting to Ledger").log();

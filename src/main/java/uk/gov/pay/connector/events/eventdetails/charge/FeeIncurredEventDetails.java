@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import static uk.gov.pay.connector.charge.model.domain.FeeType.ADYEN_SELLER_SPLIT;
+
 public class FeeIncurredEventDetails extends EventDetails {
     
     private final Long fee;
@@ -24,6 +26,7 @@ public class FeeIncurredEventDetails extends EventDetails {
     public static FeeIncurredEventDetails from(ChargeEntity charge) {
         List<Fee> listOfFees = charge.getFees()
                 .stream()
+                .filter(feeEntity -> !ADYEN_SELLER_SPLIT.equals(feeEntity.getFeeType()))
                 .map(Fee::from)
                 .collect(Collectors.toList());
         

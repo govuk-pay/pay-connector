@@ -48,6 +48,7 @@ import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.CAPTURE_SUBM
 import static uk.gov.pay.connector.charge.model.domain.ChargeStatus.CREATED;
 import static uk.gov.pay.connector.charge.model.domain.FeeSubType.FIXED;
 import static uk.gov.pay.connector.charge.model.domain.FeeSubType.VARIABLE;
+import static uk.gov.pay.connector.charge.model.domain.FeeType.ADYEN_SELLER_SPLIT;
 import static uk.gov.pay.connector.charge.model.domain.FeeType.FRAUD_PROTECTION;
 import static uk.gov.pay.connector.charge.model.domain.FeeType.GATEWAY;
 import static uk.gov.pay.connector.charge.model.domain.FeeType.RADAR;
@@ -482,8 +483,12 @@ class ChargeExpungeServiceTest {
                         "collected, but some required fees have not yet been processed.");
     }
     
-    @Test
-    void expunge_shouldExpungeChargeAndLog_ifIsAdyenPaymentWithAllRequiredFees() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void expunge_shouldExpungeChargeAndLog_ifIsAdyenPaymentWithAllRequiredFees(boolean isVariableFeePresent) {
+        
+        var variableFeeOrSellerSplit = isVariableFeePresent ?  Fee.of(TRANSACTION, 3L, VARIABLE) : Fee.of(ADYEN_SELLER_SPLIT, 490L, null);
+        
         ChargeEntity chargeEntity = ChargeEntityFixture.aValidChargeEntity()
                 .withGatewayAccountEntity(liveGatewayAccount)
                 .withStatus(CAPTURED)
@@ -492,7 +497,7 @@ class ChargeExpungeServiceTest {
                 .withFee(Fee.of(GATEWAY, 2L))
                 .withFee(Fee.of(FRAUD_PROTECTION, 1L))
                 .withFee(Fee.of(TRANSACTION, 7L, FIXED))
-                .withFee(Fee.of(TRANSACTION, 3L, VARIABLE))
+                .withFee(variableFeeOrSellerSplit)
                 .build();
         
         shouldExpunge(chargeEntity);

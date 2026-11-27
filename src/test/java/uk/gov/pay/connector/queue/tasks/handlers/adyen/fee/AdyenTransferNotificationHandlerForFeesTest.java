@@ -65,6 +65,7 @@ import static uk.gov.pay.connector.charge.model.domain.FeeSubType.FIXED;
 import static uk.gov.pay.connector.charge.model.domain.FeeSubType.INTERCHANGE;
 import static uk.gov.pay.connector.charge.model.domain.FeeSubType.SCHEME_FEE;
 import static uk.gov.pay.connector.charge.model.domain.FeeSubType.VARIABLE;
+import static uk.gov.pay.connector.charge.model.domain.FeeType.ADYEN_SELLER_SPLIT;
 import static uk.gov.pay.connector.charge.model.domain.FeeType.FRAUD_PROTECTION;
 import static uk.gov.pay.connector.charge.model.domain.FeeType.GATEWAY;
 import static uk.gov.pay.connector.charge.model.domain.FeeType.TRANSACTION;
@@ -208,6 +209,7 @@ class AdyenTransferNotificationHandlerForFeesTest {
             chargeEntity.addFee(createFeeEntity(chargeEntity, TRANSACTION, VARIABLE, 5L));
             chargeEntity.addFee(createFeeEntity(chargeEntity, GATEWAY, null, 1L));
             chargeEntity.addFee(createFeeEntity(chargeEntity, FRAUD_PROTECTION, null, 1L));
+            chargeEntity.addFee(createFeeEntity(chargeEntity, ADYEN_SELLER_SPLIT,null, 983L));
 
             when(mockAdyenGatewayConfig.getPaymentOrRefundGatewayFeeInPence()).thenReturn(10);
             when(mockAdyenGatewayConfig.getFraudAvoidanceFeeInPence()).thenReturn(20);
