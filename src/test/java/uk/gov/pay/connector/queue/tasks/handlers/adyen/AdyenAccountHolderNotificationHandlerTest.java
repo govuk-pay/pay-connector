@@ -234,9 +234,11 @@ class AdyenAccountHolderNotificationHandlerTest {
         var accountCapability = new AccountHolderCapability();
         accountCapability.setVerificationStatus(VALID);
         accountCapability.setAllowed(true);
+        
+        var unexpectedCapability = "someUnexpectedCapability";
 
         var capabilities = Map.of(
-                "someUnexpectedCapability", accountCapability
+                unexpectedCapability, accountCapability
         );
 
         var accountHolder = setupAdyenWebhookRequest(capabilities);
@@ -250,7 +252,7 @@ class AdyenAccountHolderNotificationHandlerTest {
 
         adyenAccountHolderNotificationHandler.process(payload);
 
-        logs.assertContains("Received capability not supported");
+        logs.assertContains(String.format("Received capability \"%s\" not relevant", unexpectedCapability));
         logs.assertDoesNotContain("account capability to value");
     }
 

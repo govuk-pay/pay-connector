@@ -89,7 +89,9 @@ public class AdyenAccountHolderNotificationHandler {
                     case SEND_TO_TRANSFER_INSTRUMENT -> adyenAccountCapabilities.setSendToTransferInstrument(isValidAndAllowed);
                     case RECEIVE_PAYMENTS -> adyenAccountCapabilities.setReceivePayments(isValidAndAllowed);
                     default -> {
-                        LOGGER.atInfo().setMessage("Received capability not supported").log();
+                        LOGGER.atInfo().setMessage("Received capability \"{}\" not relevant")
+                                .addArgument(capabilityName)
+                                .log();
                         return;
                     }
                 }
@@ -121,7 +123,7 @@ public class AdyenAccountHolderNotificationHandler {
 
         if (gatewayAccountCredentials.isEmpty()) {
             LOGGER.atError()
-                    .setMessage("Adyen account holder notification capabilities are missing or empty")
+                    .setMessage("No Adyen gateway account credentials found for account holder webhook")
                     .addKeyValue("accountHolderId", accountHolderId)
                     .log();
             throw new AdyenNotificationException("No Adyen gateway account credentials found for account holder webhook");
